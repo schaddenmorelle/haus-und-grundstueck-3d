@@ -1,0 +1,124 @@
+<title>Haus und Grundstück 3D</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
+<style>
+:root{--paper:#f3f1ea;--panel:#fbfaf6;--ink:#1f2328;--muted:#6a6f76;--rule:#d9d6cb;--blue:#1f4fb5;--red:#c8321e;--scene:#dfe6ea;--dark:0;--shadow:0 6px 24px rgba(31,35,40,.16);--on:#1f4fb5;--onfg:#fff;--chip:#ecebe3}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#15181c;--panel:#1d2126;--ink:#e8e6df;--muted:#9aa0a8;--rule:#323840;--blue:#7da3ff;--red:#ff7a63;--scene:#20262c;--dark:1;--shadow:0 6px 24px rgba(0,0,0,.5);--on:#7da3ff;--onfg:#10151c;--chip:#272c33;color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#15181c;--panel:#1d2126;--ink:#e8e6df;--muted:#9aa0a8;--rule:#323840;--blue:#7da3ff;--red:#ff7a63;--scene:#20262c;--dark:1;--shadow:0 6px 24px rgba(0,0,0,.5);--on:#7da3ff;--onfg:#10151c;--chip:#272c33;color-scheme:dark}
+html,body{height:100%}
+body{background:var(--paper);color:var(--ink);font:14px/1.45 Barlow,system-ui,sans-serif;overflow:hidden;margin:0}
+*{box-sizing:border-box}
+#shell{position:relative;height:100%;min-height:360px}
+#app{position:absolute;inset:0;background:var(--scene)}
+#gl{width:100%;height:100%;display:block;touch-action:none;outline:none}
+#tags{position:absolute;inset:0;pointer-events:none;overflow:hidden}
+.tag{position:absolute;left:0;top:0;white-space:nowrap;font-size:12px;line-height:1.2;padding:2px 6px;border-radius:3px;background:color-mix(in srgb,var(--panel) 82%,transparent);border:1px solid var(--rule)}
+.tag.room{text-align:center;color:var(--ink)}
+.tag.room b{display:block;font-weight:600}
+.tag.room span{color:var(--muted);font-variant-numeric:tabular-nums}
+.tag.h{color:var(--red);border-color:var(--red);font-variant-numeric:tabular-nums;font-weight:500}
+.tag.dim{color:var(--blue);border-color:var(--blue);font-variant-numeric:tabular-nums;font-weight:500}
+#measTag{position:absolute;left:0;top:0;display:none;background:var(--red);color:#fff;font-weight:600;padding:2px 7px;border-radius:3px;pointer-events:none;font-variant-numeric:tabular-nums}
+#togglePanel{position:absolute;left:12px;top:12px;z-index:5;display:flex;align-items:center;gap:8px;height:40px;padding:0 14px;border:1px solid var(--rule);border-radius:6px;background:var(--panel);color:var(--ink);font:600 13px/1 'Barlow Condensed',Barlow,sans-serif;letter-spacing:.06em;text-transform:uppercase;cursor:pointer;box-shadow:var(--shadow)}
+#panel{position:absolute;z-index:4;left:12px;top:60px;bottom:12px;width:min(340px,calc(100% - 24px));background:var(--panel);border:1px solid var(--rule);border-radius:8px;box-shadow:var(--shadow);overflow:auto;overscroll-behavior:contain;padding:16px;transition:transform .25s,opacity .25s}
+#panel.closed{transform:translateX(-110%);opacity:0;pointer-events:none}
+h1{font:700 26px/1.05 'Barlow Condensed',Barlow,sans-serif;letter-spacing:.02em;margin:0;text-wrap:balance}
+.sub{color:var(--muted);margin:4px 0 0;font-size:13px}
+h2{font:600 12px/1 'Barlow Condensed',Barlow,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin:0 0 8px}
+section{padding-top:14px;margin-top:14px;border-top:1px solid var(--rule)}
+.btns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.btn{height:36px;border:1px solid var(--rule);background:var(--chip);color:var(--ink);border-radius:5px;font:500 13px/1 Barlow,sans-serif;cursor:pointer;padding:0 6px}
+.btn.on,.btn[aria-pressed="true"]{background:var(--on);color:var(--onfg);border-color:var(--on)}
+.btn:focus-visible,#togglePanel:focus-visible,#rooms button:focus-visible,input:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.chk{display:flex;align-items:center;gap:10px;min-height:32px;cursor:pointer}
+.chk input{width:18px;height:18px;accent-color:var(--on);margin:0}
+.chk small{color:var(--muted);margin-left:auto}
+#sun{width:100%;accent-color:var(--on)}
+.row{display:flex;justify-content:space-between;gap:8px;align-items:center;font-variant-numeric:tabular-nums}
+#rooms{list-style:none;margin:0;padding:0;display:grid;gap:2px}
+#rooms button{width:100%;display:flex;justify-content:space-between;gap:8px;align-items:center;border:0;background:transparent;color:var(--ink);padding:7px 8px;border-radius:4px;font:inherit;text-align:left;cursor:pointer;border-bottom:1px dotted var(--rule)}
+#rooms button:hover{background:var(--chip)}
+#rooms button.on{background:var(--on);color:var(--onfg)}
+.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:5px 12px;font-variant-numeric:tabular-nums}
+dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
+.note{font-size:12.5px;color:var(--muted)}
+.note b{color:var(--ink);font-weight:600}
+#readout{min-height:20px;font-size:13px;margin:8px 0 0;font-variant-numeric:tabular-nums}
+#hud{position:absolute;right:12px;top:12px;z-index:3;display:flex;flex-direction:column;align-items:flex-end;gap:8px;pointer-events:none}
+#hud svg{width:60px;height:60px;background:color-mix(in srgb,var(--panel) 80%,transparent);border:1px solid var(--rule);border-radius:50%}
+#fallback[hidden]{display:none}
+#fallback{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;background:var(--scene);z-index:6}
+@media (max-width:760px){
+ #panel{left:8px;right:8px;width:auto;top:auto;bottom:8px;max-height:62%}
+ #panel.closed{transform:translateY(110%)}
+ #togglePanel{left:8px;top:8px}
+ #hud{right:8px;top:8px}
+}
+</style>
+<div id="shell">
+  <div id="app">
+    <canvas id="gl" aria-label="Interaktives 3D-Modell von Grundstück und Haus" tabindex="0"></canvas>
+    <div id="tags"></div><div id="measTag"></div>
+    <div id="hud">
+      <svg viewBox="0 0 60 60" role="img" aria-label="Kompass"><circle cx="30" cy="30" r="26" fill="none" stroke="currentColor" stroke-opacity=".25"/><g id="needle"><polygon points="30,7 35,31 25,31" fill="#c8321e"/><polygon points="30,53 35,31 25,31" fill="#8a8f96"/></g><text x="30" y="19" font-size="9" text-anchor="middle" fill="currentColor" style="display:none">N</text></svg>
+    </div>
+  </div>
+  <button id="togglePanel" type="button" aria-controls="panel" aria-expanded="true">Menü</button>
+  <div id="panel">
+    <h1>Haus und Grundstück 3D</h1>
+    <p class="sub">Maßstabsgetreu nach Lageplan, Absteckung und Bauplänen. Ziehen dreht, Mausrad oder zwei Finger zoomen.</p>
+    <section><h2>Ansicht</h2>
+      <div class="btns">
+        <button class="btn" type="button" data-view="sw" aria-pressed="false">Südwest</button>
+        <button class="btn" type="button" data-view="ne" aria-pressed="false">Nordost</button>
+        <button class="btn" type="button" data-view="plan" aria-pressed="false">Draufsicht</button>
+        <button class="btn" type="button" data-view="inside" aria-pressed="false">Erdgeschoss</button>
+        <button class="btn" type="button" data-view="dg" aria-pressed="false">Dachausbau</button>
+        <button class="btn" type="button" data-view="frame" aria-pressed="false">Dachstuhl</button>
+      </div>
+    </section>
+    <section><h2>Ebenen</h2>
+      <label class="chk"><input id="t-roof" type="checkbox" checked>Dach</label>
+      <label class="chk"><input id="t-rafters" type="checkbox">Dachbalken (Sparren)</label>
+      <label class="chk"><input id="t-dg" type="checkbox">Dachausbau (DG)</label>
+      <label class="chk"><input id="t-rooms" type="checkbox">Raumnamen und Flächen</label>
+      <label class="chk"><input id="t-heights" type="checkbox">Höhen (m ü. NN)</label>
+      <label class="chk"><input id="t-dims" type="checkbox">Maße</label>
+      <label class="chk"><input id="t-garden" type="checkbox" checked>Außenanlagen</label>
+    </section>
+    <section><h2>Sonne</h2>
+      <div class="row"><label for="sun">Himmelsrichtung</label><span id="sunOut" class="num"></span></div>
+      <input id="sun" type="range" min="0" max="359" step="1" value="200">
+    </section>
+    <section><h2>Messen</h2>
+      <div class="btns" style="grid-template-columns:1fr 1fr">
+        <button id="measure" class="btn" type="button" aria-pressed="false">Strecke messen</button>
+        <button id="measureClear" class="btn" type="button">Zurücksetzen</button>
+      </div>
+      <p id="readout" aria-live="polite"></p>
+    </section>
+    <section><h2>Räume</h2><ul id="rooms"></ul></section>
+    <section><h2>Kennzahlen</h2>
+      <dl>
+        <dt>Grundstück</dt><dd id="k-plot"></dd>
+        <dt>Hausgrundfläche</dt><dd id="k-foot"></dd>
+        <dt>First</dt><dd id="k-ridge"></dd>
+        <dt>Traufe</dt><dd id="k-eave"></dd>
+        <dt>Dachneigung</dt><dd id="k-pitch"></dd>
+      </dl>
+    </section>
+    <section><h2>Grundlagen und Annahmen</h2>
+      <p class="note"><b>Aus den Plänen und Angaben:</b> Grundstücksgrenzen, Hausmaße, alle Wände, Türen und Fenster des Erdgeschosses (Außenwand 18,5 cm Poroton plus 20 cm Dämmung; mittlere Fenster zweigeteilt, das breite im Wohnzimmer dreigeteilt), First- und Traufhöhe, Dachfenster, nicht ausgebaute Randzonen im Dach, kein Keller, Geschosshöhe 2,971 m und die Treppe (15 Steigungen, Wendelung an der Ostwand) nach der Treppenplanung und Ihren Aufmaßen (Wandabstand im Dachgeschoss 1,60 m, Treppenlauf 90 cm, Geländer 15 cm, Nische 54 cm), außerdem aus dem Binderplan Dachneigung 35°, Dachüberstand 23,5 cm und die Sparrenachsen, aus dem Plan der Balkenlage der Kamin und der Stützpfosten an der Terrassenecke.</p>
+      <p class="note"><b>Angenommen:</b> Geländehöhen im Grundstück (±15 cm), Raumhöhe 2,525 m, Kaminhöhe (bis 149,60 m ü. NN), Fensterhöhen außer den bemaßten, Pool, Carport und Gartenelemente nach Luftbild. Die Flächen im Dachausbau sind Grundflächen zwischen den Kniewänden, keine Wohnfläche. Die Wand von Pias Zimmer zur Treppe ist gegenüber dem Dachausbauplan um etwa 14 cm in den Raum gerückt, damit Treppe (90 cm), Geländer (15 cm) und Nische (54 cm) zwischen die Wände passen.</p>
+    </section>
+  </div>
+  <div id="fallback" hidden><p>Der Browser kann das 3D-Modell nicht darstellen (WebGL fehlt).</p></div>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+/*MODEL*/
+</script>
+<script>
+/*APP*/
+</script>
