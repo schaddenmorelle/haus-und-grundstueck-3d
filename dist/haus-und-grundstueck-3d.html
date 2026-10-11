@@ -441,17 +441,18 @@ function buildModel(THREE) {
     tags.push({ kind: 'room', layer: 'rooms', level: 'eg', name: r.name, area: area, pos: [c[0], yF + 0.25, c[1]] });
   });
   // überdachte Terrasse und Terrassenplatten: Oberkante auf Höhe des Fußbodens innen (Angabe Nutzer)
-  var TERR = yF;
+  // Terrasse reicht vorn 10 cm über die Pergola hinaus (Annahme nach Foto)
+  var TERR = yF, TZ1 = F.z0 + 14.85;
   (function terrace() {
-    var t = boxAt(3.4, 0.3, F.z1 - F.zn, M(0x6e7176, 0.9), (F.x0 + F.xn) / 2 + 0.0, TERR - 0.15, (F.zn + F.z1) / 2, gGarden);
+    var t = boxAt(3.4, 0.3, TZ1 - F.zn, M(0x6e7176, 0.9), (F.x0 + F.xn) / 2 + 0.0, TERR - 0.15, (F.zn + TZ1) / 2, gGarden);
     var area = 3.4 * (15.74 - F.zn);
     tags.push({ kind: 'room', layer: 'rooms', name: 'Terrasse (überdacht)', area: area, pos: [(F.x0 + F.xn) / 2, TERR + 0.25, (F.zn + 15.74) / 2] });
     roomsOut.push({ id: 'terrasse', name: 'Terrasse (überdacht)', area: area, center: [(F.x0 + F.xn) / 2, (F.zn + 15.74) / 2], mesh: t, base: 0x6e7176, level: 'out' });
   })();
   // Pergola (Aluminium anthrazit, Lamellendach weiß) auf dem nicht überdachten Teil der Terrasse: außen 3 × 5 m, 2,525 m hoch.
-  // Hinten bis knapp unter den Dachüberstand (Traufe hz 9,685), vorn bündig mit der Hauskante, 5 cm vor der Westwand des Wohnzimmers (Lage nach Foto)
+  // Aufmaß Nutzer: 30 cm vor der Westwand des Wohnzimmers, 2,97 m vor der Außenwand des Bads; oben knapp unter dem Dachüberstand
   (function pergola() {
-    var x0 = 0.45, x1 = 3.45, z1 = HD, z0 = HD - 5.0, H2 = 2.525, PW = 0.15, BH = 0.22;
+    var x1 = XL - 0.30, x0 = x1 - 3.0, z0 = ZU + 2.97, z1 = z0 + 5.0, H2 = 2.525, PW = 0.15, BH = 0.22;
     var alu = M(0x3a3d41, 0.6, 0.3), slat = M(0xe9e9e6, 0.6);
     var cx = P((x0 + x1) / 2, 0)[0], cz = P(0, (z0 + z1) / 2)[1], yb = TERR + H2 - BH / 2;
     [[x0, z0], [x1 - PW, z0], [x0, z1 - PW], [x1 - PW, z1 - PW]].forEach(function (q) {
