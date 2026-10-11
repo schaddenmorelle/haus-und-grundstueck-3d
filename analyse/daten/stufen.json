@@ -1,0 +1,5 @@
+[
+  {"name": "Stufe 1: Baukörper", "ergebnis": "Grundstück mit Grenzen, Haus als Volumen mit Dach, Nordpfeil", "eingaben": "Lageplan oder Grenzmaße, Außenmaße und Höhen des Hauses", "genauigkeit": "ca. ±10–30 cm", "aufwand": "Gering"},
+  {"name": "Stufe 2: Innenräume", "ergebnis": "Alle Zimmer mit Wänden, Türen, Fenstern, Treppen und Geschosshöhen, im Browser begehbar", "eingaben": "Grundrisse je Geschoss (Foto oder PDF genügt) plus Stichproben-Maße zum Gegenprüfen", "genauigkeit": "ca. ±3–10 cm", "aufwand": "Mittel"},
+  {"name": "Stufe 3: Detailmodell", "ergebnis": "Gelände, Terrasse, Garage, Bäume, Zäune und optional Möbel", "eingaben": "Höhenangaben, Aufmaß der Außenanlagen, Fotos", "genauigkeit": "ca. ±1–5 cm", "aufwand": "Hoch"}
+]

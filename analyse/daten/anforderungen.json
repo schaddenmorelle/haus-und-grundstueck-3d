@@ -1,0 +1,14 @@
+[
+  {"angabe": "Grenzverlauf des Grundstücks (Seitenlängen, Winkel)", "bereich": "Grundstück", "quelle": "Lageplan, Flurkarte, Vermessungsamt", "prioritaet": "Pflicht", "stufe": 1},
+  {"angabe": "Lage des Hauses auf dem Grundstück (Abstände zu den Grenzen)", "bereich": "Grundstück", "quelle": "Lageplan oder Messung", "prioritaet": "Pflicht", "stufe": 1},
+  {"angabe": "Außenmaße des Hauses und Geschosshöhen", "bereich": "Haus", "quelle": "Bauzeichnungen oder Messung", "prioritaet": "Pflicht", "stufe": 1},
+  {"angabe": "Dachform, Neigung, First- und Traufhöhe", "bereich": "Haus", "quelle": "Ansichten und Schnitte, Fotos, Messung", "prioritaet": "Pflicht", "stufe": 1},
+  {"angabe": "Grundriss jedes Geschosses mit Wandstärken", "bereich": "Zimmer", "quelle": "Bauzeichnungen (Foto oder PDF genügt)", "prioritaet": "Pflicht", "stufe": 2},
+  {"angabe": "Verwendungszweck und gewünschtes Dateiformat", "bereich": "Ziel", "quelle": "Du", "prioritaet": "Pflicht", "stufe": 1},
+  {"angabe": "Türen und Fenster (Position, Breite, Höhe, Brüstung)", "bereich": "Zimmer", "quelle": "Bauzeichnungen oder Messung", "prioritaet": "Empfohlen", "stufe": 2},
+  {"angabe": "Raumhöhen, Treppen und Deckenstärken", "bereich": "Zimmer", "quelle": "Schnitte oder Messung", "prioritaet": "Empfohlen", "stufe": 2},
+  {"angabe": "Nordrichtung", "bereich": "Grundstück", "quelle": "Lageplan oder Luftbild", "prioritaet": "Empfohlen", "stufe": 1},
+  {"angabe": "Geländehöhen und Hanglage", "bereich": "Gelände", "quelle": "Höhenplan, Messung, öffentliche Geländedaten", "prioritaet": "Empfohlen", "stufe": 3},
+  {"angabe": "Terrasse, Garage, Wege, Zäune, Bäume", "bereich": "Außenbereich", "quelle": "Luftbild, Fotos, Messung", "prioritaet": "Optional", "stufe": 3},
+  {"angabe": "Möbel und Einbauten (Küche, Bad)", "bereich": "Ausstattung", "quelle": "Messung oder Fotos", "prioritaet": "Optional", "stufe": 3}
+]

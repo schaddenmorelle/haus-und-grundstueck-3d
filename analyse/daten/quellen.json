@@ -1,0 +1,6 @@
+[
+  {"quelle": "Fotos und Luftbilder ohne Maße", "von_cm": 30, "bis_cm": 100, "hinweis": "Nur grobe Schätzung: reicht für Proportionen, nicht für „maßstabsgetreu“."},
+  {"quelle": "Baupläne und Lageplan aus der Bauakte", "von_cm": 3, "bis_cm": 10, "hinweis": "Gut für Grundrisse, aber der gebaute Zustand kann abweichen (Umbauten, Toleranzen)."},
+  {"quelle": "Smartphone-3D-Scan (LiDAR)", "von_cm": 2, "bis_cm": 5, "hinweis": "Export als OBJ oder PLY; dient als Grundlage für Wände und Räume."},
+  {"quelle": "Aufmaß mit Laser-Entfernungsmesser oder Zollstock", "von_cm": 1, "bis_cm": 2, "hinweis": "Genaueste Variante, aber mit dem größten Aufwand für dich."}
+]
