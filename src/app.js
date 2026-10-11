@@ -14,7 +14,7 @@
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
   var scene = new THREE.Scene();
-  var model = buildModel(THREE);
+  var model = buildModel(THREE, HAUS);
   scene.add(model.root);
 
   function fmt(n, d) { return n.toLocaleString('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d }); }

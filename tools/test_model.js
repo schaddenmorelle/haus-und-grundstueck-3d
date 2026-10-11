@@ -3,10 +3,11 @@
 const fs = require('fs'), path = require('path');
 const THREE = require('three');
 const { buildModel } = require('../src/model.js');
+const haus = require('../src/data/haus.json');
 const SNAP = path.join(__dirname, 'snapshot.json');
 
 const t0 = Date.now();
-const m = buildModel(THREE);
+const m = buildModel(THREE, haus);
 console.log('build ms', Date.now() - t0);
 
 let meshes = 0, tris = 0, bad = 0;

@@ -1,0 +1,14 @@
+{
+  "_hinweis": "Gesperrte Werte (AGENTS.md, Randbedingungen; Plan Abschnitt 3.2). Quelle: Plan und Nutzer, nicht aus dem Modell gemessen. Eine gewollte Änderung wird hier und in src/data/haus.json eingetragen, eine versehentliche fällt im Test auf.",
+  "aussenmasse_mm": {
+    "x.W": 0,
+    "x.O": 12950,
+    "x.V": 3500,
+    "z.N": 0,
+    "z.U": 6780,
+    "z.S": 14655
+  },
+  "dach": {
+    "neigung_grad": 35
+  }
+}
