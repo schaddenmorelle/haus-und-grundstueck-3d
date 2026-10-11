@@ -94,6 +94,17 @@ haus.raeume.forEach(r => {
   try { check(W.mm(t.von[0]) === W.mm(t.bis[0]) || W.mm(t.von[1]) === W.mm(t.bis[1]), t.id + ': Trennlinie nicht achsparallel'); } catch (e) { fails.push(t.id + ': ' + e.message); }
 });
 
+/* Dachgeschoss: Pias Zimmer, Arbeitszimmer und Abstellkammer haben je eine Tür zum Flur (Angabe des Nutzers vom 11.10.2026), keine offenen Übergänge.
+   Küche / Wohnen / Essen bleiben dagegen offen (Trennlinie im EG). Pias Zimmer und Abstellkammer grenzen deshalb mit einer Wand an den Flur. */
+{
+  check(!(haus.trennlinien || []).some(t => t.geschoss === 'DG'), 'Im DG darf es keine Trennlinien geben: die Räume sind durch Wände mit Türen getrennt');
+  check((haus.trennlinien || []).some(t => t.geschoss === 'EG' && /wohnen-kueche/.test(t.id)), 'Küche und Wohnen / Essen müssen offen bleiben (Trennlinie)');
+  const dgTueren = haus.waende.filter(w => w.geschoss === 'DG').reduce((n, w) => n + (w.oeffnungen || []).filter(o => o.art === 'durchgang').length, 0);
+  check(dgTueren === 3, 'Im DG gibt es ' + dgTueren + ' Türen statt 3 (Abstellkammer, Arbeitszimmer, Pias Zimmer)');
+  const m = buildModel(THREE, haus), g = m.abgeleitet.geschosse.DG;
+  check(g.teilflaechen.length === 4 && g.teilflaechen.every(t => t.raeume.length === 1), 'DG: vier Räume, jeder in einer eigenen Teilfläche');
+}
+
 /* ---------- Modell folgt den Daten ---------- */
 const flaeche = (m, id) => m.rooms.filter(r => r.id === id)[0].area;
 const m0 = buildModel(THREE, haus);

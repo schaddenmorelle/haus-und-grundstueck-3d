@@ -207,14 +207,18 @@
     { "id": "dg.trennwand", "geschoss": "DG", "typ": "TB-DG", "von": ["x.tw", "z.qN"], "bis": ["x.tw", "z.dgS"], "flucht": "mitte", "notiz": "Arbeitszimmer / Abstellkammer",
       "oeffnungen": [{ "art": "durchgang", "ab": "z.tuerN", "breite": 860, "hoehe": "voll", "notiz": "Tür zum Arbeitszimmer hz 8,55–9,41; im Modell ohne Sturz und ohne Türblatt (Öffnung bis zur Dachschräge)" }] },
     { "id": "dg.schraegwand-treppe", "geschoss": "DG", "typ": "TB-DG", "von": ["x.dgO", "z.HN"], "bis": ["x.treppeO", "z.HN"], "flucht": "unten", "freiesEnde": true, "notiz": "nördlich der Treppenöffnung, von der Kniewand bis zur Hauskante; das Ende an der Hauskante ist frei" },
-    { "id": "dg.treppenwand-nord", "geschoss": "DG", "typ": "TB-DG", "von": ["x.treppeW", "z.tN"], "bis": ["x.dgO", "z.tN"], "flucht": "unten", "freiesEnde": true, "notiz": "behält die Seite zur Treppe (1,60 m lichter Abstand); der Anfang steht frei im Flur" },
-    { "id": "dg.treppenwand-sued", "geschoss": "DG", "typ": "TB-DG", "von": ["x.treppeW", "z.ZS"], "bis": ["x.treppeO", "z.ZS"], "flucht": "oben", "freiesEnde": true, "notiz": "südlich der Treppenöffnung; der Anfang steht frei im Flur, das Ende an der Hauskante ist frei" }
+    { "id": "dg.treppenwand-nord", "geschoss": "DG", "typ": "TB-DG", "von": ["x.treppeW", "z.tN"], "bis": ["x.dgO", "z.tN"], "flucht": "unten", "notiz": "behält die Seite zur Treppe (1,60 m lichter Abstand); westlich schließt die Wand zu Pias Zimmer an" },
+    { "id": "dg.treppenwand-sued", "geschoss": "DG", "typ": "TB-DG", "von": ["x.treppeW", "z.ZS"], "bis": ["x.treppeO", "z.ZS"], "flucht": "oben", "freiesEnde": true, "notiz": "südlich der Treppenöffnung; westlich schließt die Wand zur Abstellkammer an, das Ende an der Hauskante ist frei" },
+    { "id": "dg.wand-pia-flur", "geschoss": "DG", "typ": "TB-DG", "von": ["x.twO", "z.tN"], "bis": ["x.treppeW", "z.tN"], "flucht": "unten",
+      "notiz": "Wand Pias Zimmer / Flur westlich der Treppenwand Nord (Flucht wie diese), mit Tür in Pias Zimmer",
+      "oeffnungen": [{ "art": "durchgang", "ab": 71, "breite": 760, "hoehe": "voll", "quelle": "annahme", "notiz": "Tür Pias Zimmer: Angabe des Nutzers (enger Durchgang). Breite 76 cm angenommen, mittig in der 90-cm-Lücke zwischen Trennwand und Treppenwand; Maße reicht der Nutzer nach. Wie die Tür zum Arbeitszimmer ohne Sturz und ohne Türblatt." }] },
+    { "id": "dg.wand-flur-abstell", "geschoss": "DG", "typ": "TB-DG", "von": ["x.twO", "z.ZS"], "bis": ["x.treppeW", "z.ZS"], "flucht": "oben",
+      "notiz": "Wand Flur / Abstellkammer westlich der Treppenwand Süd (Flucht wie diese), mit Tür in die Abstellkammer",
+      "oeffnungen": [{ "art": "durchgang", "ab": 71, "breite": 760, "hoehe": "voll", "quelle": "annahme", "notiz": "Tür Abstellkammer: Angabe des Nutzers (enger Durchgang). Breite 76 cm angenommen, mittig in der 90-cm-Lücke zwischen Trennwand und Treppenwand; Maße reicht der Nutzer nach. Wie die Tür zum Arbeitszimmer ohne Sturz und ohne Türblatt." }] }
   ],
 
   "trennlinien": [
-    { "id": "eg.wohnen-kueche", "geschoss": "EG", "von": ["x.wohnO", "z.kuecheN"], "bis": ["x.wohnO", "z.Si"], "notiz": "Raumgrenze ohne Wand: die Küche geht offen in Wohnen / Essen über" },
-    { "id": "dg.pia-flur", "geschoss": "DG", "von": ["x.twO", "z.tNa"], "bis": ["x.treppeW", "z.tNa"], "notiz": "Raumgrenze ohne Wand: Pias Zimmer geht westlich der Treppenwand offen in den Flur über" },
-    { "id": "dg.flur-abstell", "geschoss": "DG", "von": ["x.twO", "z.tSa"], "bis": ["x.treppeW", "z.tSa"], "notiz": "Raumgrenze ohne Wand: der Flur geht westlich der Treppenwand offen in die Abstellkammer über" }
+    { "id": "eg.wohnen-kueche", "geschoss": "EG", "von": ["x.wohnO", "z.kuecheN"], "bis": ["x.wohnO", "z.Si"], "notiz": "Raumgrenze ohne Wand: die Küche geht offen in Wohnen / Essen über" }
   ],
 
   "raeume": [

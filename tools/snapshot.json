@@ -1,6 +1,6 @@
 {
- "meshes": 800,
- "tris": 194540,
+ "meshes": 804,
+ "tris": 194602,
  "tags": 49,
  "plotArea": 569.77,
  "footArea": 162.22,
@@ -102,7 +102,7 @@
   "treppe": {
    "name": "Treppe und Flur (DG)",
    "level": "dg",
-   "area": 2.84
+   "area": 2.61
   }
  }
 }
