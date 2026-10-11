@@ -109,7 +109,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
     </section>
     <section><h2>Grundlagen und Annahmen</h2>
       <p class="note"><b>Aus den Plänen und Angaben:</b> Grundstücksgrenzen, Hausmaße, alle Wände, Türen und Fenster des Erdgeschosses nach dem bemaßten Grundriss und Ihrem Aufmaß (Außenwand 18,5 cm Poroton plus 20 cm Dämmung; mittlere Fenster zweigeteilt, das breite im Wohnzimmer dreigeteilt), First- und Traufhöhe, Dachfenster, nicht ausgebaute Randzonen im Dach, kein Keller, Geschosshöhe 2,971 m und die Treppe (15 Steigungen, Wendelung an der Ostwand) nach der Treppenplanung und Ihren Aufmaßen (Wandabstand im Dachgeschoss 1,60 m, Treppenlauf 90 cm, Geländer 15 cm, Nische 54 cm), außerdem aus dem Binderplan Dachneigung 35°, Dachüberstand 23,5 cm und die Sparrenachsen, aus dem Plan der Balkenlage der Kamin und der Stützpfosten an der Terrassenecke, nach Ihren Angaben die Terrasse auf Fußbodenhöhe und die Pergola (3 × 5 m, 2,525 m hoch).</p>
-      <p class="note"><b>Angenommen:</b> Geländehöhen im Grundstück (±15 cm), Raumhöhe 2,525 m, Kaminhöhe (bis 149,60 m ü. NN), Fensterhöhen außer den bemaßten, Wanddicken im Dachausbau einheitlich 12,5 cm, Pool, Carport und Gartenelemente nach Luftbild. Die Flächen im Dachausbau sind Grundflächen zwischen den Kniewänden, keine Wohnfläche. Die Wand von Pias Zimmer zur Treppe ist gegenüber dem Dachausbauplan um etwa 14 cm in den Raum gerückt, damit Treppe (90 cm), Geländer (15 cm) und Nische (54 cm) zwischen die Wände passen.</p>
+      <p class="note"><b>Angenommen:</b> Geländehöhen im Grundstück (±15 cm), Raumhöhe 2,525 m, Kaminhöhe (bis 149,60 m ü. NN), Fensterhöhen außer den bemaßten, Wanddicken im Dachausbau einheitlich 12,5 cm, Lage von Pool, Carport und Gartenelementen nach Luftbild, Zaun 15 cm innerhalb der Grenzlinie, Hecke 40 cm tief, Spritzschutzstreifen 40 cm breit, Maße und Lage von Spielturm, Schaukel und Trampolin nach Fotos und Luftbild geschätzt, Sträucher an der Ostseite nach Satellitenbild (Größen und Verteilung angenommen). Die Flächen im Dachausbau sind Grundflächen zwischen den Kniewänden, keine Wohnfläche. Die Wand von Pias Zimmer zur Treppe ist gegenüber dem Dachausbauplan um etwa 14 cm in den Raum gerückt, damit Treppe (90 cm), Geländer (15 cm) und Nische (54 cm) zwischen die Wände passen.</p>
     </section>
   </div>
   <div id="fallback" hidden><p>Der Browser kann das 3D-Modell nicht darstellen (WebGL fehlt).</p></div>
@@ -154,9 +154,10 @@ function buildModel(THREE) {
     crown2: M(0x6a9547, 1), water: M(0x4fc3d8, 0.1, 0, { transparent: true, opacity: 0.8 }), poolwall: M(0x7fa7cf, 0.6, 0, { side: THREE.DoubleSide }),
     bin1: M(0x2a2c30, 0.8), bin2: M(0xe0b52b, 0.8), stone: M(0xf2f0ea, 0.9), stoneTop: M(0xc8321e, 0.8),
     retain: M(0xb4b3ad, 0.95), step: M(0x9c9a94, 0.95), timber: M(0xc9a27a, 0.8), steelDark: M(0x2b2e33, 0.5, 0.6), chimney: M(0xd8d3c8, 0.95), chimneyOut: M(0x35383c, 0.85), sockel: M(0x46484b, 0.95), zinc: M(0xbfc3c6, 0.5, 0.4), glassDark: M(0x56616b, 0.2, 0.1), board: M(0xf0eee8, 0.95), oak: M(0xc89b64, 0.6), steel: M(0xb7bcc2, 0.35, 0.8),
-    winkel: M(0x5b5c59, 0.95), stoop: M(0x3a3e44, 0.75), deckelBlau: M(0x1f5fb0, 0.6), deckelGelb: M(0xe5c617, 0.6), deckelSchwarz: M(0x26282c, 0.7)
+    zaun: M(0x383e42, 0.55, 0.35), winkel: M(0x5b5c59, 0.95), stoop: M(0x3a3e44, 0.75), deckelBlau: M(0x1f5fb0, 0.6), deckelGelb: M(0xe5c617, 0.6), deckelSchwarz: M(0x26282c, 0.7)
   };
   mat.insul = M(0xcfd0cb, 0.95, 0, { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  mat.kies = M(0x5b6168, 1); mat.kante = M(0x8c8e90, 0.95); // Spritzschutz: dunkelgrauer Splitt (Foto), Randstein aus Beton
   if (typeof document !== 'undefined') {
     var hc = document.createElement('canvas'); hc.width = hc.height = 128;
     var hg = hc.getContext('2d'); hg.fillStyle = '#d3d4cf'; hg.fillRect(0, 0, 128, 128);
@@ -165,6 +166,12 @@ function buildModel(THREE) {
     hg.stroke();
     var ht = new THREE.CanvasTexture(hc); ht.wrapS = ht.wrapT = THREE.RepeatWrapping; ht.repeat.set(1, 1);
     mat.insul.map = ht;
+    var kc = document.createElement('canvas'); kc.width = kc.height = 256; // Splitt: Körner in Grautönen, Kachel 1 m × 1 m
+    var kg = kc.getContext('2d'), ks = 7, kr = function () { ks = (ks * 16807) % 2147483647; return ks / 2147483647; };
+    kg.fillStyle = '#565c63'; kg.fillRect(0, 0, 256, 256);
+    for (var kk = 0; kk < 1400; kk++) { kg.fillStyle = ['#3d4247', '#494f55', '#6d737b', '#80868e', '#5f656c'][Math.floor(kr() * 5)]; kg.fillRect(kr() * 256, kr() * 256, 3 + kr() * 5, 3 + kr() * 4); }
+    var kt = new THREE.CanvasTexture(kc); kt.wrapS = kt.wrapT = THREE.RepeatWrapping; kt.anisotropy = 4;
+    mat.kies.map = kt; mat.kies.color.set(0xffffff);
   }
 
   function mesh(geo, m, shadow, parent, pick) {
@@ -178,6 +185,32 @@ function buildModel(THREE) {
     var o = mesh(new THREE.BoxGeometry(w, h, d), m, true, parent, true);
     o.position.set(x, yc, z);
     if (ry) o.rotation.y = ry;
+    return o;
+  }
+
+  function bar(out, a, b, hn, t, h) { // Quader von a nach b, t quer waagerecht (Richtung hn), h senkrecht dazu; hängt 12 Dreiecke an out
+    var d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], L = Math.hypot(d[0], d[1], d[2]);
+    d = [d[0] / L, d[1] / L, d[2] / L];
+    var w = [d[1] * hn[2], d[2] * hn[0] - d[0] * hn[2], -d[1] * hn[0]], c = [], i, k;
+    for (var e = 0; e < 2; e++) for (var sx = -1; sx <= 1; sx += 2) for (var sy = -1; sy <= 1; sy += 2) {
+      var o = e ? b : a;
+      c.push([o[0] + sx * hn[0] * t / 2 + sy * w[0] * h / 2, o[1] + sx * hn[1] * t / 2 + sy * w[1] * h / 2, o[2] + sx * hn[2] * t / 2 + sy * w[2] * h / 2]);
+    }
+    var mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
+    [[0, 1, 3, 2], [4, 6, 7, 5], [0, 4, 5, 1], [2, 3, 7, 6], [0, 2, 6, 4], [1, 5, 7, 3]].forEach(function (q) {
+      var p0 = c[q[0]], p1 = c[q[1]], p2 = c[q[2]], p3 = c[q[3]];
+      var nx = (p1[1] - p0[1]) * (p2[2] - p0[2]) - (p1[2] - p0[2]) * (p2[1] - p0[1]), ny = (p1[2] - p0[2]) * (p2[0] - p0[0]) - (p1[0] - p0[0]) * (p2[2] - p0[2]), nz = (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p1[1] - p0[1]) * (p2[0] - p0[0]);
+      var dot = nx * ((p0[0] + p2[0]) / 2 - mid[0]) + ny * ((p0[1] + p2[1]) / 2 - mid[1]) + nz * ((p0[2] + p2[2]) / 2 - mid[2]);
+      if (dot < 0) { p1 = c[q[3]]; p3 = c[q[1]]; } // nach außen drehen
+      [p0, p1, p2, p0, p2, p3].forEach(function (p) { out.push(p[0], p[1], p[2]); });
+    });
+  }
+  function barMesh(out, m, parent, data) { // Netz aus den von bar() gesammelten Dreiecken, optional mit userData
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(out), 3));
+    g.computeVertexNormals();
+    var o = mesh(g, m, true, parent, true);
+    if (data) o.userData = data;
     return o;
   }
 
@@ -346,8 +379,9 @@ function buildModel(THREE) {
   }
   function groundY(x, z) { return Y(groundE(x, z)); }
 
+  var TSTEP = 0.25; // Rasterweite des Geländenetzes
   (function buildTerrain() {
-    var step = 0.25, B = BOUNDS;
+    var step = TSTEP, B = BOUNDS;
     var nx = Math.round((B.x1 - B.x0) / step), nz = Math.round((B.z1 - B.z0) / step);
     var pos = new Float32Array((nx + 1) * (nz + 1) * 3), uv = new Float32Array((nx + 1) * (nz + 1) * 2);
     var idx = [];
@@ -371,6 +405,14 @@ function buildModel(THREE) {
     t.name = 'terrain';
     root.userData.terrain = t;
   })();
+
+  /* Höhe des sichtbaren Geländenetzes: Dreiecksinterpolation über dem Raster wie in buildTerrain (Diagonale b–c), damit Zaunfüße darauf stehen */
+  function meshY(x, z) {
+    var i = Math.floor((x - BOUNDS.x0) / TSTEP), j = Math.floor((z - BOUNDS.z0) / TSTEP), x0 = BOUNDS.x0 + i * TSTEP, z0 = BOUNDS.z0 + j * TSTEP;
+    var u = (x - x0) / TSTEP, v = (z - z0) / TSTEP;
+    var a = groundY(x0, z0), b = groundY(x0 + TSTEP, z0), c = groundY(x0, z0 + TSTEP), d = groundY(x0 + TSTEP, z0 + TSTEP);
+    return u + v <= 1 ? a + u * (b - a) + v * (c - a) : d + (1 - u) * (c - d) + (1 - v) * (b - d);
+  }
 
   /* Stützmauern an West- und Nordgrenze */
   (function retaining() {
@@ -898,16 +940,21 @@ function buildModel(THREE) {
     tags.push({ kind: 'room', layer: 'rooms', name: 'Carport', area: 29, pos: [5.4, base + 0.4, 2.9] });
   })();
 
+  var ZAUN_IN = 0.15, ZAUN_PW = 0.06, ZAUN_WIESE = 0.08; // Zaun: Achse 15 cm innerhalb der Grenzlinie, Pfosten 6 cm, an der Wiesenkante 8 cm auf der Wiesenseite (siehe zaun(); Hecke und Spritzschutz richten sich danach)
+  var ZL, HECKE; // ZL: Eckpunkte der Zaunachse (von zaun() gesetzt), HECKE: Grundriss der Hecke (von garden() gesetzt); Sträucherband und Tor richten sich danach
+
   /* ---------- Garten: Pool, Beet, Spielgeräte, Hecke ---------- */
   (function garden() {
-    var pc = pl(935, 1470), r = 1.83, py = Y(142.62);
+    var pc = pl(935, 1470), r = 3.66 / 2, PH = 0.76, py = Y(142.62); // Pool: Durchmesser 3,66 m, Höhe 76 cm (Angabe Nutzer 11.10.2026), Höhe ab Oberkante der Unterlage
     boxAt(4.0, 0.06, 4.0, M(0x3f6b3a, 1), pc[0], py + 0.03, pc[1], gGarden);
-    var wall1 = mesh(new THREE.CylinderGeometry(r, r, 1.2, 56, 1, true), mat.poolwall, true, gGarden, true);
-    wall1.position.set(pc[0], py + 0.6 + 0.06, pc[1]);
-    var wat = mesh(new THREE.CircleGeometry(r - 0.03, 56), mat.water, false, gGarden, false);
-    wat.rotation.x = -Math.PI / 2; wat.position.set(pc[0], py + 1.06, pc[1]);
-    var rim = mesh(new THREE.TorusGeometry(r, 0.04, 8, 56), mat.metal, true, gGarden, false);
-    rim.rotation.x = Math.PI / 2; rim.position.set(pc[0], py + 1.26, pc[1]);
+    var pool = new THREE.Group(); pool.userData = { kind: 'pool', d: 2 * r, h: PH };
+    gGarden.add(pool);
+    var wall1 = mesh(new THREE.CylinderGeometry(r, r, PH, 56, 1, true), mat.poolwall, true, pool, true);
+    wall1.position.set(pc[0], py + 0.06 + PH / 2, pc[1]);
+    var wat = mesh(new THREE.CircleGeometry(r - 0.03, 56), mat.water, false, pool, false);
+    wat.rotation.x = -Math.PI / 2; wat.position.set(pc[0], py + 0.06 + PH - 0.08, pc[1]);
+    var rim = mesh(new THREE.TorusGeometry(r - 0.04, 0.04, 8, 56), mat.metal, true, pool, false);
+    rim.rotation.x = Math.PI / 2; rim.position.set(pc[0], py + 0.06 + PH - 0.04, pc[1]);
     // Beet mit Baum und Sträuchern
     var bc = BED.c;
     var tx = bc[0], tz = bc[1] + 0.2, ty = groundY(tx, tz);
@@ -920,26 +967,34 @@ function buildModel(THREE) {
       s.position.set(tx + o[0], groundY(tx + o[0], tz + o[1]) + 0.4, tz + o[1]); s.scale.set(1, 0.75, 1);
       s.userData = { kind: 'busch', r: 0.55 };
     });
-    var sc = pl(1190, 1480);
-    [[0, 0, 1.0], [-0.9, 0.7, 0.8], [0.8, 0.9, 0.7]].forEach(function (o) {
-      var s = mesh(new THREE.SphereGeometry(o[2], 14, 10), mat.crown, true, gGarden, false);
-      s.position.set(sc[0] + o[0], groundY(sc[0] + o[0], sc[1] + o[1]) + o[2] * 0.8, sc[1] + o[1]); s.scale.set(1, 0.85, 1);
-    });
-    // Hecke an der Südgrenze
-    var hz = PLOT[4][1] - 0.4;
-    boxAt(PLOT[4][0] - 0.2, 1.2, 0.6, mat.hedge, (PLOT[4][0] - 0.2) / 2 + 0.1, Y(142.45) + 0.5, hz, gGarden);
-    // Spielturm und Schaukelgestell
-    var st = pl(355, 1445), sy = Y(142.65);
-    [[-0.6, -0.6], [0.6, -0.6], [-0.6, 0.6], [0.6, 0.6]].forEach(function (o) { boxAt(0.1, 2.4, 0.1, mat.wood, st[0] + o[0], sy + 1.2, st[1] + o[1], gGarden); });
-    boxAt(1.4, 0.08, 1.4, mat.wood, st[0], sy + 1.2, st[1], gGarden);
-    var rf = mesh(new THREE.ConeGeometry(1.15, 0.8, 4), M(0xa33a2a, 0.8), true, gGarden, false);
-    rf.position.set(st[0], sy + 2.8, st[1]); rf.rotation.y = Math.PI / 4;
-    var sl = boxAt(0.45, 0.05, 2.6, M(0x3c7fd0, 0.5), st[0] + 0.0, sy + 0.62, st[1] + 2.0, gGarden); sl.rotation.x = 0.46;
-    var sw = pl(543, 1500);
-    boxAt(3.4, 0.1, 0.1, mat.wood, sw[0], sy + 2.3, sw[1], gGarden);
-    [[-1.6, -0.6], [-1.6, 0.6], [1.6, -0.6], [1.6, 0.6]].forEach(function (o) {
-      var p = boxAt(0.09, 2.45, 0.09, mat.wood, sw[0] + o[0], sy + 1.15, sw[1] + o[1], gGarden); p.rotation.z = o[0] < 0 ? -0.0 : 0.0;
-    });
+    // Hecke an der Südgrenze: 2 m hoch ab Gelände (Angabe Nutzer 11.10.2026), 10 cm vom Zaun abgerückt. Tiefe 40 cm (Annahme), damit sie
+    // zwischen Zaun und Pool passt. Ein durchgehender Körper, die Oberkante folgt dem Gelände (Stützstellen alle 0,5 m); Westende und
+    // Südostende halten denselben Abstand zum Zaun.
+    var hkH = 2.0, hkT = 0.4, hkG = 0.10;
+    var hx0 = ZAUN_IN + ZAUN_PW / 2 + hkG, hx1 = PLOT[4][0] - 0.12, hz1 = PLOT[4][1] - ZAUN_IN - ZAUN_PW / 2 - hkG, hz0 = hz1 - hkT, hkn = Math.ceil((hx1 - hx0) / 0.5);
+    var hp = [], hxs = [], hts = [], hbs = [];
+    function hq(a, b, c, d, out) { // Viereck a-b-c-d mit der Normalen nach out (Richtung nach außen)
+      var nx = (b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1]), ny = (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]), nz = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+      if (nx * out[0] + ny * out[1] + nz * out[2] < 0) { var t = b; b = d; d = t; }
+      [a, b, c, a, c, d].forEach(function (p) { hp.push(p[0], p[1], p[2]); });
+    }
+    for (var hki = 0; hki <= hkn; hki++) {
+      var hx = hx0 + (hx1 - hx0) * hki / hkn;
+      hxs.push(hx); hts.push(meshY(hx, (hz0 + hz1) / 2) + hkH);
+      hbs.push(Math.min(meshY(hx, hz0), meshY(hx, hz1)) - 0.05);
+    }
+    for (var hkj = 0; hkj < hkn; hkj++) {
+      hq([hxs[hkj], hts[hkj], hz0], [hxs[hkj + 1], hts[hkj + 1], hz0], [hxs[hkj + 1], hts[hkj + 1], hz1], [hxs[hkj], hts[hkj], hz1], [0, 1, 0]);      // oben
+      hq([hxs[hkj], hbs[hkj], hz1], [hxs[hkj + 1], hbs[hkj + 1], hz1], [hxs[hkj + 1], hts[hkj + 1], hz1], [hxs[hkj], hts[hkj], hz1], [0, 0, 1]);      // Südseite
+      hq([hxs[hkj], hbs[hkj], hz0], [hxs[hkj + 1], hbs[hkj + 1], hz0], [hxs[hkj + 1], hts[hkj + 1], hz0], [hxs[hkj], hts[hkj], hz0], [0, 0, -1]);     // Nordseite
+    }
+    hq([hxs[0], hbs[0], hz0], [hxs[0], hbs[0], hz1], [hxs[0], hts[0], hz1], [hxs[0], hts[0], hz0], [-1, 0, 0]);                                       // Westende
+    hq([hxs[hkn], hbs[hkn], hz0], [hxs[hkn], hbs[hkn], hz1], [hxs[hkn], hts[hkn], hz1], [hxs[hkn], hts[hkn], hz0], [1, 0, 0]);                       // Ostende
+    var hg = new THREE.BufferGeometry();
+    hg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(hp), 3));
+    hg.computeVertexNormals();
+    mesh(hg, mat.hedge, true, gGarden, true).userData = { kind: 'hecke', hoehe: hkH };
+    HECKE = { x0: hx0, x1: hx1, z0: hz0, z1: hz1 };
   })();
 
   /* ---------- Vorbeet: Mauer aus Winkelsteinen, innen bündig mit dem Beetumriss, steht BED_WALL über dem Pflaster ---------- */
@@ -987,6 +1042,261 @@ function buildModel(THREE) {
       var o = boxAt(L / n + 0.02, top - bot, 0.15, stone, cx, (top + bot) / 2, cz, gGarden, -Math.atan2(dz, dx));
       o.userData = { kind: 'bordstein' };
     }
+  })();
+
+  /* ---------- Zaun: Doppelstabmatten in Anthrazit (Angaben des Nutzers vom 11.10.2026) ----------
+     West 2 m hoch vom Carport bis zur Straße. Süd und Ost 1 m hoch an der Grundstücksgrenze entlang bis dorthin, wo die Wiese endet
+     (Pflasterecke an der Straße), dann 1 m hoch an der Wiesenkante (Rand des Pflasters) bis zum Haus.
+     Annahmen: Zaunachse 15 cm innerhalb der Grenzlinie (auf der Mauerkrone der Stützmauer, an der Wiesenkante 8 cm auf der Wiesenseite),
+     Pfosten 6 × 6 cm im Abstand von höchstens 2,5 m, Matten 8/6/8 (waagerechte Doppelstäbe alle 20 cm, senkrechte Stäbe alle 5 cm),
+     Höhe = Pfostenoberkante über dem Gelände am Pfosten. */
+  (function zaun() {
+    var IN = ZAUN_IN, WIESE_DZ = ZAUN_WIESE, PW = ZAUN_PW, ZW = 2.5, GAP = 0.04, CAP = 0.03;
+    function innen(k, d) { // Eckpunkt k des Grundstücksumrisses um d nach innen verschoben (Gehrung)
+      var n = PLOT.length, p = PLOT[(k + n - 1) % n], q = PLOT[k], r = PLOT[(k + 1) % n];
+      var l1 = Math.hypot(q[0] - p[0], q[1] - p[1]), l2 = Math.hypot(r[0] - q[0], r[1] - q[1]);
+      var n1 = [-(q[1] - p[1]) / l1, (q[0] - p[0]) / l1], n2 = [-(r[1] - q[1]) / l2, (r[0] - q[0]) / l2], f = d / (1 + n1[0] * n2[0] + n1[1] * n2[1]);
+      return [q[0] + (n1[0] + n2[0]) * f, q[1] + (n1[1] + n2[1]) * f];
+    }
+    function schnitt(p, d, q, e) { // Schnittpunkt der Geraden p + t·d und q + s·e
+      var t = ((q[0] - p[0]) * e[1] - (q[1] - p[1]) * e[0]) / (d[0] * e[1] - d[1] * e[0]);
+      return [p[0] + d[0] * t, p[1] + d[1] * t];
+    }
+    function lauf(linien, H, seite, ohneStart) { // Linienzüge (je Liste von Punkten x, z) als ein Zaunnetz der Höhe H; ohneStart: am Anfang des ersten steht schon ein Pfosten
+      var out = [];
+      linien.forEach(function (pts, li) {
+      for (var i = 0; i + 1 < pts.length; i++) {
+        var p = pts[i], q = pts[i + 1], L = Math.hypot(q[0] - p[0], q[1] - p[1]), u = [(q[0] - p[0]) / L, (q[1] - p[1]) / L], hn = [-u[1], 0, u[0]], n = Math.ceil(L / ZW);
+        function fuss(s) { return meshY(p[0] + u[0] * s, p[1] + u[1] * s); }
+        for (var k = 0; k <= n; k++) {
+          var s0 = L * k / n;
+          if (k === 0 && (i > 0 || (li === 0 && ohneStart))) continue; // Eckpfosten stehen schon
+          var px = p[0] + u[0] * s0, pz = p[1] + u[1] * s0, y0 = fuss(s0);
+          bar(out, [px, y0 - 0.25, pz], [px, y0 + H, pz], hn, PW, PW);
+        }
+        for (var k2 = 0; k2 < n; k2++) { // eine Matte zwischen zwei Pfosten
+          var a = L * k2 / n + PW / 2, b = L * (k2 + 1) / n - PW / 2, ya = fuss(a), yb = fuss(b), top = H - CAP - GAP, m = Math.ceil(top / 0.2) + 1, W = b - a;
+          var at = function (s, y) { var f = (s - a) / W; return [p[0] + u[0] * s, ya + (yb - ya) * f + y, p[1] + u[1] * s]; };
+          for (var j = 0; j < m; j++) { // Doppelstab: je ein Stab vor und hinter dem senkrechten Stab
+            var yy = GAP + 0.01 + (top - 0.02) * j / (m - 1);
+            [-1, 1].forEach(function (sd) {
+              var o = [hn[0] * 0.007 * sd, 0, hn[2] * 0.007 * sd], c0 = at(a, yy), c1 = at(b, yy);
+              bar(out, [c0[0] + o[0], c0[1], c0[2] + o[2]], [c1[0] + o[0], c1[1], c1[2] + o[2]], hn, 0.008, 0.008);
+            });
+          }
+          var nv = Math.round(W / 0.05);
+          for (var v = 0; v < nv; v++) {
+            var sv = a + W * (v + 0.5) / nv;
+            bar(out, at(sv, GAP), at(sv, GAP + top), hn, 0.006, 0.006);
+          }
+        }
+      }
+      });
+      var g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(out), 3));
+      g.computeVertexNormals();
+      var o2 = mesh(g, mat.zaun, true, gGarden, true);
+      o2.receiveShadow = false;
+      o2.userData = { kind: 'zaun', seite: seite, hoehe: H };
+    }
+    var sw = innen(5, IN), so = innen(4, IN), oe = innen(3, IN);
+    var A = [HOF_POLY[3][0], HOF_POLY[3][1] + WIESE_DZ], B = [HOF_POLY[4][0], HOF_POLY[4][1] + WIESE_DZ], C = [F.x1 + PW / 2, HOF_POLY[5][1] + WIESE_DZ];
+    var q = schnitt(oe, [PLOT[2][0] - PLOT[3][0], PLOT[2][1] - PLOT[3][1]], A, [B[0] - A[0], B[1] - A[1]]); // Ende der Wiese an der Straße
+    // Gartentor (Angabe Nutzer 11.10.2026): 80 cm lichte Weite, gleich hinter dem kleinen Zaunstück an der Hauswand (Pfosten bei B und G2)
+    var gu = [q[0] - B[0], q[1] - B[1]], gl = Math.hypot(gu[0], gu[1]), GB = 0.80;
+    gu = [gu[0] / gl, gu[1] / gl];
+    var G2 = [B[0] + gu[0] * (GB + PW), B[1] + gu[1] * (GB + PW)];
+    ZL = { sw: sw, so: so, oe: oe, q: q, B: B, C: C, G2: G2 };
+    lauf([[[sw[0], 5.46], sw]], 2.0, 'west');         // ab Südwestecke des Geräteraums (Carport) bis zur Straße
+    lauf([[sw, so, oe, q]], 1.0, 'grenze', true);     // Süd-, Südost- und Ostgrenze bis zum Ende der Wiese
+    lauf([[q, G2], [B, C]], 1.0, 'wiese', true);      // Wiesenkante von der Straße bis zum Gartentor, kleines Stück zwischen Tor und Hauswand
+    (function gartentor() { // Flügel 78 cm in einem Rahmen aus 4-cm-Rohr, Füllung wie die Matten, Griff beidseitig an der Hausseite
+      var tg = new THREE.Group(); tg.userData = { kind: 'gartentor', breite: GB, hoehe: 1.0 }; gGarden.add(tg);
+      var hn = [-gu[1], 0, gu[0]], yB = meshY(B[0], B[1]), yG = meshY(G2[0], G2[1]), SL = GB + PW, s0 = PW / 2 + 0.01, s1 = SL - PW / 2 - 0.01, top = 1.0 - CAP - GAP, o = [], hd = [];
+      function at(s, y) { var f = s / SL; return [B[0] + gu[0] * s, yB + (yG - yB) * f + y, B[1] + gu[1] * s]; }
+      [s0 + 0.02, s1 - 0.02].forEach(function (s) { bar(o, at(s, GAP), at(s, GAP + top), hn, 0.04, 0.04); });
+      [GAP + 0.02, GAP + top - 0.02].forEach(function (y) { bar(o, at(s0, y), at(s1, y), hn, 0.04, 0.04); });
+      var m = 3, nv = Math.round((s1 - s0 - 0.08) / 0.05);
+      for (var j = 1; j <= m; j++) [-1, 1].forEach(function (sd) {
+        var y = GAP + 0.04 + (top - 0.08) * j / (m + 1), d = [hn[0] * 0.007 * sd, 0, hn[2] * 0.007 * sd], c0 = at(s0 + 0.04, y), c1 = at(s1 - 0.04, y);
+        bar(o, [c0[0] + d[0], c0[1], c0[2] + d[2]], [c1[0] + d[0], c1[1], c1[2] + d[2]], hn, 0.008, 0.008);
+      });
+      for (var v = 0; v < nv; v++) { var sv = s0 + 0.04 + (s1 - s0 - 0.08) * (v + 0.5) / nv; bar(o, at(sv, GAP + 0.04), at(sv, GAP + top - 0.04), hn, 0.006, 0.006); }
+      barMesh(o, mat.zaun, tg);
+      [-1, 1].forEach(function (sd) { var c0 = at(s0 + 0.04, 0.55), c1 = at(s0 + 0.16, 0.55), d = [hn[0] * 0.03 * sd, 0, hn[2] * 0.03 * sd]; bar(hd, [c0[0] + d[0], c0[1], c0[2] + d[2]], [c1[0] + d[0], c1[1], c1[2] + d[2]], hn, 0.02, 0.02); });
+      barMesh(hd, mat.steel, tg);
+    })();
+  })();
+
+  /* ---------- Sträucherband an der Ostseite (Angabe des Nutzers vom 11.10.2026, Satellitenbild) ----------
+     Neben dem Gartentor beginnend rund um die Ostseite herum, innen am Zaun, viele kleine und schmale Büsche und Sträucher bis zur Hecke;
+     sie ersetzen die beiden runden Büsche an der Südostecke. Größen, Farben und Lage im Band sind Annahmen (Zufallsfolge, damit der Aufbau
+     stets gleich bleibt): Abstand von der Zaunachse 0,50–1,15 m, Breite 0,3–0,7 m, Höhe 0,5–1,4 m, einzelne schlanke bis 1,7 m. */
+  (function straeucher() {
+    var pfad = [ZL.G2, ZL.q, ZL.oe, ZL.so], seed = 11, rnd = function () { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    var farben = [0x2f5a33, 0x2f5a33, 0x27442b, 0x27442b, 0x1f3a24, 0x3f6b35, 0x3f6b35, 0x55803c, 0x8a9a3c, 0xa9b34a, 0x5d3a30].map(function (c) { return M(c, 1); }); // überwiegend dunkelgrün, einzelne gelbgrüne und braunrote (Satellitenbild)
+    var kugel = new THREE.SphereGeometry(1, 10, 8);
+    function zaunAbstand(x, z) { // kleinster Abstand zur Zaunachse über alle Abschnitte (an den Ecken stehen die Sträucher des einen Abschnitts sonst im Zaun des nächsten)
+      var best = 1e9;
+      for (var k = 0; k + 1 < pfad.length; k++) {
+        var p = pfad[k], q = pfad[k + 1], vx = q[0] - p[0], vz = q[1] - p[1], t = Math.max(0, Math.min(1, ((x - p[0]) * vx + (z - p[1]) * vz) / (vx * vx + vz * vz)));
+        best = Math.min(best, Math.hypot(x - p[0] - t * vx, z - p[1] - t * vz));
+      }
+      return best;
+    }
+    for (var i = 0; i + 1 < pfad.length; i++) {
+      var a = pfad[i], b = pfad[i + 1], L = Math.hypot(b[0] - a[0], b[1] - a[1]), u = [(b[0] - a[0]) / L, (b[1] - a[1]) / L], nrm = [-u[1], u[0]];
+      for (var s = i === 0 ? 0.55 : 0.2; s < L; s += 0.18 + rnd() * 0.26) {
+        var schlank = rnd() < 0.15, d = 0.50 + rnd() * 0.65, r = schlank ? 0.12 + rnd() * 0.08 : 0.17 + rnd() * 0.19, h = schlank ? 1.3 + rnd() * 0.4 : 0.5 + rnd() * 0.9;
+        var x = a[0] + u[0] * s + nrm[0] * d, z = a[1] + u[1] * s + nrm[1] * d, f = farben[Math.floor(rnd() * farben.length)];
+        if (zaunAbstand(x, z) < r + 0.08) continue; // nicht in den Zaun der Nachbarstrecke
+        if (x > HECKE.x0 - r - 0.05 && x < HECKE.x1 + r + 0.05 && z > HECKE.z0 - r - 0.05 && z < HECKE.z1 + r + 0.05) continue; // nicht in die Hecke
+        var o = mesh(kugel, f, true, gGarden, false);
+        o.scale.set(r, h / 2, r); o.position.set(x, meshY(x, z) + h / 2 - 0.05, z);
+        o.userData = { kind: 'strauch', r: r, h: h };
+      }
+    }
+  })();
+
+  /* ---------- Spritzschutzstreifen aus Kies an der Hauswand (Angabe des Nutzers vom 11.10.2026, Foto) ----------
+     Ostseite von der Stufe (Randsteinreihe bei z 12,31) nach Süden, über das Zaunende hinaus, um die Südostecke und an der Südwand
+     entlang bis zur Kante der Terrasse. An beiden Enden quer ein Abschlussstein (vor der Randsteinreihe der Stufe, an der Terrassenkante).
+     Annahmen nach Foto: 40 cm breit, Kies 2 cm über dem Gelände, Betonrandstein und Abschlusssteine 8 cm breit, 4 cm über dem Gelände. */
+  (function spritzschutz() {
+    var W = 0.40, KB = 0.08, KH = 0.04, KO = 0.02;
+    var xO = F.x1, zS = F.z1, xT = (F.x0 + F.xn) / 2 + 1.7;       // Ostwand, Südwand, Terrassenkante (x 6,5)
+    var zE = STEP_Z + KB, zA = zE + KB;                            // südliche Kante der Randsteinreihe der Stufe, Anfang des Kieses hinter dem Abschlussstein
+    var xA = xT + KB;                                              // Anfang des Kieses an der Südwand hinter dem Abschlussstein
+    var kp = [], ku = [];
+    function kv(x, z) { kp.push(x, meshY(x, z) + KO, z); ku.push(x, z); } // Eckpunkt auf dem Gelände, Textur nach Lageplan (1 m Kachel)
+    function kies(x0, x1, z0, z1) { // Rechteck mit Stützstellen alle 0,25 m
+      var nx = Math.max(1, Math.ceil((x1 - x0) / 0.25)), nz = Math.max(1, Math.ceil((z1 - z0) / 0.25));
+      for (var i = 0; i < nx; i++) for (var j = 0; j < nz; j++) {
+        var a = x0 + (x1 - x0) * i / nx, b = x0 + (x1 - x0) * (i + 1) / nx, c = z0 + (z1 - z0) * j / nz, d = z0 + (z1 - z0) * (j + 1) / nz;
+        kv(a, c); kv(a, d); kv(b, d); kv(a, c); kv(b, d); kv(b, c);
+      }
+    }
+    kies(xO, xO + W, zA, zS + W);       // Ostwand, bis über die Südostecke hinaus
+    kies(xA, xO, zS, zS + W);           // Südwand bis zum Abschlussstein an der Terrassenkante
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(kp), 3));
+    g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(ku), 2));
+    g.computeVertexNormals();
+    var km = mesh(g, mat.kies, false, gGarden, true);
+    km.receiveShadow = true; km.userData = { kind: 'kies', breite: W };
+    function stein(art, xc, zc, w, d) { // Stein, Oberkante KH über dem Gelände
+      var yc = meshY(xc, zc) + KH - 0.07;
+      boxAt(w, 0.14, d, mat.kante, xc, yc, zc, gGarden).userData = { kind: art };
+    }
+    var xr = xO + W + KB / 2, zr = zS + W + KB / 2, ne = Math.ceil((zr + KB / 2 - zA) / 0.5), ns = Math.ceil((xO + W - xA) / 0.5);
+    for (var i = 0; i < ne; i++) { var za = zA + (zr + KB / 2 - zA) * i / ne, zb = zA + (zr + KB / 2 - zA) * (i + 1) / ne; stein('kiesrand', xr, (za + zb) / 2, KB, zb - za + 0.005); } // Ostseite, schließt die Ecke
+    for (var j = 0; j < ns; j++) { var xa = xA + (xO + W - xA) * j / ns, xb = xA + (xO + W - xA) * (j + 1) / ns; stein('kiesrand', (xa + xb) / 2, zr, xb - xa + 0.005, KB); } // Südseite bis zum Randstein der Ostseite
+    stein('kiesabschluss', xO + (W + KB) / 2, zE + KB / 2, W + KB, KB);   // quer an der Stufe, über die ganze Streifenbreite samt Randstein
+    stein('kiesabschluss', xT + KB / 2, zS + (W + KB) / 2, KB, W + KB);   // quer an der Terrassenkante
+  })();
+
+  /* ---------- Spielplatz: Spielturm mit Schaukel und Trampolin (Fotos und Luftbild vom 11.10.2026, Trampolin Angabe des Nutzers) ----------
+     Spielturm aus Holz an der Westgrenze: Stauraum mit Brettertüren unter der Plattform, Geländer, blaues Planendach (First in Nord-Süd-Richtung),
+     Leiter an der Ostseite, grüne Rutsche nach Norden. Der Schaukelbalken geht vom Turm nach Osten an der Hecke entlang: zwei rote Sitze, Trapez,
+     Schräggestell nahe dem Ostende. Zwischen Schaukel und Pool steht das Trampolin (3 m Durchmesser, Fangnetz, sechs Pfosten).
+     Alle Maße des Turms und der Schaukel sind aus Fotos und Luftbild geschätzt (Annahmen); Lage nach Luftbild, Rutsche gerade statt wellig. */
+  (function spielplatz() {
+    var xt = 1.95, zt = 24.3, g0 = meshY(xt, zt), HB = 0.65, PB = 0.09;       // Turmmitte, Gelände am Turm, halbe Kastenbreite, Pfostenstärke
+    var KH = 1.10, DK = 1.15, TR = 2.15, FI = 2.95, RB = 1.85;                // Kasten, Plattformoberkante, Traufe, First, Dachbreite (Höhen über g0)
+    var BX1 = 7.0, BY = 2.00, AX = 6.10, SX = [4.0, 5.0], TX = 6.60;           // Balkenende, Balkenmitte, Schräggestell, Sitze, Trapez
+    var V = [1, 0, 0], Zr = [0, 0, 1];
+    var holz = M(0xc08f55, 0.8), plane = M(0x1f4fb0, 0.65), rutscheM = M(0x2f9a80, 0.35), seilG = M(0x1f9d8a, 0.8), seilW = M(0xf0ede6, 0.8), sitzM = M(0xd9303a, 0.5);
+    var kastenM = M(0xc3925a, 0.85);
+    if (typeof document !== 'undefined') { // Bretterwand: acht waagerechte Bretter über die Kastenhöhe
+      var bc = document.createElement('canvas'); bc.width = 32; bc.height = 256;
+      var bg = bc.getContext('2d'); bg.fillStyle = '#c3925a'; bg.fillRect(0, 0, 32, 256); bg.fillStyle = '#7d5630';
+      for (var bi = 1; bi < 8; bi++) bg.fillRect(0, bi * 32 - 1, 32, 2);
+      kastenM.map = new THREE.CanvasTexture(bc); kastenM.color.set(0xffffff);
+    }
+    var turm = new THREE.Group(); turm.userData = { kind: 'spielturm' }; gGarden.add(turm);
+    // Stauraum unter der Plattform, reicht 10 cm unter das Gelände
+    var kasten = mesh(new THREE.BoxGeometry(2 * HB, KH + 0.1, 2 * HB), kastenM, true, turm, true);
+    kasten.position.set(xt, g0 + (KH - 0.1) / 2, zt); kasten.userData = { kind: 'spielturm-kasten' };
+    var w = [], r = [];
+    bar(w, [xt, g0 + KH, zt], [xt, g0 + DK, zt], V, 2 * HB + 0.06, 2 * HB + 0.06);                  // Plattform
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (o) { var x = xt + o[0] * (HB - PB / 2), z = zt + o[1] * (HB - PB / 2); bar(w, [x, g0 - 0.1, z], [x, g0 + 2.38, z], V, PB, PB); });
+    function gel(ax, az, bx, bz) { // Geländer: zwei Holme und Stäbe alle 10 cm
+      var L = Math.hypot(bx - ax, bz - az), u = [(bx - ax) / L, (bz - az) / L], hn = [-u[1], 0, u[0]], n = Math.max(1, Math.round(L / 0.10));
+      bar(w, [ax, g0 + DK + 0.05, az], [bx, g0 + DK + 0.05, bz], hn, 0.04, 0.05);
+      bar(w, [ax, g0 + DK + 0.70, az], [bx, g0 + DK + 0.70, bz], hn, 0.05, 0.06);
+      for (var i = 0; i <= n; i++) { var x = ax + (bx - ax) * i / n, z = az + (bz - az) * i / n; bar(w, [x, g0 + DK + 0.07, z], [x, g0 + DK + 0.68, z], hn, 0.035, 0.03); }
+    }
+    var e = HB - PB / 2;
+    gel(xt + e, zt + e, xt + e, zt - 0.20);       // Ostseite, offen an der Leiter
+    gel(xt + e, zt + e, xt - e, zt + e);          // Südseite
+    gel(xt - e, zt + e, xt - e, zt - e);          // Westseite
+    gel(xt - e, zt - e, xt - 0.02, zt - e);       // Nordseite, offen an der Rutsche
+    bar(w, [xt, g0 + FI - 0.03, zt - RB / 2], [xt, g0 + FI - 0.03, zt + RB / 2], V, 0.08, 0.07);   // Firstbalken
+    barMesh(w, holz, turm);
+    // Planendach: zwei Platten, First in Nord-Süd-Richtung
+    var dach = [];
+    bar(dach, [xt - RB / 2, g0 + TR, zt], [xt, g0 + FI, zt], Zr, RB, 0.012);
+    bar(dach, [xt + RB / 2, g0 + TR, zt], [xt, g0 + FI, zt], Zr, RB, 0.012);
+    barMesh(dach, plane, turm, { kind: 'spielturm-dach' });
+    // Brettertüren: zwei schwarze Bänder an der Ostseite
+    var bd = [];
+    [0.80, 0.30].forEach(function (y) { bar(bd, [xt + HB + 0.008, g0 + y, zt - 0.05], [xt + HB + 0.008, g0 + y, zt + 0.55], V, 0.016, 0.04); });
+    barMesh(bd, mat.steelDark, turm);
+    // Leiter an der Ostseite, am Nordende, Sprossen bunt
+    var lt = new THREE.Group(); lt.userData = { kind: 'leiter' }; turm.add(lt);
+    var lw = [], zl = [zt - 0.55, zt - 0.20], x0 = xt + 1.20, x1 = xt + 0.70, y0 = g0 - 0.02, y1 = g0 + DK + 0.02;
+    zl.forEach(function (z) { bar(lw, [x0, y0, z], [x1, y1, z], Zr, 0.04, 0.07); });
+    barMesh(lw, holz, lt);
+    [0xe0506a, 0x2aa89a, 0xf08a3a, 0x6cb44a].forEach(function (c, i) {
+      var y = g0 + 0.28 + i * 0.26, t = (y - y0) / (y1 - y0), x = x0 + (x1 - x0) * t, o = [];
+      bar(o, [x, y, zl[0]], [x, y, zl[1]], V, 0.03, 0.03);
+      barMesh(o, M(c, 0.6), lt);
+    });
+    // Rutsche: grün, vom Nordrand der Plattform nach Norden, gerade statt wellig
+    var rt = new THREE.Group(); rt.userData = { kind: 'rutsche' }; turm.add(rt);
+    var rs = [], xs = xt + 0.25, za = zt - HB, zb = za - 2.15, ya = g0 + 1.13, yb = g0 + 0.10;
+    bar(rs, [xs, ya, za], [xs, yb, zb], V, 0.46, 0.04);
+    [-0.215, 0.215].forEach(function (o) { bar(rs, [xs + o, ya + 0.07, za], [xs + o, yb + 0.07, zb], V, 0.03, 0.12); });
+    barMesh(rs, rutscheM, rt);
+    // Schaukelbalken nach Osten, Schräggestell nahe dem Ostende
+    var bm = [];
+    bar(bm, [xt + HB + 0.05, g0 + BY, zt], [BX1, g0 + BY, zt], Zr, 0.12, 0.20);
+    barMesh(bm, holz, turm, { kind: 'schaukelbalken' });
+    var sg = new THREE.Group(); sg.userData = { kind: 'schaukelgestell' }; turm.add(sg);
+    var gs = [];
+    [-0.95, 0.95].forEach(function (o) { bar(gs, [AX, g0 + BY - 0.05, zt], [AX, meshY(AX, zt + o) - 0.05, zt + o], V, 0.09, 0.14); });
+    bar(gs, [AX, g0 + 0.90, zt - 0.55], [AX, g0 + 0.90, zt + 0.55], V, 0.05, 0.07);
+    barMesh(gs, holz, sg);
+    // Sitze (rot, an grünen Seilen) und Trapez (weiße Seile, Holzstange)
+    var sl = [];
+    SX.forEach(function (x) {
+      [-0.21, 0.21].forEach(function (o) { bar(sl, [x + o, g0 + BY - 0.10, zt], [x + o, g0 + 0.46, zt], Zr, 0.015, 0.015); });
+      var s = [], gx = meshY(x, zt);
+      bar(s, [x - 0.21, gx + 0.45, zt], [x + 0.21, gx + 0.45, zt], Zr, 0.17, 0.035);
+      barMesh(s, sitzM, turm, { kind: 'schaukelsitz' });
+    });
+    barMesh(sl, seilG, turm);
+    var tp = [], tw = [];
+    [-0.28, 0.28].forEach(function (o) { bar(tw, [TX + o, g0 + BY - 0.10, zt], [TX + o, g0 + 1.27, zt], Zr, 0.015, 0.015); });
+    bar(tp, [TX - 0.33, g0 + 1.25, zt], [TX + 0.33, g0 + 1.25, zt], Zr, 0.04, 0.04);
+    barMesh(tw, seilW, turm);
+    barMesh(tp, M(0xe8d8b0, 0.7), turm, { kind: 'trapez' });
+
+    // Trampolin: blauer Randschutz, schwarze Matte, sechs Beine, sechs Pfosten (unten Schaum, oben Stahl) mit schwarzem Fangnetz
+    var cx = 9.4, cz = 24.4, g1 = meshY(cx, cz), tg = new THREE.Group(); tg.userData = { kind: 'trampolin', d: 3.0 }; gGarden.add(tg);
+    var blau = M(0x1d4fa6, 0.7, 0, { side: THREE.DoubleSide }), schwarz = M(0x1b1b1d, 0.9, 0, { side: THREE.DoubleSide }), schaum = M(0x1c1c1e, 0.95);
+    var netz = M(0x111214, 1, 0, { transparent: true, opacity: 0.38, side: THREE.DoubleSide, depthWrite: false });
+    var ring = mesh(new THREE.RingGeometry(1.10, 1.5, 48), blau, true, tg, false); ring.rotation.x = -Math.PI / 2; ring.position.set(cx, g1 + 0.86, cz);
+    var rim = mesh(new THREE.TorusGeometry(1.44, 0.06, 8, 48), blau, true, tg, false); rim.rotation.x = Math.PI / 2; rim.position.set(cx, g1 + 0.84, cz);
+    var matte = mesh(new THREE.CircleGeometry(1.10, 48), schwarz, false, tg, false); matte.rotation.x = -Math.PI / 2; matte.position.set(cx, g1 + 0.845, cz);
+    for (var k = 0; k < 6; k++) {
+      var a1 = k * Math.PI / 3 + Math.PI / 6, lx = cx + 1.30 * Math.cos(a1), lz = cz + 1.30 * Math.sin(a1), lg = meshY(lx, lz), lh = g1 + 0.80 - (lg - 0.03);
+      var bein = mesh(new THREE.CylinderGeometry(0.025, 0.025, lh, 8), mat.steel, true, tg, false); bein.position.set(lx, lg - 0.03 + lh / 2, lz);
+      var a2 = k * Math.PI / 3, px = cx + 1.46 * Math.cos(a2), pz = cz + 1.46 * Math.sin(a2);
+      var sc = mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.64, 10), schaum, true, tg, false); sc.position.set(px, g1 + 1.18, pz);
+      var pf = mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.50, 8), mat.steel, true, tg, false); pf.position.set(px, g1 + 1.75, pz);
+    }
+    var nz = mesh(new THREE.CylinderGeometry(1.45, 1.45, 1.10, 36, 1, true), netz, false, tg, false); nz.position.set(cx, g1 + 1.45, cz);
   })();
 
   /* ---------- Beschriftungen: Höhen und Maße ---------- */

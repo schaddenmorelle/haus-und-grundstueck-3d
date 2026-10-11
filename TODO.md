@@ -22,8 +22,6 @@ Die Arbeitsliste dieses Projekts, **von Anfang an** geführt und nicht nachträg
 - [ ] Phase 1 des Umbauplans (`docs/plan-parametrisches-modell.md`, Abschnitt 8): Daten aus `model.js` in `haus.json` herauslösen (Achsen, gesperrte Außenmaße, Wandtypen, Wände, Öffnungen). Fertig, wenn `model.js` die Daten liest und `npm test` ohne Abweichung vom Snapshot grün bleibt.
 - [ ] Ändern über die Oberfläche (Probiermodus, Plan Abschnitt 4, 8 und 9): Maße in der Seite ändern, Prüfung und Auswirkungen anzeigen, den Export als Änderungsliste erzeugen und mit einem Werkzeug im Repository validiert als neue Sollwerte einspielen. Baut auf Phase 1 und `tools/aendern.js` (Phase 4) auf. Fertig, wenn ein in der Seite geänderter Wert exportiert, vom Werkzeug geprüft und eingespielt wird, `npm test` danach grün ist und ein ungültiger Export abgelehnt wird.
 
-- [ ] Südseite der Einfahrt: Das tiefere Pflaster südlich der Stufe reicht bisher nur bis zum alten Hofumriss. Es fehlen die Ausdehnung bis zum Gartentor, der Kiesstreifen am Sockel sowie Gartentor und Zaun. Fertig, wenn die Ausdehnung und die Lage von Tor und Zaun aus Aufmaß oder Luftbild stammen, `npm test` das Tor prüft und der Screenshot von Süden zu den Fotos `foto-einfahrt-gartentor` und `foto-einfahrt-tuerbereich-sued` passt.
-
 ## Irgendwann
 
 <!-- Ideen und Annehmlichkeiten. Hier darf etwas liegenbleiben, ohne zu stören —
