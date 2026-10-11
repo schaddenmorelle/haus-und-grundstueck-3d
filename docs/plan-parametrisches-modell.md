@@ -11,7 +11,7 @@ Stand: 11.10.2026. Die Entscheidungen des Nutzers sind eingearbeitet (Abschnitt 
 - Hausrelative Koordinaten (`P(hx, hz)`) und Höhen (`Y(e)`) sind schon sauber getrennt.
 - Das Dach ist eine analytische Funktion (`roofH`). Daraus lassen sich Schnitte, DG-Wandhöhen und Prüfungen exakt ableiten.
 - Die Treppe hängt bereits an der Geschosshöhe (Steigung = Geschosshöhe / 15).
-- Die geklärten Randbedingungen sind in `CLAUDE.md` dokumentiert.
+- Die geklärten Randbedingungen sind in `AGENTS.md` dokumentiert.
 
 **Was das Feintuning heute verhindert**
 
@@ -152,7 +152,7 @@ Möbel, Sanitär und Küche als Objekte, verankert an Raum oder Wand („an Wand
 ### 4.1 Grundriss je Geschoss (EG, DG, optional Dachaufsicht)
 - **Darstellung:** Wände gefüllt bzw. schraffiert nach Wandtyp, Fenster als Doppellinie, Türen mit Aufschlagbogen (sobald `anschlag` bekannt ist). Raumstempel mit Name, Fläche und lichten Maßen. Treppe mit Lauflinie und Stufennummern, dazu Kamin und Treppenöffnung. Im DG zusätzlich Höhenlinien der Dachschräge (1,00 m und 2,00 m), nützlich für Möbel und Wohnflächenberechnung.
 - **Automatische Bemaßung:** außen drei Ketten wie im Bauplan (Gesamtmaß, Wandvorsprünge/Achsen, Öffnungen), innen lichte Raummaße und Wanddicken. Öffnungen in Plannotation „88,5/219“ (Breite/Höhe), dazu BRH.
-- **Bearbeiten nur über das Repository (entschieden):** Die Seite speichert nichts. Jedes Maß in der Seite hat einen eindeutigen Namen, z. B. `speis.tiefe` oder `wand:eg.speis_kueche`. Der Nutzer nennt Maß und neuen Wert, und die Änderung läuft über `tools/aendern.js` im Repository (siehe 7). Ein Probiermodus in der Seite, der nur Vorschau und Prüfung zeigt und eine Änderungsliste zum Kopieren erzeugt, ist als Option für Phase 4 vorgesehen.
+- **Bearbeiten nur über das Repository (entschieden):** Die Seite speichert nichts. Jedes Maß in der Seite hat einen eindeutigen Namen, z. B. `speis.tiefe` oder `wand:eg.speis_kueche`. Der Nutzer nennt Maß und neuen Wert, und die Änderung läuft über `tools/aendern.js` im Repository (siehe 7). Ein Probiermodus in der Seite, der nur Vorschau und Prüfung zeigt und eine Änderungsliste zum Exportieren erzeugt, ist für Phase 4 gewünscht (siehe 9, „Ändern über die Oberfläche“).
 - **Welche Seite bleibt fest? (entschieden)** Immer **„Nachbar gibt nach“:** Nur die gewählte Wand wandert, abhängige Achsen werden ausgeglichen, der angrenzende Raum wird größer oder kleiner. Gesperrte Achsen (Außenmaße) bewegen sich nie, außer bei der gesonderten Außenmaß-Änderung (3.2). Ein Schloss-Symbol kennzeichnet sie im Plan.
 - **Plan auch im Repository:** Der Build schreibt Grundrisse und Schnitte zusätzlich als SVG nach `docs/plaene/`. Jede Maßänderung ist so im Git-Diff als Bild sichtbar.
 - **Farben nach Herkunft:** Plan, Aufmaß, Annahme und „in dieser Sitzung geändert“ bekommen je eine eigene Farbe. Die Befunde erscheinen als Marker im Plan und als Liste. Ein Klick springt zur Stelle.
@@ -266,7 +266,7 @@ Jede Phase endet mit grünen Tests, Screenshot-Kontrolle und, wo sichtbar, Verö
 | **1 Daten herauslösen** | `haus.json` mit Achsen, Außenmaß-Gruppe (gesperrt), Wandtypen, Wänden, Öffnungen (Durchgänge als echte Öffnungen). `model.js` wird auf die neue Struktur aufgeteilt und liest die Daten. Raumpolygone bleiben vorerst explizit. | 3D identisch: Snapshot und Screenshots aller Standardansichten unverändert. | mittel |
 | **2 Räume ableiten, prüfen** | Clipping, Stempel. Ein Vergleich der abgeleiteten mit den alten Polygonen ergibt eine Differenzliste zur Klärung. Prüfregeln 1–4, 7, 9–13, Befundliste im Panel und in `npm test`. | Alte Polygone gelöscht, Abweichungen geklärt, 0 Fehler. | mittel |
 | **3 Grundriss 2D** | SVG für EG und DG in der Seite und in `docs/plaene/`, automatische Maßketten mit Maßnamen, Raumstempel, Herkunftsfarben, Schloss an gesperrten Maßen, Umschalter 2D/3D. | Bemaßung stimmt mit dem Bauplan überein (Stichproben). | mittel |
-| **4 Ändern über das Repository** | `tools/aendern.js`: Maße, Wanddicken, Wandtypen, Öffnungen ändern, „Nachbar gibt nach“, Außenmaße nur mit `--aussenmass`, Ausgabe von Auswirkungen und Befunden, Abbruch bei Fehlern. Neuaufbau nur des Hauses in 3D (`dispose`, geteilte Materialien). Optional ein Probiermodus in der Seite ohne Speichern. | Beispiel und Gegenbeispiel aus 5.2 laufen als Node-Test. | groß |
+| **4 Ändern über das Repository** | `tools/aendern.js`: Maße, Wanddicken, Wandtypen, Öffnungen ändern, „Nachbar gibt nach“, Außenmaße nur mit `--aussenmass`, Ausgabe von Auswirkungen und Befunden, Abbruch bei Fehlern. Neuaufbau nur des Hauses in 3D (`dispose`, geteilte Materialien). Probiermodus in der Seite ohne Speichern, mit Export der Änderungsliste. | Beispiel und Gegenbeispiel aus 5.2 laufen als Node-Test. | groß |
 | **5 Schnitt und Ansicht** | Fassaden, freie Schnitte, Höhenketten, Höhen bearbeiten. Treppen- und DG-Regeln (11, 13–16). | Schnitt A–A zeigt Kopfhöhe und Steigungen korrekt. | mittel |
 | **6 Aufmaß** | Prüfmaße erfassen (auch auf dem Handy), Abweichungen anzeigen, Herkunft je Wert pflegen. | Gemessene Werte erscheinen mit Abweichung. | klein |
 | **danach** | Ausstattung (Objektkatalog, Verankerung, Kollisionen, Bewegungsflächen), Wohnfläche im DG nach Höhenzonen. | | |
@@ -287,5 +287,8 @@ Geklärt mit dem Nutzer am 11.10.2026:
 | Treppe im Nähzimmer | Offene Treppe, die Fläche zählt zum Nähzimmer (Schreibtisch unter der Treppe). |
 | DG-Wanddicken | Nicht gemessen, vereinheitlicht auf 12,5 cm. Genaue Maße reicht der Nutzer nach. |
 | Kniewände | Lage aus dem Plan, die Höhe wird geprüft. |
+| Ändern über die Oberfläche | Gewünscht (11.10.2026): Maße in der Seite ändern, Prüfung ansehen, Änderungsliste exportieren und im Repository validiert als neue Sollwerte einspielen. Die Seite speichert weiterhin nichts, sie exportiert nur. Das ist der Probiermodus aus Phase 4. |
+
+Noch offen: Format der exportierten Änderungsliste und Ablauf des Einspielens (Abschnitt 9, „Ändern über die Oberfläche“).
 
 Noch offen: Werden Maße in cm oder m angegeben, und Öffnungen in Plannotation (88,5/219)? Bis zur Klärung verlangt `tools/aendern.js` die Einheit ausdrücklich (`1,30m`, `12,5cm`, `885mm`). Ohne Einheit bricht es ab, damit „12,5“ nicht als Meter gelesen wird.

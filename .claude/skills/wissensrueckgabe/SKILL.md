@@ -39,6 +39,7 @@ Der Maßstab bei jedem Kandidaten: **Was ein Befehl jederzeit neu erzeugt, ist k
 - **Zugangsdaten jeder Art:** Passwörter, Tokens, API-Schlüssel, PINs, TANs, private Schlüssel, Inhalte von `.env`-Dateien, Werte aus dem Secret-Store der CI. Auch nicht teilweise und auch nicht „zur Erinnerung"
 - **Interne Adressen:** Hostnamen, IP-Adressen, Ports interner Systeme, Verbindungszeichenfolgen zu Datenbanken
 - **Vollständige Nummern** jeder Art: Konto, Karte, Ausweis, Vertrag, Kundennummer
+- **Namen und Orte aus privaten Unterlagen:** Straßen-, Orts- und Eigentümernamen, Flurstücks- und Aktenzeichen, Standortkoordinaten und alles, woraus sich ein Grundstück oder eine Wohnadresse ableiten lässt. Das Fachliche behalten („Bebauungsplan schreibt Dachneigung vor"), den Bezug weglassen
 - **Bei beruflichen Projekten zusätzlich:** Kunden- und Projektnamen, Inhalte aus Ausschreibungen und Angeboten, Beurteilungen von Personen. Das Fachliche behalten, den Kunden weglassen — „eine Zollabwicklung für einen Großkunden" trägt dasselbe Wissen wie der Name
 - **Den Code selbst:** Er steht in diesem Repository. Ein kurzer Ausschnitt als Beleg ist in Ordnung, die Abschrift ganzer Dateien nicht
 - **Alles Generierte:** Abhängigkeitslisten, Verzeichnisbäume, Auszüge aus dem Commit-Log, Testausgaben
@@ -48,7 +49,7 @@ Trägt eine Aussage nur mit einer dieser Angaben, lass die ganze Aussage weg. Wa
 ## Wie du vorgehst
 
 1. **Vorherigen Stand lesen.** Liegt `.claude/skills/wissensrueckgabe/stand.md` vor und enthält mindestens eine Zeile, ist das keine erste Rückgabe. Lies die letzte Zeile (Datum, Commit, Rückgabedatei) und beschränke dich auf das, was seit diesem Commit dazugekommen ist (`git log <commit>..HEAD`, geänderte und neue Dokumente). Will die Person ausdrücklich eine vollständige Rückgabe über die gesamte Historie, sag ihr trotzdem, was `stand.md` als letzten Lauf zeigt, und mach es dann komplett.
-2. **Überblick verschaffen:** `README`, Architektur- und Entscheidungsdokumentation, `AGENTS.md` bzw. `CLAUDE.md`, auffällige Kommentare im Code — und vor allem die **Git-Historie** im relevanten Bereich. Commit-Nachrichten und Beschreibungen von Pull Requests sind die dichteste Quelle für Entscheidungen samt Begründung.
+2. **Überblick verschaffen:** `README`, Architektur- und Entscheidungsdokumentation, `AGENTS.md` (bzw. `CLAUDE.md`, falls vorhanden), auffällige Kommentare im Code — und vor allem die **Git-Historie** im relevanten Bereich. Commit-Nachrichten und Beschreibungen von Pull Requests sind die dichteste Quelle für Entscheidungen samt Begründung.
 3. **Kandidaten sammeln** nach dem Katalog oben. Lieber einer zu viel als einer zu wenig: Aussortiert wird später, und das kostet dort wenig.
 4. **Aussortieren,** was unter „Nie aufnehmen" fällt.
 5. **Die Datei schreiben** nach dem Format unten.
