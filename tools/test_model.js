@@ -214,6 +214,24 @@ const inPoly = (poly, x, z) => { let ins = false; for (let i = 0, j = poly.lengt
     check(k.x0 >= 15.95 && k.x0 <= 16.1, 'Zaun Wiesenkante endet nicht am Haus (x ' + k.x0.toFixed(2) + ', Hauswand 16,00)');
     check(mn(punkte.grenze.filter(v => v.z < 16).map(v => nahe('wiese', v.x, v.z))) <= 0.4, 'Grenzzaun und Zaun an der Wiesenkante treffen sich nicht an der Straße');
   }
+
+  /* Hecke an der Südgrenze (Angabe des Nutzers vom 11.10.2026): 2 m hoch ab Gelände, vom Zaun abgerückt statt durch ihn hindurch,
+     weder im Pool noch außerhalb des Grundstücks. */
+  const hecke = kinds('hecke');
+  check(hecke.length === 1, 'Hecke: ' + hecke.length + ' Teile statt 1');
+  let hH = 1e9, hHmax = -1e9, luft = 1e9, imPool = 0, draussen = 0;
+  const pb = pool.length === 1 ? box(pool[0]) : null;
+  hecke.forEach(o => {
+    const b = box(o); // die Hecke ist ein Quader im Grundriss, ihr Hüllquader ist der Umriss
+    ecken(o).forEach(v => { const h = v.y - gelaende(v.x, v.z); if (h > 1) { hH = Math.min(hH, h); hHmax = Math.max(hHmax, h); } }); // obere Kante: Eckpunkte über 1 m
+    ['west', 'grenze'].forEach(s => (punkte[s] || []).forEach(v => { luft = Math.min(luft, Math.hypot(Math.max(b.min.x - v.x, 0, v.x - b.max.x), Math.max(b.min.z - v.z, 0, v.z - b.max.z))); }));
+    if (pb && b.min.x < pb.max.x && b.max.x > pb.min.x && b.min.z < pb.max.z && b.max.z > pb.min.z) imPool++;
+    [[b.min.x, b.min.z], [b.max.x, b.min.z], [b.min.x, b.max.z], [b.max.x, b.max.z]].forEach(q => { if (!inPoly(m.zones.plot, q[0], q[1])) draussen++; });
+  });
+  check(hecke.length === 0 || (hH >= 1.95 && hHmax <= 2.05), 'Hecke ist ' + hH.toFixed(2) + ' bis ' + hHmax.toFixed(2) + ' m hoch statt 2,00 m');
+  check(hecke.length === 0 || luft >= 0.05, 'Hecke rückt nicht vom Zaun ab (kleinster Abstand ' + (luft * 100).toFixed(0) + ' cm, erwartet mindestens 5 cm)');
+  check(imPool === 0, 'Hecke ragt in den Pool');
+  check(draussen === 0, 'Hecke ragt über die Grundstücksgrenze (' + draussen + ' Ecken)');
 }
 
 /* Prüfmaße aus dem Aufmaß: nur Bericht, kein Fehler (bekannte Abweichungen stehen in docs/abgleich-eg-grundriss.md) */

@@ -788,6 +788,8 @@ function buildModel(THREE) {
     tags.push({ kind: 'room', layer: 'rooms', name: 'Carport', area: 29, pos: [5.4, base + 0.4, 2.9] });
   })();
 
+  var ZAUN_IN = 0.15, ZAUN_PW = 0.06; // Zaun: Achse 15 cm innerhalb der Grenzlinie, Pfosten 6 cm (siehe zaun(); die Hecke hält Abstand dazu)
+
   /* ---------- Garten: Pool, Beet, Spielgeräte, Hecke ---------- */
   (function garden() {
     var pc = pl(935, 1470), r = 3.66 / 2, PH = 0.76, py = Y(142.62); // Pool: Durchmesser 3,66 m, Höhe 76 cm (Angabe Nutzer 11.10.2026), Höhe ab Oberkante der Unterlage
@@ -818,9 +820,33 @@ function buildModel(THREE) {
       s.position.set(sc[0] + o[0], groundY(sc[0] + o[0], sc[1] + o[1]) + o[2] * 0.8, sc[1] + o[1]); s.scale.set(1, 0.85, 1);
       s.userData = { kind: 'busch-suedost', r: o[2] };
     });
-    // Hecke an der Südgrenze
-    var hz = PLOT[4][1] - 0.4;
-    boxAt(PLOT[4][0] - 0.2, 1.2, 0.6, mat.hedge, (PLOT[4][0] - 0.2) / 2 + 0.1, Y(142.45) + 0.5, hz, gGarden);
+    // Hecke an der Südgrenze: 2 m hoch ab Gelände (Angabe Nutzer 11.10.2026), 10 cm vom Zaun abgerückt. Tiefe 40 cm (Annahme), damit sie
+    // zwischen Zaun und Pool passt. Ein durchgehender Körper, die Oberkante folgt dem Gelände (Stützstellen alle 0,5 m); Westende und
+    // Südostende halten denselben Abstand zum Zaun.
+    var hkH = 2.0, hkT = 0.4, hkG = 0.10;
+    var hx0 = ZAUN_IN + ZAUN_PW / 2 + hkG, hx1 = PLOT[4][0] - 0.12, hz1 = PLOT[4][1] - ZAUN_IN - ZAUN_PW / 2 - hkG, hz0 = hz1 - hkT, hkn = Math.ceil((hx1 - hx0) / 0.5);
+    var hp = [], hxs = [], hts = [], hbs = [];
+    function hq(a, b, c, d, out) { // Viereck a-b-c-d mit der Normalen nach out (Richtung nach außen)
+      var nx = (b[1] - a[1]) * (c[2] - a[2]) - (b[2] - a[2]) * (c[1] - a[1]), ny = (b[2] - a[2]) * (c[0] - a[0]) - (b[0] - a[0]) * (c[2] - a[2]), nz = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]);
+      if (nx * out[0] + ny * out[1] + nz * out[2] < 0) { var t = b; b = d; d = t; }
+      [a, b, c, a, c, d].forEach(function (p) { hp.push(p[0], p[1], p[2]); });
+    }
+    for (var hki = 0; hki <= hkn; hki++) {
+      var hx = hx0 + (hx1 - hx0) * hki / hkn;
+      hxs.push(hx); hts.push(meshY(hx, (hz0 + hz1) / 2) + hkH);
+      hbs.push(Math.min(meshY(hx, hz0), meshY(hx, hz1)) - 0.05);
+    }
+    for (var hkj = 0; hkj < hkn; hkj++) {
+      hq([hxs[hkj], hts[hkj], hz0], [hxs[hkj + 1], hts[hkj + 1], hz0], [hxs[hkj + 1], hts[hkj + 1], hz1], [hxs[hkj], hts[hkj], hz1], [0, 1, 0]);      // oben
+      hq([hxs[hkj], hbs[hkj], hz1], [hxs[hkj + 1], hbs[hkj + 1], hz1], [hxs[hkj + 1], hts[hkj + 1], hz1], [hxs[hkj], hts[hkj], hz1], [0, 0, 1]);      // Südseite
+      hq([hxs[hkj], hbs[hkj], hz0], [hxs[hkj + 1], hbs[hkj + 1], hz0], [hxs[hkj + 1], hts[hkj + 1], hz0], [hxs[hkj], hts[hkj], hz0], [0, 0, -1]);     // Nordseite
+    }
+    hq([hxs[0], hbs[0], hz0], [hxs[0], hbs[0], hz1], [hxs[0], hts[0], hz1], [hxs[0], hts[0], hz0], [-1, 0, 0]);                                       // Westende
+    hq([hxs[hkn], hbs[hkn], hz0], [hxs[hkn], hbs[hkn], hz1], [hxs[hkn], hts[hkn], hz1], [hxs[hkn], hts[hkn], hz0], [1, 0, 0]);                       // Ostende
+    var hg = new THREE.BufferGeometry();
+    hg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(hp), 3));
+    hg.computeVertexNormals();
+    mesh(hg, mat.hedge, true, gGarden, true).userData = { kind: 'hecke', hoehe: hkH };
     // Spielturm und Schaukelgestell
     var st = pl(355, 1445), sy = Y(142.65);
     [[-0.6, -0.6], [0.6, -0.6], [-0.6, 0.6], [0.6, 0.6]].forEach(function (o) { boxAt(0.1, 2.4, 0.1, mat.wood, st[0] + o[0], sy + 1.2, st[1] + o[1], gGarden); });
@@ -889,7 +915,7 @@ function buildModel(THREE) {
      Pfosten 6 × 6 cm im Abstand von höchstens 2,5 m, Matten 8/6/8 (waagerechte Doppelstäbe alle 20 cm, senkrechte Stäbe alle 5 cm),
      Höhe = Pfostenoberkante über dem Gelände am Pfosten. */
   (function zaun() {
-    var IN = 0.15, WIESE_DZ = 0.08, PW = 0.06, ZW = 2.5, GAP = 0.04, CAP = 0.03;
+    var IN = ZAUN_IN, WIESE_DZ = 0.08, PW = ZAUN_PW, ZW = 2.5, GAP = 0.04, CAP = 0.03;
     function innen(k, d) { // Eckpunkt k des Grundstücksumrisses um d nach innen verschoben (Gehrung)
       var n = PLOT.length, p = PLOT[(k + n - 1) % n], q = PLOT[k], r = PLOT[(k + 1) % n];
       var l1 = Math.hypot(q[0] - p[0], q[1] - p[1]), l2 = Math.hypot(r[0] - q[0], r[1] - q[1]);
