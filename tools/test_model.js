@@ -36,7 +36,7 @@ m.rooms.forEach(r => { cur.rooms[r.id] = { name: r.name, level: r.level, area: r
 console.log({ meshes: cur.meshes, tris: cur.tris, nonFinite: bad, ridge: cur.ridge });
 m.rooms.forEach(r => console.log('  ' + r.level.padEnd(4) + r.name.padEnd(24) + r.area.toFixed(2) + ' m²'));
 
-/* Feste Randbedingungen (CLAUDE.md) */
+/* Feste Randbedingungen (AGENTS.md) */
 const fails = [];
 function check(ok, msg) { if (!ok) fails.push(msg); }
 check(bad === 0, 'nicht endliche Koordinaten: ' + bad);

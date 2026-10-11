@@ -14,6 +14,10 @@ Interaktives, maßstabsgetreues 3D-Modell von Grundstück, Haus und Dachausbau (
 | `analyse/` | Hilfsskripte und Zwischendaten der Planauswertung |
 | `archiv/` | frühere Modellstände (v1–v4) |
 | `docs/` | Planung, z. B. `plan-parametrisches-modell.md` (Datenmodell, 2D-Bemaßung, Prüfung) |
+| `.devcontainer/` | Entwicklungsumgebung für die lokale Arbeit (Windows/WSL, Mac) |
+| `.claude/` | Skills für KI-Agenten (`wissensrueckgabe`) |
+
+Im Wurzelverzeichnis: `AGENTS.md` (Regelwerk und Projektbeschreibung, `CLAUDE.md` verweist darauf) und `TODO.md` (offene Punkte).
 
 ## Bauen und Testen
 ```
@@ -21,4 +25,4 @@ npm ci
 python3 build.py
 node tools/test_model.js
 ```
-Hinweise zu Koordinaten, Maßen und geklärten Annahmen stehen in `CLAUDE.md`. Was in `eingaben/` liegt, steht in `eingaben/README.md`.
+Hinweise zu Koordinaten, Maßen und geklärten Annahmen stehen in `AGENTS.md`. Was in `eingaben/` liegt, steht in `eingaben/README.md`.
