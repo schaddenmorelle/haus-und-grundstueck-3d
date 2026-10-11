@@ -30,10 +30,11 @@ const cur = {
   plotArea: r2(m.info.plotArea), footArea: r2(m.info.footArea),
   ridge: r3(ridge), levels: { eg: r3(m.levels.eg), dg: r3(m.levels.dg) },
   terrain: [r2(minY + m.datum), r2(maxY + m.datum)],
-  rooms: m.rooms.map(r => ({ id: r.id, name: r.name, level: r.level, area: r2(r.area) }))
+  rooms: {}
 };
+m.rooms.forEach(r => { cur.rooms[r.id] = { name: r.name, level: r.level, area: r2(r.area) }; });
 console.log({ meshes: cur.meshes, tris: cur.tris, nonFinite: bad, ridge: cur.ridge });
-cur.rooms.forEach(r => console.log('  ' + r.level.padEnd(4) + r.name.padEnd(24) + r.area.toFixed(2) + ' m²'));
+m.rooms.forEach(r => console.log('  ' + r.level.padEnd(4) + r.name.padEnd(24) + r.area.toFixed(2) + ' m²'));
 
 /* Feste Randbedingungen (CLAUDE.md) */
 const fails = [];

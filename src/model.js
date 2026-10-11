@@ -258,6 +258,7 @@ function buildModel(THREE) {
   function dw(p, q, t) { wall(P(p[0], p[1]), P(q[0], q[1]), t, yF, yC, [], gInner, 0.05, mat.plasterIn); }
   rw(4.57, 4.745, 0.385, 3.535);                       // HAR West
   rw(4.57, 7.93, 3.36, 3.535, [[6.775, 7.62]]);        // HAR Süd mit Tür
+  rw(2.56, 4.57, 3.36, 3.535, [[3.245, 4.105]]);       // Eltern / Flur mit Tür (nicht im Bauplan; Dicke, Lage und Breite angenommen)
   rw(7.755, 7.93, 0.385, 3.36);                        // HAR / Kind II
   dw([7.93, 3.45], [8.83, 4.35], 0.2);                 // schräge Wand Kind II / Diele
   rw(8.8, 12.565, 4.30, 4.425, [[9.46, 10.32], [11.71, 12.565]]); // Kind II und D-Bad Süd
@@ -285,8 +286,7 @@ function buildModel(THREE) {
     { id: 'dbad', name: 'D-Bad', col: TILE, poly: [[10.635, 2.405], [12.565, 2.405], [12.565, 4.30], [10.635, 4.30]] },
     { id: 'bad', name: 'Bad (Eltern)', col: TILE, poly: [[0.385, 3.525], [2.56, 3.525], [3.62, 4.5], [3.71, 4.6], [3.71, 6.405], [0.385, 6.405]] },
     { id: 'ankleide', name: 'Ankleide', col: WOOD, poly: [[3.885, 4.775], [6.78, 4.775], [7.64, 5.64], [7.64, 6.405], [3.885, 6.405]] },
-    { id: 'flur', name: 'Flur', col: TILE2, poly: [[2.56, 3.36], [4.57, 3.36], [4.745, 3.535], [7.93, 3.535], [8.83, 4.425], [8.83, 6.405], [7.815, 6.405], [7.815, 5.64], [6.82, 4.6], [3.885, 4.6], [3.62, 4.5]] },
-    { id: 'diele', name: 'Diele', col: TILE2, poly: [[8.83, 4.425], [12.565, 4.425], [12.565, 6.375], [8.83, 6.375]] },
+    { id: 'flur', name: 'Flur / Diele', col: TILE2, poly: [[2.78, 3.535], [7.93, 3.535], [8.83, 4.425], [12.565, 4.425], [12.565, 6.375], [8.83, 6.375], [8.83, 6.405], [7.815, 6.405], [7.815, 5.64], [6.82, 4.6], [3.885, 4.6], [3.62, 4.5]] },
     { id: 'kind1', name: 'Nähzimmer', col: WOOD, poly: [[9.175, 6.5], [12.565, 6.5], [12.565, 9.69], [9.175, 9.69]] },
     { id: 'speis', name: 'Speisekammer', col: TILE, poly: [[9.175, 9.815], [12.565, 9.815], [12.565, 11.07], [9.175, 11.07]] },
     { id: 'wohnen', name: 'Wohnen / Essen', col: WOOD, poly: [[3.885, 6.58], [9.0, 6.58], [9.0, 14.27], [3.885, 14.27]] },
@@ -383,16 +383,20 @@ function buildModel(THREE) {
     ins.rotation.x = -Math.PI / 2; ins.position.y = yD + 0.004; ins.receiveShadow = true; gDeck.add(ins); pickables.push(ins);
     // ausgebauter Bereich (weiß im Plan)
     var Z = { x0: 5.20, x1: 11.24, z0: 1.73, z1: 12.96 };
+    // Trockenbauwände im DG einheitlich 12,5 cm (Annahme, genaue Maße folgen). Kniewände behalten die Planlage (Außenseite = Z),
+    // Treppenwände die Seite zur Treppe (lichter Abstand 1,60 m), Querwand und Trennwand ihre Mittellinie.
+    var TD = 0.125, QZ = 7.31, TWX = 8.235, TN = 8.09, TS = 9.69;
+    var zi = { x0: Z.x0 + TD, x1: Z.x1 - TD, z0: Z.z0 + TD, z1: Z.z1 - TD }, q0 = QZ - TD / 2, q1 = QZ + TD / 2, t0 = TWX - TD / 2, t1 = TWX + TD / 2;
     var zonePts = [[Z.x0, Z.z0], [Z.x1, Z.z0], [Z.x1, 8.70], [9.2, 8.70], [9.2, 9.69], [Z.x1, 9.69], [Z.x1, Z.z1], [Z.x0, Z.z1]];
     var zoneMat = M(0xcdae82, 0.8, 0, { polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
     var zone = new THREE.Mesh(new THREE.ShapeGeometry(shapeOf(zonePts.map(function (p) { return P(p[0], p[1]); }))), zoneMat);
     zone.rotation.x = -Math.PI / 2; zone.position.y = yD + 0.008; zone.receiveShadow = true; gDeck.add(zone); pickables.push(zone);
     // Räume im Dachausbau (Innenmaße in hx/hz)
     var DGR = [
-      { id: 'pia', name: 'Pias Zimmer', poly: [[5.32, 1.85], [11.12, 1.85], [11.12, 7.94], [8.32, 7.94], [8.32, 7.22], [5.32, 7.22]] },
-      { id: 'arbeit', name: 'Arbeitszimmer', poly: [[5.32, 7.40], [8.15, 7.40], [8.15, 12.84], [5.32, 12.84]] },
-      { id: 'abstell', name: 'Abstellkammer', poly: [[8.32, 9.84], [11.12, 9.84], [11.12, 12.84], [8.32, 12.84]] },
-      { id: 'treppe', name: 'Treppe und Flur (DG)', poly: [[8.32, 7.94], [11.12, 7.94], [11.12, 8.70], [9.2, 8.70], [9.2, 9.69], [11.12, 9.69], [11.12, 9.84], [8.32, 9.84]] }
+      { id: 'pia', name: 'Pias Zimmer', poly: [[zi.x0, zi.z0], [zi.x1, zi.z0], [zi.x1, TN - TD], [t1, TN - TD], [t1, q0], [zi.x0, q0]] },
+      { id: 'arbeit', name: 'Arbeitszimmer', poly: [[zi.x0, q1], [t0, q1], [t0, zi.z1], [zi.x0, zi.z1]] },
+      { id: 'abstell', name: 'Abstellkammer', poly: [[t1, TS + TD], [zi.x1, TS + TD], [zi.x1, zi.z1], [t1, zi.z1]] },
+      { id: 'treppe', name: 'Treppe und Flur (DG)', poly: [[t1, TN - TD], [zi.x1, TN - TD], [zi.x1, 8.70], [9.2, 8.70], [9.2, TS], [zi.x1, TS], [zi.x1, TS + TD], [t1, TS + TD]] }
     ];
     DGR.forEach(function (r) {
       var pts = r.poly.map(function (q) { return P(q[0], q[1]); });
@@ -431,17 +435,17 @@ function buildModel(THREE) {
       m.castShadow = true; m.receiveShadow = true; gDG.add(m); pickables.push(m);
     }
     // Kniewände (ca. 1 m hoch) zwischen ausgebautem Raum und nicht ausgebautem Dachraum
-    dgWall(Z.x0, Z.x1, Z.z0, Z.z0 + 0.12, 1.0);                 // Nord
-    dgWall(Z.x0, Z.x1, Z.z1 - 0.12, Z.z1, 1.0);                 // Süd
-    dgWall(Z.x0, Z.x0 + 0.12, Z.z0, Z.z1, 1.0);                 // West
-    dgWall(Z.x1 - 0.12, Z.x1, Z.z0, 8.70, 1.0);                 // Ost, nördlich der Treppe (bis hinter das Geländer verlängert)
-    dgWall(Z.x1 - 0.12, Z.x1, 9.69, Z.z1, 1.0);                 // Ost, südlich der Treppe
-    dgWall(5.20, 8.32, 7.22, 7.40, undefined, true);          // Querwand West (Schräge folgt dem Dach bis zur 1-m-Kniewand)
-    dgWall(8.15, 8.32, 7.22, 8.55);          // Trennwand Nord
-    dgWall(8.15, 8.32, 9.41, 12.96);         // Trennwand Süd
-    dgWall(Z.x1, 12.54, 8.58, 8.70);        // Schrägwand nördlich der Treppenöffnung, von der Kniewand bis zur Hauskante
-    dgWall(9.2, Z.x1, 7.94, 8.09);         // Treppenwand Nord (lichter Abstand zur Südwand 1,60 m)
-    dgWall(9.2, 12.54, 9.69, 9.84);         // Treppenwand Süd
+    dgWall(Z.x0, Z.x1, Z.z0, zi.z0, 1.0);                       // Nord
+    dgWall(Z.x0, Z.x1, zi.z1, Z.z1, 1.0);                       // Süd
+    dgWall(Z.x0, zi.x0, Z.z0, Z.z1, 1.0);                       // West
+    dgWall(zi.x1, Z.x1, Z.z0, 8.70, 1.0);                       // Ost, nördlich der Treppe (bis hinter das Geländer verlängert)
+    dgWall(zi.x1, Z.x1, TS, Z.z1, 1.0);                         // Ost, südlich der Treppe
+    dgWall(Z.x0, t1, q0, q1, undefined, true);                  // Querwand West (Schräge folgt dem Dach bis zur 1-m-Kniewand)
+    dgWall(t0, t1, q0, 8.55);                                   // Trennwand Nord
+    dgWall(t0, t1, 9.41, Z.z1);                                 // Trennwand Süd
+    dgWall(Z.x1, 12.54, 8.70 - TD, 8.70);                       // Schrägwand nördlich der Treppenöffnung, von der Kniewand bis zur Hauskante
+    dgWall(9.2, Z.x1, TN - TD, TN);                             // Treppenwand Nord (lichter Abstand zur Südwand 1,60 m)
+    dgWall(9.2, 12.54, TS, TS + TD);                            // Treppenwand Süd
     // Treppe nach Treppenplanung (Wortmann): 15 Steigungen à 19,81 cm, Auftritt 25 cm, Laufbreite 1,0125 m,
     // Viertelwendelung (Stufen 1 bis 6) an der Ostwand, danach gerader Lauf nach Westen. (u, v) = Maße der Zeichnung ab Innenecke.
     (function stair() {
@@ -465,7 +469,7 @@ function buildModel(THREE) {
       });
       // Geländer: Handlauf Eiche, Stäbe Edelstahl 16 mm
       // Geländer: von unten hoch, oben zweimal 90 Grad (15 cm) und zurück bis zur Dachschräge; Nische (54 cm) daneben
-      var RB = 0.15, UE = 12.565 - 11.12, YT = top(15) + 0.9;
+      var RB = 0.15, UE = 12.565 - zi.x1, YT = top(15) + 0.9;
       var rp = [[0.95, 1.4, top(1) + 0.9], [0.95, W, top(4) + 0.9], [1.357, W, top(7) + 0.9], [3.365, W, YT], [3.365, W + RB, YT], [UE, W + RB, YT]];
       function pt(p) { var q = toP(p[0], p[1]); return new THREE.Vector3(q[0], p[2], q[1]); }
       var up = new THREE.Vector3(0, 1, 0), lens = [];

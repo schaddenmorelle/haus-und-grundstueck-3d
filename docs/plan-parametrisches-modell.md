@@ -1,6 +1,6 @@
 # Plan: parametrisches Hausmodell mit 2D-Bemaßung und Prüfung
 
-Stand: Oktober 2026. Ziel: Raummaße, Wanddicken und Höhen sollen sich in 2D-Ansichten (Grundriss je Geschoss, Schnitt und Ansicht) direkt an den Maßen ändern lassen. Jede Änderung wird sofort geprüft, und ihre Auswirkungen auf Nachbarräume, Wände, Öffnungen, Treppe und Dachgeschoss werden angezeigt. Später kommen Ausstattungsdetails hinzu. Deshalb muss zuerst der Rohbau mit korrekten Maßen sauber als Daten vorliegen.
+Stand: 11.10.2026. Die Entscheidungen des Nutzers sind eingearbeitet (Abschnitt 9), Phase 0 ist erledigt. Ziel: Raummaße, Wanddicken und Höhen sollen sich in 2D-Ansichten (Grundriss je Geschoss, Schnitt und Ansicht) direkt an den Maßen ändern lassen. Jede Änderung wird sofort geprüft, und ihre Auswirkungen auf Nachbarräume, Wände, Öffnungen, Treppe und Dachgeschoss werden angezeigt. Später kommen Ausstattungsdetails hinzu. Deshalb muss zuerst der Rohbau mit korrekten Maßen sauber als Daten vorliegen.
 
 ---
 
@@ -23,12 +23,16 @@ Stand: Oktober 2026. Ziel: Raummaße, Wanddicken und Höhen sollen sich in 2D-An
 | 4 | **Öffnungen sind schwer lesbar und unvollständig.** Ihre Lage wird ab Wandanfang in Laufrichtung angegeben (z. B. `HD - 14.27`). Innentüren sind nur Aussparungen ohne Art, Breite/Höhe-Angabe oder Anschlag. Manche Durchgänge sind sogar nur der Abstand zwischen zwei getrennten Wänden. | Durchgang Flur–Wohnen (hx 8,01–8,87), Tür zum Arbeitszimmer im DG (hz 8,55–9,41) |
 | 5 | **Abhängigkeiten sind nicht ausgedrückt.** Kniewände, DG-Räume und Treppenöffnung stehen als feste Zahlen im Code. Die Treppe ist fest an 12,565 und 9,69 verankert. Ändert sich eine Wand oder die Traufe, laufen diese Elemente nicht mit. | `Z = {x0: 5.20, x1: 11.24, …}`, `stairHole`, `toP()` |
 | 6 | **Beschriftungen sind fester Text.** Nach dem Feintuning wären sie falsch. | Maß-Tags `'12,95 m'`, `'14,66 m'`, `EDGE_TXT`. Kennzahlen First und Traufe stehen als String in `app.js`. Die Hinweistexte in `tpl.html` enthalten Maße (1,60 m, 90 cm …). |
-| 7 | Kleinigkeiten | `app.js` setzt die DG-Höhe auf 2,82 statt yD − yF = 2,971. `pm`/`pmx`/`pmz` werden nicht benutzt. `tools/test_model.js` gibt nur Werte aus und prüft nichts (kein Exit-Code). `package.json` heißt „scratchpad“. Jeder Raum und jede DG-Wand bekommt ein eigenes Material. Es gibt keinen Neuaufbau mit `dispose()`. |
+| 7 | Kleinigkeiten | Jeder Raum und jede DG-Wand bekommt ein eigenes Material. Es gibt keinen Neuaufbau mit `dispose()`. *In Phase 0 erledigt:* DG-Höhe 2,82 statt 2,971 in `app.js`, unbenutzte `pm`/`pmx`/`pmz`, Test ohne Prüfung, Paketname „scratchpad“, Kennzahlen First/Traufe als fester Text. |
 
-**Fachlich zu klären** (aus einer 2D-Auswertung der heutigen Daten; diese Punkte werden im neuen Modell sichtbar)
-- **Raumgrenzen ohne Wand:** Eltern/Flur (hx 2,56–4,57 bei hz 3,36) und Flur/Diele (hx 8,83). Laut Originalplan sind sie offen. Im neuen Modell werden sie als *Raumtrennlinie* ausdrücklich eingetragen.
-- **Treppe im Nähzimmer:** Im EG liegt die Treppe vollständig im Polygon des Nähzimmers. 3,5 m² der angezeigten 10,8 m² sind Treppe, und eine Abtrennung ist nicht modelliert.
-- **Wanddicken im DG** (12/15/17/18 cm): Sind sie so gemessen, oder sollen sie vereinheitlicht werden?
+**Fachlich geklärt und umgesetzt (11.10.2026)**
+- **Flur und Diele** sind ein Raum („Flur / Diele“, 15,2 m²).
+- **Zwischen Eltern und Flur** gibt es eine Tür. Sie fehlt im Bauplan und wurde als Wand mit Tür ergänzt: 17,5 cm in der Flucht von Installationswand und HAR-Südwand, Tür 86 cm. Lage und Breite sind angenommen.
+- **Die Treppe** steht offen im Nähzimmer. Ihre 3,5 m² zählen zum Nähzimmer, weil unter der Treppe ein Schreibtisch steht. Im neuen Modell ist die Treppe ein Objekt im Raum und keine Raumgrenze.
+- **DG-Wanddicken** waren nicht gemessen und sind jetzt einheitlich 12,5 cm (Annahme, genaue Maße folgen). Kniewände behalten die Planlage (Außenseite), Treppenwände die Seite zur Treppe (1,60 m licht bleiben), Querwand und Trennwand ihre Mittellinie.
+- **Kniewände** bleiben an ihrer Lage aus dem Plan.
+
+**Noch offen**
 - **Maßkette an der DG-Treppe:** Lauf 0,90 + Geländer 0,15 + Nische 0,54 = 1,59 m, der lichte Wandabstand ist aber 1,60 m. Es bleibt 1 cm Rest. Das ist ein gutes erstes Beispiel für eine automatische Kettenprüfung.
 
 ---
@@ -44,7 +48,7 @@ Stand: Oktober 2026. Ziel: Raummaße, Wanddicken und Höhen sollen sich in 2D-An
                          ▼                       ▼                         ▼
                     3D (Three.js)        Grundriss 2D (SVG)        Schnitt/Ansicht 2D (SVG)
                                                  │
-     Maß anklicken und ändern ─► Patch ─► neu auswerten ─► Diff + Befunde ─► übernehmen / verwerfen
+     tools/aendern.js maß=wert ─► Patch ─► neu auswerten ─► Diff + Befunde ─► haus.json + Commit (oder Abbruch)
 ```
 
 Grundsätze:
@@ -76,6 +80,8 @@ Benannte Fluchtlinien in x und z, jeweils absolut oder relativ zu einer anderen 
 ```
 `"minus": "AW"` bezieht die Dicke des Wandtyps ein. Wird die Außenwand dicker, wandern alle Innenseiten und alle dort anstoßenden Wände automatisch mit.
 
+**Außenmaße** (Außenkanten West, Ost, Nord, Süd und der Versprung 3,50 / 6,78 m) stehen in einer eigenen Gruppe `aussenmasse` und sind gesperrt. Bei normalen Änderungen bewegen sie sich nie. Sie lassen sich **gesondert** ändern: in einem eigenen Abschnitt von `haus.json` bzw. mit `tools/aendern.js --aussenmass`. Dabei gibt der Raum an der betroffenen Fassade nach. Dach (Flügel A/B), Traufe und Kniewandhöhen werden neu berechnet und geprüft. Ein Test vergleicht die gesperrten Werte mit `tools/gesperrt.json`. Eine versehentliche Änderung fällt dadurch auf, eine gewollte wird in beiden Dateien eingetragen.
+
 ### 3.3 Wandtypen
 ```json
 "wandtypen": {
@@ -83,7 +89,7 @@ Benannte Fluchtlinien in x und z, jeweils absolut oder relativ zu einer anderen 
   "IW175": { "dicke": 175, "quelle": "plan" },
   "IW125": { "dicke": 125, "quelle": "plan" },
   "IW115": { "dicke": 115, "quelle": "plan" },
-  "TB-DG": { "dicke": 150, "quelle": "annahme" }
+  "TB-DG": { "dicke": 125, "quelle": "annahme", "notiz": "vereinheitlicht, nicht gemessen" }
 }
 ```
 Eine Dicke wird an einer Stelle geändert und wirkt auf alle Wände dieses Typs. Für Einzelfälle gibt es eine Überschreibung an der Wand.
@@ -107,10 +113,9 @@ Sie gehören zu einer Wand: `art` (fenster, tuer, fenstertuer, durchgang), `ab` 
 
 ### 3.6 Räume: Stempel statt Polygone
 ```json
-"raeume": [ { "id": "speis", "name": "Speisekammer", "geschoss": "EG", "stempel": [10800, 10400], "boden": "fliese" } ],
-"trennlinien": [ { "geschoss": "EG", "von": ["x.flurO", "z.dieleN"], "bis": ["x.flurO", "z.kind1N"], "zwischen": ["flur", "diele"] } ]
+"raeume": [ { "id": "speis", "name": "Speisekammer", "geschoss": "EG", "stempel": [10800, 10400], "boden": "fliese" } ]
 ```
-**Raumpolygone werden abgeleitet:** Geschossfläche (Innenseite der Außenwände bzw. im DG die Ausbaufläche) minus alle Wandflächen minus Trennlinien minus Öffnungen in der Decke. Jede so entstandene Teilfläche bekommt den Raum, dessen Stempel in ihr liegt. Polygon-Clipping übernimmt die Bibliothek `polygon-clipping@0.15.7` (MIT). Sie wird in die Seite eingebaut und braucht kein zusätzliches CDN. In ganzen Millimetern rechnet sie robust.
+**Raumpolygone werden abgeleitet:** Geschossfläche (Innenseite der Außenwände bzw. im DG die Ausbaufläche) minus alle Wandflächen minus Öffnungen in der Decke. Raumtrennlinien ohne Wand werden derzeit nicht gebraucht, weil Flur und Diele ein Raum sind. Das Konzept bleibt für später möglich. Treppe, Kamin und Möbel sind Objekte im Raum und ziehen nichts von der Fläche ab. Die offene Treppe zählt also zum Nähzimmer. Jede so entstandene Teilfläche bekommt den Raum, dessen Stempel in ihr liegt. Polygon-Clipping übernimmt die Bibliothek `polygon-clipping@0.15.7` (MIT). Sie wird in die Seite eingebaut und braucht kein zusätzliches CDN. In ganzen Millimetern rechnet sie robust.
 Damit lässt sich die Frage „Was passiert, wenn ich die Wand verlängere?“ direkt beantworten (siehe 5.1).
 
 ### 3.7 Geschosse und Höhen
@@ -124,7 +129,7 @@ Daraus folgt der Deckenaufbau mit 446 mm (Rohdecke + Fußbodenaufbau DG). Bei dr
 
 ### 3.8 Dach, DG-Ausbau, Treppe, Kamin
 - **Dach:** Traufe 145,77, Neigung 35° (gesperrt), Überstand 235 mm, Flügel A und B als Rechtecke über Achsen der Außenwände. Der First wird berechnet und gegen den Plan (149,08) geprüft.
-- **DG-Ausbau:** Kniewände als Wände mit `hoehe: fest 1000`, ihre Lage auf Achsen. Eine Prüfregel vergleicht die tatsächliche Höhe unter der Dachschräge mit dem Soll. Falls gewünscht, kann die Lage später aus „Kniewand 1,00 m“ berechnet werden (Rückfrage, siehe 8).
+- **DG-Ausbau:** Kniewände als Wände mit `hoehe: fest 1000`. Ihre Lage kommt aus dem Plan (entschieden), die Außenseite liegt auf der Planlinie. Eine Prüfregel vergleicht die tatsächliche Höhe unter der Dachschräge mit dem Soll.
 - **Treppe:** parametrisch mit Steigungen (15), Auftritt (250), Laufbreite (900), Wendelungsfeld (Stufen 1–6) und einem Anker an zwei Achsen (heute die Innenseite der Ostwand und `z.kind1S`). Die Steigung wird aus der Geschosshöhe abgeleitet. Die Treppenöffnung im DG ergibt sich aus Treppe und Kopfhöhe oder wird als eigener Wert mit Prüfung geführt (heute 99 cm).
 - **Kamin, Stützpfosten, Dachfenster:** Objekte mit Lage an Achsen bzw. auf der Dachfläche.
 
@@ -136,7 +141,7 @@ Gemessene Strecken werden getrennt von den Steuerwerten geführt:
 Das Modell zeigt die Abweichung an. Der Nutzer entscheidet, ob er das Modell anpasst. So wird jede Messung genutzt, ohne dass Messfehler unbemerkt ins Modell wandern.
 
 ### 3.10 Später: Ausstattung
-Möbel, Sanitär und Küche als Objekte, verankert an Raum oder Wand („an Wand X, 300 mm ab Ecke, Höhe 0“). Sie wandern mit, wenn die Wand sich verschiebt. Prüfungen: Kollision mit Wänden und Türaufschlägen, Bewegungsflächen, Kopfhöhe unter der Dachschräge.
+Möbel, Sanitär und Küche als Objekte, verankert an Raum oder Wand („an Wand X, 300 mm ab Ecke, Höhe 0“). Sie wandern mit, wenn die Wand sich verschiebt. Prüfungen: Kollision mit Wänden und Türaufschlägen, Bewegungsflächen, Kopfhöhe unter der Dachschräge und unter der Treppe. Ein naheliegendes erstes Objekt ist der Schreibtisch unter der Treppe im Nähzimmer.
 
 ---
 
@@ -145,8 +150,9 @@ Möbel, Sanitär und Küche als Objekte, verankert an Raum oder Wand („an Wand
 ### 4.1 Grundriss je Geschoss (EG, DG, optional Dachaufsicht)
 - **Darstellung:** Wände gefüllt bzw. schraffiert nach Wandtyp, Fenster als Doppellinie, Türen mit Aufschlagbogen (sobald `anschlag` bekannt ist). Raumstempel mit Name, Fläche und lichten Maßen. Treppe mit Lauflinie und Stufennummern, dazu Kamin und Treppenöffnung. Im DG zusätzlich Höhenlinien der Dachschräge (1,00 m und 2,00 m), nützlich für Möbel und Wohnflächenberechnung.
 - **Automatische Bemaßung:** außen drei Ketten wie im Bauplan (Gesamtmaß, Wandvorsprünge/Achsen, Öffnungen), innen lichte Raummaße und Wanddicken. Öffnungen in Plannotation „88,5/219“ (Breite/Höhe), dazu BRH.
-- **Bearbeiten:** Klick auf ein Maß öffnet ein Eingabefeld (cm oder m, Komma). Pfeiltasten ändern um ±1 cm, mit Umschalt um ±10 cm. Klick auf eine Wand zeigt Typ, Dicke, Höhe und Öffnungen. Klick auf einen Raum zeigt Name und Belag.
-- **Welche Seite bleibt fest?** Gesperrte Achsen bewegen sich nie. Ansonsten gilt als Standard **„Nachbar gibt nach“**: Nur die gewählte Wand wandert, abhängige Achsen werden ausgeglichen. Alternativ **„Kette schieben“**: Alles dahinter wandert mit. Ein Pin-Symbol an den Achsen zeigt den Zustand.
+- **Bearbeiten nur über das Repository (entschieden):** Die Seite speichert nichts. Jedes Maß in der Seite hat einen eindeutigen Namen, z. B. `speis.tiefe` oder `wand:eg.speis_kueche`. Der Nutzer nennt Maß und neuen Wert, und die Änderung läuft über `tools/aendern.js` im Repository (siehe 7). Ein Probiermodus in der Seite, der nur Vorschau und Prüfung zeigt und eine Änderungsliste zum Kopieren erzeugt, ist als Option für Phase 4 vorgesehen.
+- **Welche Seite bleibt fest? (entschieden)** Immer **„Nachbar gibt nach“:** Nur die gewählte Wand wandert, abhängige Achsen werden ausgeglichen, der angrenzende Raum wird größer oder kleiner. Gesperrte Achsen (Außenmaße) bewegen sich nie, außer bei der gesonderten Außenmaß-Änderung (3.2). Ein Schloss-Symbol kennzeichnet sie im Plan.
+- **Plan auch im Repository:** Der Build schreibt Grundrisse und Schnitte zusätzlich als SVG nach `docs/plaene/`. Jede Maßänderung ist so im Git-Diff als Bild sichtbar.
 - **Farben nach Herkunft:** Plan, Aufmaß, Annahme und „in dieser Sitzung geändert“ bekommen je eine eigene Farbe. Die Befunde erscheinen als Marker im Plan und als Liste. Ein Klick springt zur Stelle.
 
 ### 4.2 Schnitte und Ansichten (Seitenansicht)
@@ -157,7 +163,7 @@ Möbel, Sanitär und Küche als Objekte, verankert an Raum oder Wand („an Wand
 - **Technik:** Grundflächen des abgeleiteten Modells mit der Schnittlinie schneiden, dazu Höhenbereiche und Dachfunktion. Alles ist exakt, ohne Raycasting.
 
 ### 4.3 Kopplung mit 3D
-Umschalter 2D / 3D / geteilt (auf dem Handy als Reiter). Eine Auswahl in 2D hebt dasselbe Element in 3D hervor und umgekehrt. Nach „Übernehmen“ wird nur das Haus in 3D neu aufgebaut (Gelände und Garten bleiben), alte Geometrien werden mit `dispose()` freigegeben. Der heutige Gesamtaufbau dauert in Node 175 ms, ein Neuaufbau nur des Hauses ist also im Browser flüssig.
+Umschalter 2D / 3D / geteilt (auf dem Handy als Reiter). Eine Auswahl in 2D hebt dasselbe Element in 3D hervor und umgekehrt. Haus und Grundstück werden getrennt aufgebaut. Für einen späteren Probiermodus kann so nur das Haus neu entstehen (Gelände und Garten bleiben), alte Geometrien werden mit `dispose()` freigegeben. Der heutige Gesamtaufbau dauert in Node 175 ms.
 
 ---
 
@@ -189,15 +195,20 @@ Jede Regel ist eine Funktion `(abgeleitetes Modell) → Befunde[]` mit Stufe (Fe
 16. Treppenöffnung im DG liegt über der Treppe im EG, der Kamin hat in beiden Geschossen dieselbe Lage.
 
 ### 5.2 Auswirkungen anzeigen (Diff)
-Vor dem Übernehmen wird altes und neues abgeleitetes Modell verglichen: Räume (Fläche, lichte Maße), Wände (Länge, Lage), Öffnungen (verschoben, Abstand zum Wandende), Höhen (Steigung, DG-Wandhöhen) sowie neue und behobene Befunde. Im Grundriss erscheint der alte Umriss gestrichelt und der neue durchgezogen. Es gibt Rückgängig und Wiederholen.
+Bevor `haus.json` geschrieben wird, vergleicht `tools/aendern.js` altes und neues abgeleitetes Modell: Räume (Fläche, lichte Maße), Wände (Länge, Lage), Öffnungen (verschoben, Abstand zum Wandende), Höhen (Steigung, DG-Wandhöhen) sowie neue und behobene Befunde. Zusätzlich entsteht ein Vergleichs-SVG, darin der alte Umriss gestrichelt und der neue durchgezogen. Rückgängig geht über Git.
 
-**Beispiel:** Die lichte Tiefe der Speisekammer wird von 1,255 auf 1,30 m geändert (Modus „Nachbar gibt nach“).
-1. Der Editor ändert `z.speisS.plus` von 1380 auf 1425.
+**Beispiel:** Die lichte Tiefe der Speisekammer wird von 1,255 auf 1,30 m geändert (`node tools/aendern.js speis.tiefe=1,30m`).
+1. Das Werkzeug ändert `z.speisS.plus` von 1380 auf 1425.
 2. Die Küche wird in der lichten Tiefe 3,025 → 2,98 m kleiner, ihre Fläche 10,8 → 10,6 m². Der Durchgang in der Wand wandert mit.
 3. Es entstehen keine neuen Befunde. Der Kamin (hz 10,18–10,67) bleibt in der Speisekammer.
-4. Mit „Übernehmen“ werden Patch und 3D-Neuaufbau ausgeführt.
+4. Ausgabe: `haus.json` geändert, Diff, Befunde und neue SVG-Pläne. Danach Build, Screenshot, Commit und Veröffentlichung.
 
-**Gegenbeispiel:** Die Westwand des D-Bads (hx 10,46–10,635) wird nach Süden bis zur Wand des Nähzimmers (hz 6,375) verlängert. Folge: Fehler „Wand schneidet Wand Julians Zimmer/Diele“. Außerdem wird die Diele geteilt. Der Stempel bleibt im östlichen Teil, der westliche Teil wird gemeldet als „Teilfläche ohne Raum, ca. 3,2 m²“. Endet die Verlängerung mitten in der Diele, lautet der Befund stattdessen „frei endende Wand“.
+**Gegenbeispiel:** Die Westwand des D-Bads (hx 10,46–10,635) wird nach Süden bis zur Wand des Nähzimmers (hz 6,375) verlängert. Folgen:
+- Fehler „Wand schneidet Wand Julians Zimmer / Flur“.
+- Der Eingangsbereich mit der Haustür (östlicher Teil, ca. 3,8 m²) wird vom Flur abgetrennt. Das ergibt die Befunde „Teilfläche ohne Raum“ und „Räume nicht von der Haustür erreichbar“.
+- Endet die Verlängerung mitten im Flur, lautet der Befund stattdessen „frei endende Wand“.
+
+Das Werkzeug bricht bei Fehlern ab und ändert `haus.json` nicht. Nur mit `--trotzdem` wird die Änderung trotz Fehlern gespeichert.
 
 ---
 
@@ -211,16 +222,17 @@ src/
     werte.js              Achsen und Parameter auflösen (Abhängigkeiten, Zyklen, Einheiten)
     ableiten.js           Wandflächen, Stöße, Räume (Clipping), Höhen, Dachfunktion, Treppe
     pruefen.js            Regeln → Befunde
-    aendern.js            Patch anwenden, „Nachbar gibt nach“ / „Kette schieben“, Diff, Rückgängig
+    aendern.js            Patch anwenden, „Nachbar gibt nach“, gesperrte Außenmaße, Diff
     bemassung.js          Maßketten für Grundriss und Schnitt
     geo2d.js              Polygonhilfen
   ansicht3d/              haus3d.js, dach3d.js, gelaende3d.js, garten3d.js (heutiger Code, umgezogen)
   ansicht2d/              grundriss.js, schnitt.js, svg.js
-  ui/                     app.js (3D-Bedienung), editor.js (2D, Eingabe, Befundliste), tpl.html
+  ui/                     app.js (3D-Bedienung), plan.js (2D-Ansicht, Befundliste), tpl.html
 tools/
   test/*.test.js          node --test (Regression, Regeln, Änderungen)
   shot_view.js            Screenshots wie bisher
-  plan_svg.js             Grundriss/Schnitt als SVG-Datei, für Prüfungen ohne Browser
+  aendern.js              Änderungen an haus.json (Befehlszeile, ruft kern/aendern.js)
+  plan_svg.js             Grundriss/Schnitt als SVG nach docs/plaene/, für Prüfungen ohne Browser und im Git-Diff
 ```
 
 - **Build:** ES-Module, gebündelt mit `esbuild` zu einem IIFE-Skript, eingesetzt in `tpl.html`. Three.js bleibt global vom CDN. `python3 build.py` bleibt der Einstieg und ruft esbuild auf. Ergebnis ist wie bisher eine einzelne HTML-Datei, Tests importieren dieselben Module.
@@ -232,10 +244,12 @@ tools/
 
 ## 7. Speichern und Arbeitsablauf
 
-- Die Quelle bleibt im Repository (`src/data/haus.json`). Die Seite bringt sie beim Build mit.
-- Änderungen in der Seite sind eine **Patchliste**. Der Entwurf wird lokal im Browser gespeichert (localStorage, nur Komfort). Dazu kommen **Export und Import als JSON**.
-- Übernahme: Patch an Claude geben → `haus.json` anpassen → Build → Tests → Screenshot → unter derselben Artifact-URL veröffentlichen (wie bisher).
-- Optional später: ein Artifact-Speicher als Laufzeitfunktion der Seite. Dann kann Claude die Änderungen direkt aus dem Artifact lesen, und Export/Import entfällt. Das wird in Phase 4 entschieden.
+**Entschieden:** Änderungen laufen nur über das Git-Repository. Die Seite speichert nichts: kein localStorage, kein Import/Export, kein Artifact-Speicher.
+
+1. Der Nutzer nennt die Änderung, z. B. „Speisekammer lichte Tiefe 1,30 m“ oder „DG-Trockenbauwände 10 cm“. Sie kann aus einem Aufmaß stammen oder in der Seite abgelesen sein.
+2. `node tools/aendern.js speis.tiefe=1,30m` wendet sie nach der Regel „Nachbar gibt nach“ auf `haus.json` an. Das Werkzeug gibt die Auswirkungen aus (Räume, Wände, Öffnungen, Höhen) sowie neue und behobene Befunde.
+3. `npm test` (Regeln + Snapshot) → `python3 build.py` (Seite und SVG-Pläne) → Screenshot-Kontrolle → Commit mit den Auswirkungen in der Nachricht → unter derselben Artifact-URL veröffentlichen.
+4. Außenmaße werden nur mit `--aussenmass` geändert (3.2).
 - **Datenschutz:** `haus.json` enthält nur Geometrie und die vereinbarten Raumnamen. Ein Test prüft `dist/` gegen eine Sperrliste (Straße, Ort, Eigentümer). Die Sperrliste liegt in `eingaben/` und wird nie veröffentlicht. Fehlt sie, wird der Test übersprungen.
 
 ---
@@ -246,23 +260,30 @@ Jede Phase endet mit grünen Tests, Screenshot-Kontrolle und, wo sichtbar, Verö
 
 | Phase | Inhalt | Abnahme | Umfang |
 |---|---|---|---|
-| **0 Absichern** | `test_model.js` wird ein echter Test mit Assertions und Snapshot (Raumflächen, Wandanzahl, Hüllkörper, Dachhöhen). `package.json` aufräumen (Name, `build`/`test`). DG-Höhe 2,82 korrigieren, `pm*` entfernen, Kennzahlen aus dem Modell lesen. | `npm test` schlägt bei Abweichung fehl. | klein |
-| **1 Daten herauslösen** | `haus.json` mit Achsen, Wandtypen, Wänden, Öffnungen (Durchgänge als echte Öffnungen). `model.js` wird auf die neue Struktur aufgeteilt und liest die Daten. Raumpolygone bleiben vorerst explizit. | 3D identisch: Snapshot und Screenshots aller Standardansichten unverändert. | mittel |
-| **2 Räume ableiten, prüfen** | Clipping, Stempel, Trennlinien. Ein Vergleich der abgeleiteten mit den alten Polygonen ergibt eine Differenzliste zur Klärung. Prüfregeln 1–4, 7, 9–13, Befundliste im Panel. | Alte Polygone gelöscht, Abweichungen geklärt, 0 Fehler. | mittel |
-| **3 Grundriss 2D (lesen)** | SVG für EG und DG, automatische Maßketten, Raumstempel, Herkunftsfarben, Umschalter 2D/3D. | Bemaßung stimmt mit dem Bauplan überein (Stichproben). | mittel |
-| **4 Grundriss 2D (bearbeiten)** | Maße, Wanddicken, Öffnungen, Wandtypen ändern. Vorschau mit Diff und Befunden, Rückgängig/Wiederholen, Neuaufbau 3D, Export/Import, Entwurf lokal. | Beispiel 5.2 läuft in der Seite und im Node-Test. | groß |
+| **0 Absichern** ✅ | `test_model.js` ist ein echter Test mit Prüfungen und Snapshot (`tools/snapshot.json`). `npm test`/`npm run build`, Paketname, DG-Höhe 2,82 korrigiert, `pm*` entfernt, Kennzahlen aus dem Modell. | `npm test` schlägt bei Abweichung fehl. | erledigt |
+| **1 Daten herauslösen** | `haus.json` mit Achsen, Außenmaß-Gruppe (gesperrt), Wandtypen, Wänden, Öffnungen (Durchgänge als echte Öffnungen). `model.js` wird auf die neue Struktur aufgeteilt und liest die Daten. Raumpolygone bleiben vorerst explizit. | 3D identisch: Snapshot und Screenshots aller Standardansichten unverändert. | mittel |
+| **2 Räume ableiten, prüfen** | Clipping, Stempel. Ein Vergleich der abgeleiteten mit den alten Polygonen ergibt eine Differenzliste zur Klärung. Prüfregeln 1–4, 7, 9–13, Befundliste im Panel und in `npm test`. | Alte Polygone gelöscht, Abweichungen geklärt, 0 Fehler. | mittel |
+| **3 Grundriss 2D** | SVG für EG und DG in der Seite und in `docs/plaene/`, automatische Maßketten mit Maßnamen, Raumstempel, Herkunftsfarben, Schloss an gesperrten Maßen, Umschalter 2D/3D. | Bemaßung stimmt mit dem Bauplan überein (Stichproben). | mittel |
+| **4 Ändern über das Repository** | `tools/aendern.js`: Maße, Wanddicken, Wandtypen, Öffnungen ändern, „Nachbar gibt nach“, Außenmaße nur mit `--aussenmass`, Ausgabe von Auswirkungen und Befunden, Abbruch bei Fehlern. Neuaufbau nur des Hauses in 3D (`dispose`, geteilte Materialien). Optional ein Probiermodus in der Seite ohne Speichern. | Beispiel und Gegenbeispiel aus 5.2 laufen als Node-Test. | groß |
 | **5 Schnitt und Ansicht** | Fassaden, freie Schnitte, Höhenketten, Höhen bearbeiten. Treppen- und DG-Regeln (11, 13–16). | Schnitt A–A zeigt Kopfhöhe und Steigungen korrekt. | mittel |
 | **6 Aufmaß** | Prüfmaße erfassen (auch auf dem Handy), Abweichungen anzeigen, Herkunft je Wert pflegen. | Gemessene Werte erscheinen mit Abweichung. | klein |
 | **danach** | Ausstattung (Objektkatalog, Verankerung, Kollisionen, Bewegungsflächen), Wohnfläche im DG nach Höhenzonen. | | |
 
 ---
 
-## 9. Offene Entscheidungen (Rückfrage an den Nutzer)
+## 9. Entscheidungen
 
-1. **Wo wird bearbeitet?** Direkt in der veröffentlichten Seite (dann Export/Import oder Artifact-Speicher) oder nur über Claude im Repository?
-2. **Standard beim Ändern eines Innenmaßes:** „Nachbar gibt nach“ (empfohlen) oder „Kette schieben“?
-3. **Außenmaße 12,95 × 14,655 m sperren** (Absteckung)? Empfohlen: ja.
-4. **Offene Raumgrenzen** Eltern/Flur und Flur/Diele: wirklich ohne Wand? **Treppe im Nähzimmer:** abgetrennt oder offen, und soll die Treppenfläche aus der Raumfläche heraus?
-5. **DG-Wanddicken** 12/15/17/18 cm: gemessen oder vereinheitlichen?
-6. **Kniewände:** Lage aus dem Plan (Höhe wird geprüft) oder Höhe 1,00 m vorgeben und Lage berechnen?
-7. **Eingabe in cm oder m,** und Öffnungen in Plannotation (88,5/219)?
+Geklärt mit dem Nutzer am 11.10.2026:
+
+| Frage | Entscheidung |
+|---|---|
+| Wo wird bearbeitet? | Nur über das Git-Repository. Die Seite speichert nichts. |
+| Verhalten beim Ändern eines Innenmaßes | Nur der Nachbarraum gibt nach. |
+| Außenmaße | Gesperrt, aber gesondert änderbar (3.2). |
+| Flur und Diele | Ein Raum („Flur / Diele“). |
+| Eltern / Flur | Getrennt durch eine Wand mit Tür (Lage und Breite angenommen, Maße folgen). |
+| Treppe im Nähzimmer | Offene Treppe, die Fläche zählt zum Nähzimmer (Schreibtisch unter der Treppe). |
+| DG-Wanddicken | Nicht gemessen, vereinheitlicht auf 12,5 cm. Genaue Maße reicht der Nutzer nach. |
+| Kniewände | Lage aus dem Plan, die Höhe wird geprüft. |
+
+Noch offen: Werden Maße in cm oder m angegeben, und Öffnungen in Plannotation (88,5/219)? Bis zur Klärung verlangt `tools/aendern.js` die Einheit ausdrücklich (`1,30m`, `12,5cm`, `885mm`). Ohne Einheit bricht es ab, damit „12,5“ nicht als Meter gelesen wird.

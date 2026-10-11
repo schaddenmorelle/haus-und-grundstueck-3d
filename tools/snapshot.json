@@ -1,7 +1,7 @@
 {
- "meshes": 461,
- "tris": 162915,
- "tags": 47,
+ "meshes": 463,
+ "tris": 162944,
+ "tags": 46,
  "plotArea": 569.77,
  "footArea": 162.22,
  "ridge": 149.078,
@@ -13,108 +13,86 @@
   141.38,
   142.8
  ],
- "rooms": [
-  {
-   "id": "eltern",
+ "rooms": {
+  "eltern": {
    "name": "Eltern",
    "level": "eg",
    "area": 12.44
   },
-  {
-   "id": "har",
+  "har": {
    "name": "HAR",
    "level": "eg",
    "area": 8.95
   },
-  {
-   "id": "kind2",
+  "kind2": {
    "name": "Julians Zimmer",
    "level": "eg",
    "area": 13.54
   },
-  {
-   "id": "dbad",
+  "dbad": {
    "name": "D-Bad",
    "level": "eg",
    "area": 3.66
   },
-  {
-   "id": "bad",
+  "bad": {
    "name": "Bad (Eltern)",
    "level": "eg",
    "area": 8.97
   },
-  {
-   "id": "ankleide",
+  "ankleide": {
    "name": "Ankleide",
    "level": "eg",
    "area": 5.75
   },
-  {
-   "id": "flur",
-   "name": "Flur",
+  "flur": {
+   "name": "Flur / Diele",
    "level": "eg",
-   "area": 8.27
+   "area": 15.17
   },
-  {
-   "id": "diele",
-   "name": "Diele",
-   "level": "eg",
-   "area": 7.28
-  },
-  {
-   "id": "kind1",
+  "kind1": {
    "name": "Nähzimmer",
    "level": "eg",
    "area": 10.81
   },
-  {
-   "id": "speis",
+  "speis": {
    "name": "Speisekammer",
    "level": "eg",
    "area": 4.25
   },
-  {
-   "id": "wohnen",
+  "wohnen": {
    "name": "Wohnen / Essen",
    "level": "eg",
    "area": 39.33
   },
-  {
-   "id": "kueche",
+  "kueche": {
    "name": "Küche",
    "level": "eg",
    "area": 10.78
   },
-  {
-   "id": "terrasse",
+  "terrasse": {
    "name": "Terrasse (überdacht)",
    "level": "out",
    "area": 10.95
   },
-  {
-   "id": "pia",
+  "pia": {
    "name": "Pias Zimmer",
    "level": "dg",
-   "area": 33.16
+   "area": 33.24
   },
-  {
-   "id": "arbeit",
+  "arbeit": {
    "name": "Arbeitszimmer",
    "level": "dg",
-   "area": 15.4
+   "area": 15.55
   },
-  {
-   "id": "abstell",
+  "abstell": {
    "name": "Abstellkammer",
    "level": "dg",
-   "area": 8.4
+   "area": 8.51
   },
-  {
-   "id": "treppe",
+  "treppe": {
    "name": "Treppe und Flur (DG)",
    "level": "dg",
-   "area": 3.42
+   "area": 3.32
   }
- ]
+ }
 }
