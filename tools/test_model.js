@@ -157,14 +157,15 @@ const inPoly = (poly, x, z) => { let ins = false; for (let i = 0, j = poly.lengt
 }
 
 /* Außengrundstück (Angaben des Nutzers vom 11.10.2026):
-   - Der Strauch, der auf der Straße saß, ist entfernt: jeder Strauch hat seinen Mittelpunkt im Grundstück.
+   - Der Strauch, der auf der Straße saß, ist entfernt, die beiden runden Sträucher an der Südostecke durch ein Band kleiner Sträucher ersetzt:
+     jeder Strauch hat seinen Mittelpunkt im Grundstück.
    - Pool: Durchmesser 3,66 m, Höhe 76 cm.
    - Doppelstabmattenzaun in Anthrazit: West 2 m vom Carport bis zur Straße; Süd und Ost 1 m an der Grundstücksgrenze entlang bis dahin,
      wo die Wiese endet (Ecke des Pflasters an der Straße); dann 1 m an der Wiesenkante entlang bis zum Haus. */
 {
-  const buesche = kinds('busch').concat(kinds('busch-suedost'));
+  const buesche = kinds('busch').concat(kinds('strauch'));
   buesche.forEach(b => { const c = box(b).getCenter(new THREE.Vector3()); check(inPoly(m.zones.plot, c.x, c.z), 'Strauch steht außerhalb des Grundstücks (auf der Straße) bei ' + c.x.toFixed(1) + ' / ' + c.z.toFixed(1)); });
-  check(kinds('busch-suedost').length === 2, 'Südostecke: ' + kinds('busch-suedost').length + ' Sträucher statt 2 (einer von dreien stand auf der Straße)');
+  check(kinds('busch-suedost').length === 0, 'Südostecke: ' + kinds('busch-suedost').length + ' runde Sträucher statt 0 (durch das Sträucherband an der Ostseite ersetzt)');
 
   const pool = kinds('pool');
   check(pool.length === 1, 'Pool: ' + pool.length + ' statt 1');
@@ -202,6 +203,8 @@ const inPoly = (poly, x, z) => { let ins = false; for (let i = 0, j = poly.lengt
   const strecke = (a, b, nn) => { const r = []; for (let i = 0; i <= nn; i++) r.push([a[0] + (b[0] - a[0]) * i / nn, a[1] + (b[1] - a[1]) * i / nn]); return r; };
   const P = m.zones.plot, bis = z => [P[2][0] + (P[3][0] - P[2][0]) * (z - P[2][1]) / (P[3][1] - P[2][1]), z]; // Punkt der Ostgrenze bei z
   const lueckenlos = (s, pts, tol, was) => { const w = pts.filter(q => nahe(s, q[0], q[1]) > tol); check(w.length === 0, 'Zaun ' + s + ' hat Lücken an ' + was + ' (z. B. bei ' + (w[0] ? w[0][0].toFixed(1) + ' / ' + w[0][1].toFixed(1) : '') + ')'); };
+  const tor = kinds('gartentor'), kurz = nahe('wiese', 16.2, 13.68); // kurzes Zaunstück zwischen Hauswand und Tor, vor dem Zusammenfügen mit dem Tor
+  if (tor.length === 1 && punkte.wiese) punkte.wiese = punkte.wiese.concat(ecken(tor[0])); // das Tor füllt die Lücke im Zaun an der Wiesenkante
   lueckenlos('west', strecke([0, 5.5], P[5], 40), 0.3, 'der Westgrenze zwischen Carport und Straße');
   lueckenlos('grenze', strecke(P[5], P[4], 40).concat(strecke(P[4], P[3], 12), strecke(P[3], bis(15.9), 30)), 0.3, 'der Süd-, Südost- und Ostgrenze bis zum Ende der Wiese');
   lueckenlos('wiese', strecke([21.55, 15.53], [16.4, 13.6], 28).concat(strecke([16.4, 13.6], [16.0, 13.6], 4)), 0.3, 'der Wiesenkante von der Straße bis zum Haus (die Pflasterecke 22,06 / 15,72 liegt 20 cm außerhalb der Grenze, der Zaun setzt am Grenzzaun an)');
@@ -213,6 +216,22 @@ const inPoly = (poly, x, z) => { let ins = false; for (let i = 0, j = poly.lengt
     check(g.z1 <= 26.9 && g.z0 >= 15.4 && g.z0 <= 15.9, 'Zaun Grenze endet nicht dort, wo die Wiese endet (z ' + g.z0.toFixed(2) + ', erwartet etwa 15,7)');
     check(k.x0 >= 15.95 && k.x0 <= 16.1, 'Zaun Wiesenkante endet nicht am Haus (x ' + k.x0.toFixed(2) + ', Hauswand 16,00)');
     check(mn(punkte.grenze.filter(v => v.z < 16).map(v => nahe('wiese', v.x, v.z))) <= 0.4, 'Grenzzaun und Zaun an der Wiesenkante treffen sich nicht an der Straße');
+  }
+
+  /* Gartentor (Angabe des Nutzers vom 11.10.2026): 80 cm breit, im Zaun an der Wiesenkante gleich neben dem kleinen Zaunstück an der Hauswand,
+     Höhe und Design wie der Zaun daneben. */
+  check(tor.length === 1, 'Gartentor: ' + tor.length + ' statt 1');
+  check(kurz <= 0.1, 'Zwischen Hauswand und Gartentor fehlt das kleine Zaunstück (Abstand ' + kurz.toFixed(2) + ' m)');
+  if (tor.length === 1 && seite('wiese').length === 1) {
+    const wk0 = [16.4, 13.6], wk1 = [22.06, 15.72], wl = Math.hypot(wk1[0] - wk0[0], wk1[1] - wk0[1]), du = [(wk1[0] - wk0[0]) / wl, (wk1[1] - wk0[1]) / wl];
+    const vt = ecken(tor[0]), tt = vt.map(v => (v.x - wk0[0]) * du[0] + (v.z - wk0[1]) * du[1]), ll = vt.map(v => Math.abs((v.x - wk0[0]) * du[1] - (v.z - wk0[1]) * du[0]));
+    check(mx(tt) - mn(tt) >= 0.75 && mx(tt) - mn(tt) <= 0.86, 'Gartentor ist ' + ((mx(tt) - mn(tt)) * 100).toFixed(0) + ' cm breit statt 80 cm');
+    check(mn(tt) >= -0.05 && mn(tt) <= 0.2, 'Gartentor beginnt nicht gleich hinter dem kleinen Zaunstück (' + (mn(tt) * 100).toFixed(0) + ' cm ab der Pflasterecke)');
+    check(mx(ll) <= 0.25, 'Gartentor liegt nicht in der Zaunlinie an der Wiesenkante (Abweichung ' + (mx(ll) * 100).toFixed(0) + ' cm)');
+    const th = mx(vt.map(v => v.y - gelaende(v.x, v.z)));
+    check(th >= 0.9 && th <= 1.05, 'Gartentor ist ' + th.toFixed(2) + ' m hoch statt wie der Zaun etwa 1,00 m');
+    const fc = seite('wiese')[0].material.color.getHex();
+    check(tor[0].children.some(c => c.material.color.getHex() === fc), 'Gartentor hat nicht das Design (Farbe) des Zauns');
   }
 
   /* Hecke an der Südgrenze (Angabe des Nutzers vom 11.10.2026): 2 m hoch ab Gelände, vom Zaun abgerückt statt durch ihn hindurch,
@@ -320,6 +339,35 @@ const inPoly = (poly, x, z) => { let ins = false; for (let i = 0, j = poly.lengt
       check(tc.z >= 23.5 && tc.z <= 25.5, 'Trampolin steht bei z ' + tc.z.toFixed(1) + ' statt auf Höhe von Pool und Schaukel (Luftbild: etwa 24,4)');
       check(ecken(tramp[0]).reduce((l, v) => Math.min(l, v.y - g(v.x, v.z)), 9) <= 0.05, 'Trampolin schwebt');
     }
+  }
+
+  /* Sträucherband (Angabe des Nutzers vom 11.10.2026, Satellitenbild): neben dem Gartentor beginnend rund um die Ostseite herum, innen am Zaun,
+     viele kleine und schmale Büsche und Sträucher bis zur Hecke; sie ersetzen die beiden runden Büsche an der Südostecke. */
+  const str = kinds('strauch'), V3 = () => new THREE.Vector3();
+  check(str.length >= 30, 'Sträucherband: nur ' + str.length + ' Sträucher statt vieler (mindestens 30)');
+  if (str.length >= 30) {
+    const sd = str.map(o => ({ o, b: box(o), c: mitte(o) })), gr = sd.map(q => q.b.getSize(V3()));
+    check(gr.every(z => z.x <= 0.95 && z.z <= 0.95 && z.y >= 0.4 && z.y <= 1.8), 'Sträucher sind nicht klein und schmal (größte Breite ' + mx(gr.map(z => z.x)).toFixed(2) + ' m, Höhe ' + mn(gr.map(z => z.y)).toFixed(2) + '–' + mx(gr.map(z => z.y)).toFixed(2) + ' m)');
+    check(new Set(str.map(o => o.material.color.getHex())).size >= 3, 'Sträucherband ist einfarbig (erwartet Grün-, Gelbgrün- und Rottöne)');
+    check(sd.every(q => q.c.x >= 15.0 && q.c.z >= 13.5 && inPoly(m.zones.plot, q.c.x, q.c.z)), 'Sträucher stehen nicht an der Ostseite innerhalb des Grundstücks');
+    // Abstand zu Zaun, Hecke, Pool und Tor
+    let zl = 1e9; sd.forEach(q => ['west', 'grenze', 'wiese'].forEach(sx => (punkte[sx] || []).forEach(v => { zl = Math.min(zl, Math.hypot(Math.max(q.b.min.x - v.x, 0, v.x - q.b.max.x), Math.max(q.b.min.z - v.z, 0, v.z - q.b.max.z))); })));
+    check(zl >= 0.05, 'Sträucher stehen im Zaun (kleinster Abstand ' + (zl * 100).toFixed(0) + ' cm)');
+    const hb = hecke.length === 1 ? box(hecke[0]) : null;
+    check(!hb || sd.every(q => !(q.b.min.x < hb.max.x && q.b.max.x > hb.min.x && q.b.min.z < hb.max.z && q.b.max.z > hb.min.z)), 'Sträucher stehen in der Hecke');
+    const pcc = pb ? pb.getCenter(V3()) : null, prr = pb ? pb.getSize(V3()).x / 2 : 0;
+    check(!pcc || sd.every(q => Math.hypot(q.c.x - pcc.x, q.c.z - pcc.z) >= prr + (q.b.max.x - q.b.min.x) / 2), 'Sträucher stehen im Pool');
+    if (tor.length === 1) {
+      const tc = box(tor[0]).getCenter(V3()), dist = sd.map(q => Math.hypot(q.c.x - tc.x, q.c.z - tc.z));
+      check(mn(dist) >= 0.8 && mn(dist) <= 2.4, 'Sträucherband beginnt ' + mn(dist).toFixed(1) + ' m vom Gartentor entfernt statt gleich daneben (0,8–2,4 m, Tor schwingt nicht in Sträucher)');
+    }
+    // lückenlos innen am Zaun: Wiesenkante hinter dem Tor, Ostgrenze, Südostecke bis zur Hecke
+    const wl2 = Math.hypot(22.06 - 16.4, 15.72 - 13.6), du2 = [(22.06 - 16.4) / wl2, (15.72 - 13.6) / wl2], proben = [];
+    for (let t = 1.8; t <= wl2 - 0.3; t += 0.3) proben.push([16.4 + du2[0] * t, 13.68 + du2[1] * t]);
+    strecke(bis(16.0), P[3], 30).concat(strecke(P[4], P[3], 10), strecke([15.6, 26.795], P[4], 2)).forEach(q => proben.push(q));
+    const luecken2 = proben.filter(q => mn(sd.map(z => Math.hypot(z.c.x - q[0], z.c.z - q[1]))) > 1.6);
+    check(luecken2.length === 0, 'Sträucherband hat Lücken innen am Zaun (z. B. bei ' + (luecken2[0] ? luecken2[0][0].toFixed(1) + ' / ' + luecken2[0][1].toFixed(1) : '') + ')');
+    check(hb && mn(sd.map(z => Math.hypot(z.c.x - hb.max.x, z.c.z - (hb.min.z + hb.max.z) / 2))) <= 1.6, 'Sträucherband reicht nicht bis zur Hecke');
   }
 }
 

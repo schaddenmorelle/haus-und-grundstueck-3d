@@ -822,6 +822,7 @@ function buildModel(THREE) {
   })();
 
   var ZAUN_IN = 0.15, ZAUN_PW = 0.06, ZAUN_WIESE = 0.08; // Zaun: Achse 15 cm innerhalb der Grenzlinie, Pfosten 6 cm, an der Wiesenkante 8 cm auf der Wiesenseite (siehe zaun(); Hecke und Spritzschutz richten sich danach)
+  var ZL, HECKE; // ZL: Eckpunkte der Zaunachse (von zaun() gesetzt), HECKE: Grundriss der Hecke (von garden() gesetzt); Sträucherband und Tor richten sich danach
 
   /* ---------- Garten: Pool, Beet, Spielgeräte, Hecke ---------- */
   (function garden() {
@@ -846,12 +847,6 @@ function buildModel(THREE) {
       var s = mesh(new THREE.SphereGeometry(0.55, 12, 10), mat.crown2, true, gGarden, false);
       s.position.set(tx + o[0], groundY(tx + o[0], tz + o[1]) + 0.4, tz + o[1]); s.scale.set(1, 0.75, 1);
       s.userData = { kind: 'busch', r: 0.55 };
-    });
-    var sc = pl(1190, 1480);
-    [[0, 0, 1.0], [-0.9, 0.7, 0.8]].forEach(function (o) { // dritter Strauch (bei +0,8 / +0,9) stand auf der Straße und ist entfernt (Angabe Nutzer 11.10.2026)
-      var s = mesh(new THREE.SphereGeometry(o[2], 14, 10), mat.crown, true, gGarden, false);
-      s.position.set(sc[0] + o[0], groundY(sc[0] + o[0], sc[1] + o[1]) + o[2] * 0.8, sc[1] + o[1]); s.scale.set(1, 0.85, 1);
-      s.userData = { kind: 'busch-suedost', r: o[2] };
     });
     // Hecke an der Südgrenze: 2 m hoch ab Gelände (Angabe Nutzer 11.10.2026), 10 cm vom Zaun abgerückt. Tiefe 40 cm (Annahme), damit sie
     // zwischen Zaun und Pool passt. Ein durchgehender Körper, die Oberkante folgt dem Gelände (Stützstellen alle 0,5 m); Westende und
@@ -880,6 +875,7 @@ function buildModel(THREE) {
     hg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(hp), 3));
     hg.computeVertexNormals();
     mesh(hg, mat.hedge, true, gGarden, true).userData = { kind: 'hecke', hoehe: hkH };
+    HECKE = { x0: hx0, x1: hx1, z0: hz0, z1: hz1 };
   })();
 
   /* ---------- Vorbeet: Mauer aus Winkelsteinen, innen bündig mit dem Beetumriss, steht BED_WALL über dem Pflaster ---------- */
@@ -947,14 +943,15 @@ function buildModel(THREE) {
       var t = ((q[0] - p[0]) * e[1] - (q[1] - p[1]) * e[0]) / (d[0] * e[1] - d[1] * e[0]);
       return [p[0] + d[0] * t, p[1] + d[1] * t];
     }
-    function lauf(pts, H, seite, ohneStart) { // Linienzug pts (x, z) als Zaun der Höhe H; ohneStart: am Anfang steht schon ein Pfosten
+    function lauf(linien, H, seite, ohneStart) { // Linienzüge (je Liste von Punkten x, z) als ein Zaunnetz der Höhe H; ohneStart: am Anfang des ersten steht schon ein Pfosten
       var out = [];
+      linien.forEach(function (pts, li) {
       for (var i = 0; i + 1 < pts.length; i++) {
         var p = pts[i], q = pts[i + 1], L = Math.hypot(q[0] - p[0], q[1] - p[1]), u = [(q[0] - p[0]) / L, (q[1] - p[1]) / L], hn = [-u[1], 0, u[0]], n = Math.ceil(L / ZW);
         function fuss(s) { return meshY(p[0] + u[0] * s, p[1] + u[1] * s); }
         for (var k = 0; k <= n; k++) {
           var s0 = L * k / n;
-          if (k === 0 && (i > 0 || ohneStart)) continue; // Eckpfosten stehen schon
+          if (k === 0 && (i > 0 || (li === 0 && ohneStart))) continue; // Eckpfosten stehen schon
           var px = p[0] + u[0] * s0, pz = p[1] + u[1] * s0, y0 = fuss(s0);
           bar(out, [px, y0 - 0.25, pz], [px, y0 + H, pz], hn, PW, PW);
         }
@@ -975,6 +972,7 @@ function buildModel(THREE) {
           }
         }
       }
+      });
       var g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(out), 3));
       g.computeVertexNormals();
@@ -985,9 +983,60 @@ function buildModel(THREE) {
     var sw = innen(5, IN), so = innen(4, IN), oe = innen(3, IN);
     var A = [HOF_POLY[3][0], HOF_POLY[3][1] + WIESE_DZ], B = [HOF_POLY[4][0], HOF_POLY[4][1] + WIESE_DZ], C = [F.x1 + PW / 2, HOF_POLY[5][1] + WIESE_DZ];
     var q = schnitt(oe, [PLOT[2][0] - PLOT[3][0], PLOT[2][1] - PLOT[3][1]], A, [B[0] - A[0], B[1] - A[1]]); // Ende der Wiese an der Straße
-    lauf([[sw[0], 5.46], sw], 2.0, 'west');         // ab Südwestecke des Geräteraums (Carport) bis zur Straße
-    lauf([sw, so, oe, q], 1.0, 'grenze', true);     // Süd-, Südost- und Ostgrenze bis zum Ende der Wiese
-    lauf([q, B, C], 1.0, 'wiese', true);            // Wiesenkante von der Straße bis zur Hauswand
+    // Gartentor (Angabe Nutzer 11.10.2026): 80 cm lichte Weite, gleich hinter dem kleinen Zaunstück an der Hauswand (Pfosten bei B und G2)
+    var gu = [q[0] - B[0], q[1] - B[1]], gl = Math.hypot(gu[0], gu[1]), GB = 0.80;
+    gu = [gu[0] / gl, gu[1] / gl];
+    var G2 = [B[0] + gu[0] * (GB + PW), B[1] + gu[1] * (GB + PW)];
+    ZL = { sw: sw, so: so, oe: oe, q: q, B: B, C: C, G2: G2 };
+    lauf([[[sw[0], 5.46], sw]], 2.0, 'west');         // ab Südwestecke des Geräteraums (Carport) bis zur Straße
+    lauf([[sw, so, oe, q]], 1.0, 'grenze', true);     // Süd-, Südost- und Ostgrenze bis zum Ende der Wiese
+    lauf([[q, G2], [B, C]], 1.0, 'wiese', true);      // Wiesenkante von der Straße bis zum Gartentor, kleines Stück zwischen Tor und Hauswand
+    (function gartentor() { // Flügel 78 cm in einem Rahmen aus 4-cm-Rohr, Füllung wie die Matten, Griff beidseitig an der Hausseite
+      var tg = new THREE.Group(); tg.userData = { kind: 'gartentor', breite: GB, hoehe: 1.0 }; gGarden.add(tg);
+      var hn = [-gu[1], 0, gu[0]], yB = meshY(B[0], B[1]), yG = meshY(G2[0], G2[1]), SL = GB + PW, s0 = PW / 2 + 0.01, s1 = SL - PW / 2 - 0.01, top = 1.0 - CAP - GAP, o = [], hd = [];
+      function at(s, y) { var f = s / SL; return [B[0] + gu[0] * s, yB + (yG - yB) * f + y, B[1] + gu[1] * s]; }
+      [s0 + 0.02, s1 - 0.02].forEach(function (s) { bar(o, at(s, GAP), at(s, GAP + top), hn, 0.04, 0.04); });
+      [GAP + 0.02, GAP + top - 0.02].forEach(function (y) { bar(o, at(s0, y), at(s1, y), hn, 0.04, 0.04); });
+      var m = 3, nv = Math.round((s1 - s0 - 0.08) / 0.05);
+      for (var j = 1; j <= m; j++) [-1, 1].forEach(function (sd) {
+        var y = GAP + 0.04 + (top - 0.08) * j / (m + 1), d = [hn[0] * 0.007 * sd, 0, hn[2] * 0.007 * sd], c0 = at(s0 + 0.04, y), c1 = at(s1 - 0.04, y);
+        bar(o, [c0[0] + d[0], c0[1], c0[2] + d[2]], [c1[0] + d[0], c1[1], c1[2] + d[2]], hn, 0.008, 0.008);
+      });
+      for (var v = 0; v < nv; v++) { var sv = s0 + 0.04 + (s1 - s0 - 0.08) * (v + 0.5) / nv; bar(o, at(sv, GAP + 0.04), at(sv, GAP + top - 0.04), hn, 0.006, 0.006); }
+      barMesh(o, mat.zaun, tg);
+      [-1, 1].forEach(function (sd) { var c0 = at(s0 + 0.04, 0.55), c1 = at(s0 + 0.16, 0.55), d = [hn[0] * 0.03 * sd, 0, hn[2] * 0.03 * sd]; bar(hd, [c0[0] + d[0], c0[1], c0[2] + d[2]], [c1[0] + d[0], c1[1], c1[2] + d[2]], hn, 0.02, 0.02); });
+      barMesh(hd, mat.steel, tg);
+    })();
+  })();
+
+  /* ---------- Sträucherband an der Ostseite (Angabe des Nutzers vom 11.10.2026, Satellitenbild) ----------
+     Neben dem Gartentor beginnend rund um die Ostseite herum, innen am Zaun, viele kleine und schmale Büsche und Sträucher bis zur Hecke;
+     sie ersetzen die beiden runden Büsche an der Südostecke. Größen, Farben und Lage im Band sind Annahmen (Zufallsfolge, damit der Aufbau
+     stets gleich bleibt): Abstand von der Zaunachse 0,50–1,15 m, Breite 0,3–0,7 m, Höhe 0,5–1,4 m, einzelne schlanke bis 1,7 m. */
+  (function straeucher() {
+    var pfad = [ZL.G2, ZL.q, ZL.oe, ZL.so], seed = 11, rnd = function () { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
+    var farben = [0x2f5a33, 0x2f5a33, 0x27442b, 0x27442b, 0x1f3a24, 0x3f6b35, 0x3f6b35, 0x55803c, 0x8a9a3c, 0xa9b34a, 0x5d3a30].map(function (c) { return M(c, 1); }); // überwiegend dunkelgrün, einzelne gelbgrüne und braunrote (Satellitenbild)
+    var kugel = new THREE.SphereGeometry(1, 10, 8);
+    function zaunAbstand(x, z) { // kleinster Abstand zur Zaunachse über alle Abschnitte (an den Ecken stehen die Sträucher des einen Abschnitts sonst im Zaun des nächsten)
+      var best = 1e9;
+      for (var k = 0; k + 1 < pfad.length; k++) {
+        var p = pfad[k], q = pfad[k + 1], vx = q[0] - p[0], vz = q[1] - p[1], t = Math.max(0, Math.min(1, ((x - p[0]) * vx + (z - p[1]) * vz) / (vx * vx + vz * vz)));
+        best = Math.min(best, Math.hypot(x - p[0] - t * vx, z - p[1] - t * vz));
+      }
+      return best;
+    }
+    for (var i = 0; i + 1 < pfad.length; i++) {
+      var a = pfad[i], b = pfad[i + 1], L = Math.hypot(b[0] - a[0], b[1] - a[1]), u = [(b[0] - a[0]) / L, (b[1] - a[1]) / L], nrm = [-u[1], u[0]];
+      for (var s = i === 0 ? 0.55 : 0.2; s < L; s += 0.18 + rnd() * 0.26) {
+        var schlank = rnd() < 0.15, d = 0.50 + rnd() * 0.65, r = schlank ? 0.12 + rnd() * 0.08 : 0.17 + rnd() * 0.19, h = schlank ? 1.3 + rnd() * 0.4 : 0.5 + rnd() * 0.9;
+        var x = a[0] + u[0] * s + nrm[0] * d, z = a[1] + u[1] * s + nrm[1] * d, f = farben[Math.floor(rnd() * farben.length)];
+        if (zaunAbstand(x, z) < r + 0.08) continue; // nicht in den Zaun der Nachbarstrecke
+        if (x > HECKE.x0 - r - 0.05 && x < HECKE.x1 + r + 0.05 && z > HECKE.z0 - r - 0.05 && z < HECKE.z1 + r + 0.05) continue; // nicht in die Hecke
+        var o = mesh(kugel, f, true, gGarden, false);
+        o.scale.set(r, h / 2, r); o.position.set(x, meshY(x, z) + h / 2 - 0.05, z);
+        o.userData = { kind: 'strauch', r: r, h: h };
+      }
+    }
   })();
 
   /* ---------- Spritzschutzstreifen aus Kies an der Hauswand (Angabe des Nutzers vom 11.10.2026, Foto) ----------
