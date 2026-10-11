@@ -582,23 +582,24 @@ function buildModel(THREE, haus) {
     // Wände des Dachausbaus, oben an der Dachschräge abgeschnitten
     // Oberkante: höchstens 2,45 m (bzw. hm) über dem Boden und mindestens 22 cm unter der Dachhaut, also unter den Sparren (DACH.wandOK, Werte in haus.dg)
     function topAt(x, z, hm, bOnly) { return yF + DACH.wandOK((x - F.x0) * 1000, (z - F.z0) * 1000, hm ? hm * 1000 : undefined, bOnly) / 1000; }
-    function dgWall(x0, x1, z0, z1, hm, bOnly) {
+    function dgWall(x0, x1, z0, z1, hm, bOnly, yb) { // yb: Unterkante der Wand (Standard DG-Boden; über einer Tür der Sturz)
+      yb = yb == null ? yD : yb;
       var horiz = (x1 - x0) >= (z1 - z0), len = horiz ? x1 - x0 : z1 - z0, n = Math.max(1, Math.ceil(len / 0.1)), t = horiz ? z1 - z0 : x1 - x0;
       var cA = horiz ? (z0 + z1) / 2 : (x0 + x1) / 2, s0 = horiz ? x0 : z0, ht = t / 2;
       var top = [], pos = [], i;
       function pt(i2, side, y) { var sv = s0 + len * i2 / n, c = cA + side * ht; var q = horiz ? P(sv, c) : P(c, sv); return [q[0], y, q[1]]; }
       for (i = 0; i <= n; i++) {
         var q = horiz ? P(s0 + len * i / n, cA) : P(cA, s0 + len * i / n);
-        top.push(Math.max(yD, topAt(q[0], q[1], hm, bOnly)));
+        top.push(Math.max(yb, topAt(q[0], q[1], hm, bOnly)));
       }
       function quad(a, b, c, d) { pos.push.apply(pos, a.concat(b, c, a, c, d)); }
       for (i = 0; i < n; i++) {
-        quad(pt(i, -1, yD), pt(i + 1, -1, yD), pt(i + 1, -1, top[i + 1]), pt(i, -1, top[i]));
-        quad(pt(i + 1, 1, yD), pt(i, 1, yD), pt(i, 1, top[i]), pt(i + 1, 1, top[i + 1]));
+        quad(pt(i, -1, yb), pt(i + 1, -1, yb), pt(i + 1, -1, top[i + 1]), pt(i, -1, top[i]));
+        quad(pt(i + 1, 1, yb), pt(i, 1, yb), pt(i, 1, top[i]), pt(i + 1, 1, top[i + 1]));
         quad(pt(i, -1, top[i]), pt(i + 1, -1, top[i + 1]), pt(i + 1, 1, top[i + 1]), pt(i, 1, top[i]));
       }
-      quad(pt(0, 1, yD), pt(0, -1, yD), pt(0, -1, top[0]), pt(0, 1, top[0]));
-      quad(pt(n, -1, yD), pt(n, 1, yD), pt(n, 1, top[n]), pt(n, -1, top[n]));
+      quad(pt(0, 1, yb), pt(0, -1, yb), pt(0, -1, top[0]), pt(0, 1, top[0]));
+      quad(pt(n, -1, yb), pt(n, 1, yb), pt(n, 1, top[n]), pt(n, -1, top[n]));
       var g = new THREE.BufferGeometry();
       g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(pos), 3));
       g.computeVertexNormals();
@@ -606,24 +607,27 @@ function buildModel(THREE, haus) {
       m.castShadow = true; m.receiveShadow = true; gDG.add(m); pickables.push(m);
     }
     // Wände des Dachausbaus aus haus.json: Kniewände (max. 1 m), Quer-, Trenn- und Treppenwände. Öffnungen mit hoehe "voll" reichen bis zur
-    // Oberkante; die Wand wird dort in zwei Stücke geteilt.
+    // Oberkante; die Wand wird dort in zwei Stücke geteilt. Öffnungen mit Höhe in mm (Tür) bekommen darüber einen Sturz bis zur Oberkante.
     haus.waende.forEach(function (w) {
       if (w.geschoss !== 'DG') return;
       var ln = wandLinie(haus, WV, w), hm = w.hoehe && w.hoehe.max ? w.hoehe.max / 1000 : undefined, bOnly = w.dach === 'B';
       var horiz = ln.a[1] === ln.b[1], half = ln.t / 2;
       var s0 = horiz ? Math.min(ln.a[0], ln.b[0]) : Math.min(ln.a[1], ln.b[1]), s1 = horiz ? Math.max(ln.a[0], ln.b[0]) : Math.max(ln.a[1], ln.b[1]);
       var c = horiz ? ln.a[1] : ln.a[0], dir = (horiz ? ln.b[0] - ln.a[0] : ln.b[1] - ln.a[1]) >= 0 ? 1 : -1;
-      var cuts = (w.oeffnungen || []).map(function (o) { // Beginn der Öffnung in Laufrichtung, dann als Bereich von–bis
+      var cuts = (w.oeffnungen || []).map(function (o) { // Beginn der Öffnung in Laufrichtung, dann als Bereich von–bis (dritter Wert: Oberkante der Tür über dem Boden in mm)
         var p0 = typeof o.ab === 'number' ? (dir > 0 ? s0 + o.ab : s1 - o.ab) : WV.mm(o.ab);
-        return dir > 0 ? [p0, p0 + o.breite] : [p0 - o.breite, p0];
+        var k = dir > 0 ? [p0, p0 + o.breite] : [p0 - o.breite, p0];
+        if (typeof o.hoehe === 'number') k.push((o.bruestung || 0) + o.hoehe);
+        return k;
       }).sort(function (p, q) { return p[0] - q[0]; });
       var from = s0, segs = [];
       cuts.forEach(function (k) { segs.push([from, k[0]]); from = k[1]; });
       segs.push([from, s1]);
+      cuts.forEach(function (k) { if (k.length > 2) segs.push([k[0], k[1], yD + k[2] / 1000]); }); // Sturz über der Tür
       segs.forEach(function (sg) {
         if (sg[1] - sg[0] < 1e-6) return;
-        if (horiz) dgWall(sg[0] / 1000, sg[1] / 1000, (c - half) / 1000, (c + half) / 1000, hm, bOnly);
-        else dgWall((c - half) / 1000, (c + half) / 1000, sg[0] / 1000, sg[1] / 1000, hm, bOnly);
+        if (horiz) dgWall(sg[0] / 1000, sg[1] / 1000, (c - half) / 1000, (c + half) / 1000, hm, bOnly, sg[2]);
+        else dgWall((c - half) / 1000, (c + half) / 1000, sg[0] / 1000, sg[1] / 1000, hm, bOnly, sg[2]);
       });
     });
     // Treppe nach Treppenplanung (Wortmann): 15 Steigungen à 19,81 cm, Auftritt 25 cm, Laufbreite 1,0125 m,

@@ -1,6 +1,6 @@
 {
- "meshes": 804,
- "tris": 194602,
+ "meshes": 807,
+ "tris": 194770,
  "tags": 49,
  "plotArea": 569.77,
  "footArea": 162.22,
@@ -16,7 +16,7 @@
  "befunde": {
   "fehler": 0,
   "warnung": 0,
-  "hinweis": 1
+  "hinweis": 2
  },
  "rooms": {
   "eltern": {

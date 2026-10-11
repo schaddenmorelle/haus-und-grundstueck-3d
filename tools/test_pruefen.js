@@ -166,6 +166,13 @@ const ohne = (r, regel, msg) => check(finde(r, regel).length === 0, msg + ' – 
   hat(lauf(h), 4, 'fehler', /Wand|Ende/i, 'Öffnung ragt über das Wandende');
 }
 
+{ // Tür nahe am Ende einer Wand, die in eine andere Wand läuft (T-Stoß von der anderen Seite): 20 mm Abstand
+  const h = basis();
+  h.waende.push({ id: 'eg.stich', geschoss: 'EG', typ: 'IW', von: ['x.Wi', 1000], bis: ['x.M', 1000], flucht: 'oben', hoehe: 'decke',
+    oeffnungen: [{ art: 'durchgang', ab: 1880, breite: 800, hoehe: 2100 }] }); // Wandlänge 2700, Tür bis 2680
+  hat(lauf(h), 4, 'hinweis', /Abstand/i, 'Tür 20 mm vor dem Anschluss an eine andere Wand');
+}
+
 /* ---------- Regel 7: Flächenbilanz ---------- */
 {
   const r = lauf(basis());
@@ -197,6 +204,16 @@ const ohne = (r, regel, msg) => check(finde(r, regel).length === 0, msg + ' – 
 {
   const h = basis(); h.waende[0].oeffnungen = [{ art: 'fenster', ab: 600, breite: 800, bruestung: -50, hoehe: 1200 }];
   hat(lauf(h), 12, 'fehler', /Brüstung/i, 'negative Brüstung');
+}
+
+/* ---------- Regel 12 im Dachausbau: Türhöhe gegen die Wandoberkante ---------- */
+{
+  const h = basis(); h.waende.filter(w => w.id === 'dg.kn.nord')[0].oeffnungen = [{ art: 'durchgang', ab: 1000, breite: 800, hoehe: 1200 }]; // Kniewand höchstens 1000 mm hoch
+  hat(lauf(h), 12, 'fehler', /Wand|Oberkante/, 'Tür im DG höher als die Kniewand');
+}
+{
+  const h = basis(); h.waende.filter(w => w.id === 'dg.kn.nord')[0].oeffnungen = [{ art: 'durchgang', ab: 1000, breite: 800, hoehe: 900 }];
+  ohne(lauf(h), 12, 'Tür im DG unter der Kniewand');
 }
 
 /* ---------- Regel 13: Kniewände im Dachausbau ---------- */

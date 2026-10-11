@@ -102,11 +102,13 @@ function pruefen(haus, WV, abl, dach) {
         if (o === w) return;
         var uo = achse(o);
         if (Math.abs(u[0] * uo[1] - u[1] * uo[0]) < 1e-9) return;
-        var ov = polygonClipping.intersection([geschlossen(w.ring)], [geschlossen(gestreckt(o, 2))]); // 2 mm in Wandrichtung länger: auch bündig anliegende Wände erzeugen einen Stoß
-        if (!ov.length || R.multiFlaeche(ov) < TOL) return;
+        // 2 mm in Wandrichtung länger, einmal die andere Wand (sie endet an w) und einmal w selbst (w endet an der anderen Wand): auch bündig anliegende Wände erzeugen einen Stoß
         var s = [];
-        ov.forEach(function (p) { p[0].forEach(function (q) { s.push((q[0] - ln.a[0]) * u[0] + (q[1] - ln.a[1]) * u[1]); }); });
-        stoesse.push({ id: o.id, s0: Math.min.apply(null, s), s1: Math.max.apply(null, s) });
+        [polygonClipping.intersection([geschlossen(w.ring)], [geschlossen(gestreckt(o, 2))]), polygonClipping.intersection([geschlossen(gestreckt(w, 2))], [geschlossen(o.ring)])].forEach(function (ov) {
+          if (!ov.length || R.multiFlaeche(ov) < TOL) return;
+          ov.forEach(function (p) { p[0].forEach(function (q) { s.push((q[0] - ln.a[0]) * u[0] + (q[1] - ln.a[1]) * u[1]); }); });
+        });
+        if (s.length) stoesse.push({ id: o.id, s0: Math.min.apply(null, s), s1: Math.max.apply(null, s) });
       });
       iv.forEach(function (v, k) {
         var ort = [ln.a[0] + u[0] * (v.s0 + v.s1) / 2, ln.a[1] + u[1] * (v.s0 + v.s1) / 2];
@@ -169,6 +171,22 @@ function pruefen(haus, WV, abl, dach) {
       if (o.breite <= 0 || o.hoehe <= 0) b(12, 'fehler', name + ': Breite und Höhe müssen größer 0 sein', [w.id], null, 'EG');
       if (br < 0) b(12, 'fehler', name + ': Brüstung ' + mm(br) + ' ist negativ', [w.id], null, 'EG');
       if (br + o.hoehe > lichte) b(12, 'fehler', name + ': Oberkante (Sturz) bei ' + mm(br + o.hoehe) + ' liegt über der Decke (lichte Höhe ' + mm(lichte) + ')', [w.id], null, 'EG');
+    });
+  });
+
+  /* ---- Regel 12 im Dachausbau: Öffnungen mit Höhe liegen unter der Wandoberkante (Dachhaut − Sparrenabstand, Kniewand höchstens hoehe.max) ---- */
+  if (dach && haus.dg && abl.geschosse.DG) abl.geschosse.DG.waende.forEach(function (w) {
+    if (w.trennlinie || !(w.wand.oeffnungen || []).length) return;
+    var ln = w.linie, L = laenge(ln), u = achse(w), yD = haus.geschosse.DG.okff, hmax = w.wand.hoehe && w.wand.hoehe.max, nurB = w.wand.dach === 'B';
+    var along = Math.abs(ln.b[0] - ln.a[0]) >= Math.abs(ln.b[1] - ln.a[1]) ? 0 : 1, dir = ln.b[along] >= ln.a[along] ? 1 : -1;
+    w.wand.oeffnungen.forEach(function (o, k) {
+      if (typeof o.hoehe !== 'number') return;
+      var ab = typeof o.ab === 'number' ? o.ab : (WV.mm(o.ab) - ln.a[along]) * dir, oben = (o.bruestung || 0) + o.hoehe, niedrigste = 1e9, n = Math.max(1, Math.ceil(o.breite / 50));
+      for (var i = 0; i <= n; i++) {
+        var s = ab + o.breite * i / n, x = ln.a[0] + u[0] * s, z = ln.a[1] + u[1] * s;
+        niedrigste = Math.min(niedrigste, dach.wandOK(x, z, hmax, nurB) - yD);
+      }
+      if (oben > niedrigste + 1e-6) b(12, 'fehler', 'Öffnung ' + (k + 1) + ' (' + o.art + ') in ' + w.id + ': Oberkante bei ' + mm(oben) + ' liegt über der Wandoberkante (' + mm(niedrigste) + ')', [w.id], [ln.a[0] + u[0] * (ab + o.breite / 2), ln.a[1] + u[1] * (ab + o.breite / 2)], 'DG');
     });
   });
 

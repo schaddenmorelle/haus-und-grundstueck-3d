@@ -205,16 +205,16 @@
     { "id": "dg.kniewand-ost-sued", "geschoss": "DG", "typ": "TB-DG", "von": ["x.dgO", "z.ZS"], "bis": ["x.dgO", "z.dgS"], "flucht": "rechts", "hoehe": { "max": 1000 } },
     { "id": "dg.querwand", "geschoss": "DG", "typ": "TB-DG", "von": ["x.dgW", "z.QZ"], "bis": ["x.twO", "z.QZ"], "flucht": "mitte", "dach": "B", "notiz": "Pias Zimmer / Arbeitszimmer; die Oberkante folgt der B-Dachschräge bis zur 1-m-Kniewand" },
     { "id": "dg.trennwand", "geschoss": "DG", "typ": "TB-DG", "von": ["x.tw", "z.qN"], "bis": ["x.tw", "z.dgS"], "flucht": "mitte", "notiz": "Arbeitszimmer / Abstellkammer",
-      "oeffnungen": [{ "art": "durchgang", "ab": "z.tuerN", "breite": 860, "hoehe": "voll", "notiz": "Tür zum Arbeitszimmer hz 8,55–9,41; im Modell ohne Sturz und ohne Türblatt (Öffnung bis zur Dachschräge)" }] },
+      "oeffnungen": [{ "art": "durchgang", "ab": "z.tuerN", "breite": 860, "hoehe": 2000, "quelle": "nutzer", "notiz": "Tür zum Arbeitszimmer hz 8,55–9,41, 86 / 200 cm (Angabe des Nutzers vom 11.10.2026); im Modell ohne Türblatt" }] },
     { "id": "dg.schraegwand-treppe", "geschoss": "DG", "typ": "TB-DG", "von": ["x.dgO", "z.HN"], "bis": ["x.treppeO", "z.HN"], "flucht": "unten", "freiesEnde": true, "notiz": "nördlich der Treppenöffnung, von der Kniewand bis zur Hauskante; das Ende an der Hauskante ist frei" },
     { "id": "dg.treppenwand-nord", "geschoss": "DG", "typ": "TB-DG", "von": ["x.treppeW", "z.tN"], "bis": ["x.dgO", "z.tN"], "flucht": "unten", "notiz": "behält die Seite zur Treppe (1,60 m lichter Abstand); westlich schließt die Wand zu Pias Zimmer an" },
     { "id": "dg.treppenwand-sued", "geschoss": "DG", "typ": "TB-DG", "von": ["x.treppeW", "z.ZS"], "bis": ["x.treppeO", "z.ZS"], "flucht": "oben", "freiesEnde": true, "notiz": "südlich der Treppenöffnung; westlich schließt die Wand zur Abstellkammer an, das Ende an der Hauskante ist frei" },
     { "id": "dg.wand-pia-flur", "geschoss": "DG", "typ": "TB-DG", "von": ["x.twO", "z.tN"], "bis": ["x.treppeW", "z.tN"], "flucht": "unten",
       "notiz": "Wand Pias Zimmer / Flur westlich der Treppenwand Nord (Flucht wie diese), mit Tür in Pias Zimmer",
-      "oeffnungen": [{ "art": "durchgang", "ab": 71, "breite": 760, "hoehe": "voll", "quelle": "annahme", "notiz": "Tür Pias Zimmer: Angabe des Nutzers (enger Durchgang). Breite 76 cm angenommen, mittig in der 90-cm-Lücke zwischen Trennwand und Treppenwand; Maße reicht der Nutzer nach. Wie die Tür zum Arbeitszimmer ohne Sturz und ohne Türblatt." }] },
+      "oeffnungen": [{ "art": "durchgang", "ab": 21.25, "breite": 860, "hoehe": 2000, "quelle": "nutzer", "notiz": "Tür Pias Zimmer 86 / 200 cm (Angabe des Nutzers vom 11.10.2026). Die Lage ist angenommen: mittig in der 90-cm-Lücke zwischen Trennwand und Treppenwand. Im Modell ohne Türblatt." }] },
     { "id": "dg.wand-flur-abstell", "geschoss": "DG", "typ": "TB-DG", "von": ["x.twO", "z.ZS"], "bis": ["x.treppeW", "z.ZS"], "flucht": "oben",
       "notiz": "Wand Flur / Abstellkammer westlich der Treppenwand Süd (Flucht wie diese), mit Tür in die Abstellkammer",
-      "oeffnungen": [{ "art": "durchgang", "ab": 71, "breite": 760, "hoehe": "voll", "quelle": "annahme", "notiz": "Tür Abstellkammer: Angabe des Nutzers (enger Durchgang). Breite 76 cm angenommen, mittig in der 90-cm-Lücke zwischen Trennwand und Treppenwand; Maße reicht der Nutzer nach. Wie die Tür zum Arbeitszimmer ohne Sturz und ohne Türblatt." }] }
+      "oeffnungen": [{ "art": "durchgang", "ab": 71.25, "breite": 760, "hoehe": 1950, "quelle": "nutzer", "notiz": "Tür Abstellkammer 76 / 195 cm (Angabe des Nutzers vom 11.10.2026). Die Lage ist angenommen: mittig in der 90-cm-Lücke zwischen Trennwand und Treppenwand. Im Modell ohne Türblatt." }] }
   ],
 
   "trennlinien": [
