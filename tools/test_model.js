@@ -158,7 +158,9 @@ const inPoly = (poly, x, z) => { let ins = false; for (let i = 0, j = poly.lengt
 
 /* Außengrundstück (Angaben des Nutzers vom 11.10.2026):
    - Der Strauch, der auf der Straße saß, ist entfernt: jeder Strauch hat seinen Mittelpunkt im Grundstück.
-   - Pool: Durchmesser 3,66 m, Höhe 76 cm. */
+   - Pool: Durchmesser 3,66 m, Höhe 76 cm.
+   - Doppelstabmattenzaun in Anthrazit: West 2 m vom Carport bis zur Straße; Süd und Ost 1 m an der Grundstücksgrenze entlang bis dahin,
+     wo die Wiese endet (Ecke des Pflasters an der Straße); dann 1 m an der Wiesenkante entlang bis zum Haus. */
 {
   const buesche = kinds('busch').concat(kinds('busch-suedost'));
   buesche.forEach(b => { const c = box(b).getCenter(new THREE.Vector3()); check(inPoly(m.zones.plot, c.x, c.z), 'Strauch steht außerhalb des Grundstücks (auf der Straße) bei ' + c.x.toFixed(1) + ' / ' + c.z.toFixed(1)); });
@@ -170,6 +172,47 @@ const inPoly = (poly, x, z) => { let ins = false; for (let i = 0, j = poly.lengt
     const s = box(pool[0]).getSize(new THREE.Vector3());
     check(Math.abs(s.x - 3.66) <= 0.01 && Math.abs(s.z - 3.66) <= 0.01, 'Pool-Durchmesser ' + s.x.toFixed(2) + ' × ' + s.z.toFixed(2) + ' m statt 3,66 m');
     check(Math.abs(s.y - 0.76) <= 0.01, 'Pool-Höhe ' + s.y.toFixed(2) + ' m statt 0,76 m');
+  }
+
+  const ray = new THREE.Raycaster(), down = new THREE.Vector3(0, -1, 0);
+  const gelaende = (x, z) => { ray.set(new THREE.Vector3(x, 60, z), down); const h = ray.intersectObject(m.terrain); return h.length ? h[0].point.y : NaN; };
+  const ecken = o => { const p = o.geometry.attributes.position, a = []; for (let i = 0; i < p.count; i++) a.push(new THREE.Vector3(p.getX(i), p.getY(i), p.getZ(i)).applyMatrix4(o.matrixWorld)); return a; };
+  const SOLL = { west: 2.0, grenze: 1.0, wiese: 1.0 };
+  const zaun = kinds('zaun'), seite = s => zaun.filter(z => z.userData.seite === s), punkte = {};
+  check(zaun.length === 3 && Object.keys(SOLL).every(s => seite(s).length === 1), 'Zaun: erwartet je ein Teilstück West, Grenze und Wiese, gefunden: ' + (zaun.map(z => z.userData.seite).join(', ') || 'keins'));
+  Object.keys(SOLL).forEach(s => {
+    if (seite(s).length !== 1) return;
+    const o = seite(s)[0], vs = ecken(o), H = SOLL[s];
+    let hi = -1e9, lo = 1e9, wo = ''; // Toleranz nach oben 8 cm: Matten sind starr, zwischen den Pfosten ist das Gelände einige cm wellig
+    const zellen = new Map(); // Raster 5 cm: je Zelle nur höchster und tiefster Punkt gegen das Gelände messen (Strahlen sind teuer)
+    vs.forEach(v => { const k = Math.round(v.x * 20) + '/' + Math.round(v.z * 20), e = zellen.get(k) || { hi: v, lo: v }; if (v.y > e.hi.y) e.hi = v; if (v.y < e.lo.y) e.lo = v; zellen.set(k, e); });
+    zellen.forEach(e => {
+      const h = e.hi.y - gelaende(e.hi.x, e.hi.z);
+      if (h > hi) { hi = h; wo = e.hi.x.toFixed(1) + ' / ' + e.hi.z.toFixed(1); }
+      lo = Math.min(lo, e.lo.y - gelaende(e.lo.x, e.lo.z));
+    });
+    check(hi >= H - 0.03 && hi <= H + 0.08, 'Zaun ' + s + ' ist ' + hi.toFixed(2) + ' m hoch statt ' + H.toFixed(2) + ' m (höchster Punkt bei ' + wo + ')');
+    check(lo <= 0.02, 'Zaun ' + s + ' schwebt: tiefster Punkt ' + lo.toFixed(2) + ' m über dem Gelände');
+    const c = o.material.color;
+    check(c.r <= 0.3 && c.g <= 0.3 && c.b <= 0.3 && Math.max(c.r, c.g, c.b) - Math.min(c.r, c.g, c.b) <= 0.08, 'Zaun ' + s + ' ist nicht anthrazit (dunkles Grau)');
+    punkte[s] = vs;
+  });
+  const mn = a => a.reduce((p, q) => Math.min(p, q), Infinity), mx = a => a.reduce((p, q) => Math.max(p, q), -Infinity); // ohne Spread: die Netze haben zehntausende Punkte
+  const nahe = (s, x, z) => punkte[s] ? mn(punkte[s].map(v => Math.hypot(v.x - x, v.z - z))) : 1e9;
+  const strecke = (a, b, nn) => { const r = []; for (let i = 0; i <= nn; i++) r.push([a[0] + (b[0] - a[0]) * i / nn, a[1] + (b[1] - a[1]) * i / nn]); return r; };
+  const P = m.zones.plot, bis = z => [P[2][0] + (P[3][0] - P[2][0]) * (z - P[2][1]) / (P[3][1] - P[2][1]), z]; // Punkt der Ostgrenze bei z
+  const lueckenlos = (s, pts, tol, was) => { const w = pts.filter(q => nahe(s, q[0], q[1]) > tol); check(w.length === 0, 'Zaun ' + s + ' hat Lücken an ' + was + ' (z. B. bei ' + (w[0] ? w[0][0].toFixed(1) + ' / ' + w[0][1].toFixed(1) : '') + ')'); };
+  lueckenlos('west', strecke([0, 5.5], P[5], 40), 0.3, 'der Westgrenze zwischen Carport und Straße');
+  lueckenlos('grenze', strecke(P[5], P[4], 40).concat(strecke(P[4], P[3], 12), strecke(P[3], bis(15.9), 30)), 0.3, 'der Süd-, Südost- und Ostgrenze bis zum Ende der Wiese');
+  lueckenlos('wiese', strecke([21.55, 15.53], [16.4, 13.6], 28).concat(strecke([16.4, 13.6], [16.0, 13.6], 4)), 0.3, 'der Wiesenkante von der Straße bis zum Haus (die Pflasterecke 22,06 / 15,72 liegt 20 cm außerhalb der Grenze, der Zaun setzt am Grenzzaun an)');
+  if (punkte.west && punkte.grenze && punkte.wiese) {
+    const zr = s => { const z = punkte[s].map(v => v.z), x = punkte[s].map(v => v.x); return { z0: mn(z), z1: mx(z), x0: mn(x), x1: mx(x) }; };
+    const w = zr('west'), g = zr('grenze'), k = zr('wiese');
+    check(w.z0 >= 5.3 && w.z0 <= 5.6, 'Zaun West beginnt bei z ' + w.z0.toFixed(2) + ' statt am Carport (z 5,4–5,5)');
+    check(w.x0 >= -0.05 && w.x1 <= 0.35, 'Zaun West steht nicht an der Westgrenze (x ' + w.x0.toFixed(2) + ' … ' + w.x1.toFixed(2) + ')');
+    check(g.z1 <= 26.9 && g.z0 >= 15.4 && g.z0 <= 15.9, 'Zaun Grenze endet nicht dort, wo die Wiese endet (z ' + g.z0.toFixed(2) + ', erwartet etwa 15,7)');
+    check(k.x0 >= 15.95 && k.x0 <= 16.1, 'Zaun Wiesenkante endet nicht am Haus (x ' + k.x0.toFixed(2) + ', Hauswand 16,00)');
+    check(mn(punkte.grenze.filter(v => v.z < 16).map(v => nahe('wiese', v.x, v.z))) <= 0.4, 'Grenzzaun und Zaun an der Wiesenkante treffen sich nicht an der Straße');
   }
 }
 

@@ -35,7 +35,7 @@ function buildModel(THREE) {
     crown2: M(0x6a9547, 1), water: M(0x4fc3d8, 0.1, 0, { transparent: true, opacity: 0.8 }), poolwall: M(0x7fa7cf, 0.6, 0, { side: THREE.DoubleSide }),
     bin1: M(0x2a2c30, 0.8), bin2: M(0xe0b52b, 0.8), stone: M(0xf2f0ea, 0.9), stoneTop: M(0xc8321e, 0.8),
     retain: M(0xb4b3ad, 0.95), step: M(0x9c9a94, 0.95), timber: M(0xc9a27a, 0.8), steelDark: M(0x2b2e33, 0.5, 0.6), chimney: M(0xd8d3c8, 0.95), chimneyOut: M(0x35383c, 0.85), sockel: M(0x46484b, 0.95), zinc: M(0xbfc3c6, 0.5, 0.4), glassDark: M(0x56616b, 0.2, 0.1), board: M(0xf0eee8, 0.95), oak: M(0xc89b64, 0.6), steel: M(0xb7bcc2, 0.35, 0.8),
-    winkel: M(0x5b5c59, 0.95), stoop: M(0x3a3e44, 0.75), deckelBlau: M(0x1f5fb0, 0.6), deckelGelb: M(0xe5c617, 0.6), deckelSchwarz: M(0x26282c, 0.7)
+    zaun: M(0x383e42, 0.55, 0.35), winkel: M(0x5b5c59, 0.95), stoop: M(0x3a3e44, 0.75), deckelBlau: M(0x1f5fb0, 0.6), deckelGelb: M(0xe5c617, 0.6), deckelSchwarz: M(0x26282c, 0.7)
   };
   mat.insul = M(0xcfd0cb, 0.95, 0, { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
   if (typeof document !== 'undefined') {
@@ -227,8 +227,9 @@ function buildModel(THREE) {
   }
   function groundY(x, z) { return Y(groundE(x, z)); }
 
+  var TSTEP = 0.25; // Rasterweite des Geländenetzes
   (function buildTerrain() {
-    var step = 0.25, B = BOUNDS;
+    var step = TSTEP, B = BOUNDS;
     var nx = Math.round((B.x1 - B.x0) / step), nz = Math.round((B.z1 - B.z0) / step);
     var pos = new Float32Array((nx + 1) * (nz + 1) * 3), uv = new Float32Array((nx + 1) * (nz + 1) * 2);
     var idx = [];
@@ -252,6 +253,14 @@ function buildModel(THREE) {
     t.name = 'terrain';
     root.userData.terrain = t;
   })();
+
+  /* Höhe des sichtbaren Geländenetzes: Dreiecksinterpolation über dem Raster wie in buildTerrain (Diagonale b–c), damit Zaunfüße darauf stehen */
+  function meshY(x, z) {
+    var i = Math.floor((x - BOUNDS.x0) / TSTEP), j = Math.floor((z - BOUNDS.z0) / TSTEP), x0 = BOUNDS.x0 + i * TSTEP, z0 = BOUNDS.z0 + j * TSTEP;
+    var u = (x - x0) / TSTEP, v = (z - z0) / TSTEP;
+    var a = groundY(x0, z0), b = groundY(x0 + TSTEP, z0), c = groundY(x0, z0 + TSTEP), d = groundY(x0 + TSTEP, z0 + TSTEP);
+    return u + v <= 1 ? a + u * (b - a) + v * (c - a) : d + (1 - u) * (c - d) + (1 - v) * (b - d);
+  }
 
   /* Stützmauern an West- und Nordgrenze */
   (function retaining() {
@@ -871,6 +880,84 @@ function buildModel(THREE) {
       var o = boxAt(L / n + 0.02, top - bot, 0.15, stone, cx, (top + bot) / 2, cz, gGarden, -Math.atan2(dz, dx));
       o.userData = { kind: 'bordstein' };
     }
+  })();
+
+  /* ---------- Zaun: Doppelstabmatten in Anthrazit (Angaben des Nutzers vom 11.10.2026) ----------
+     West 2 m hoch vom Carport bis zur Straße. Süd und Ost 1 m hoch an der Grundstücksgrenze entlang bis dorthin, wo die Wiese endet
+     (Pflasterecke an der Straße), dann 1 m hoch an der Wiesenkante (Rand des Pflasters) bis zum Haus.
+     Annahmen: Zaunachse 15 cm innerhalb der Grenzlinie (auf der Mauerkrone der Stützmauer, an der Wiesenkante 8 cm auf der Wiesenseite),
+     Pfosten 6 × 6 cm im Abstand von höchstens 2,5 m, Matten 8/6/8 (waagerechte Doppelstäbe alle 20 cm, senkrechte Stäbe alle 5 cm),
+     Höhe = Pfostenoberkante über dem Gelände am Pfosten. */
+  (function zaun() {
+    var IN = 0.15, WIESE_DZ = 0.08, PW = 0.06, ZW = 2.5, GAP = 0.04, CAP = 0.03;
+    function innen(k, d) { // Eckpunkt k des Grundstücksumrisses um d nach innen verschoben (Gehrung)
+      var n = PLOT.length, p = PLOT[(k + n - 1) % n], q = PLOT[k], r = PLOT[(k + 1) % n];
+      var l1 = Math.hypot(q[0] - p[0], q[1] - p[1]), l2 = Math.hypot(r[0] - q[0], r[1] - q[1]);
+      var n1 = [-(q[1] - p[1]) / l1, (q[0] - p[0]) / l1], n2 = [-(r[1] - q[1]) / l2, (r[0] - q[0]) / l2], f = d / (1 + n1[0] * n2[0] + n1[1] * n2[1]);
+      return [q[0] + (n1[0] + n2[0]) * f, q[1] + (n1[1] + n2[1]) * f];
+    }
+    function schnitt(p, d, q, e) { // Schnittpunkt der Geraden p + t·d und q + s·e
+      var t = ((q[0] - p[0]) * e[1] - (q[1] - p[1]) * e[0]) / (d[0] * e[1] - d[1] * e[0]);
+      return [p[0] + d[0] * t, p[1] + d[1] * t];
+    }
+    function bar(out, a, b, hn, t, h) { // Quader von a nach b, t quer waagerecht (Richtung hn), h senkrecht dazu; hängt 12 Dreiecke an out
+      var d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], L = Math.hypot(d[0], d[1], d[2]);
+      d = [d[0] / L, d[1] / L, d[2] / L];
+      var w = [d[1] * hn[2], d[2] * hn[0] - d[0] * hn[2], -d[1] * hn[0]], c = [], i, k;
+      for (var e = 0; e < 2; e++) for (var sx = -1; sx <= 1; sx += 2) for (var sy = -1; sy <= 1; sy += 2) {
+        var o = e ? b : a;
+        c.push([o[0] + sx * hn[0] * t / 2 + sy * w[0] * h / 2, o[1] + sx * hn[1] * t / 2 + sy * w[1] * h / 2, o[2] + sx * hn[2] * t / 2 + sy * w[2] * h / 2]);
+      }
+      var mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
+      [[0, 1, 3, 2], [4, 6, 7, 5], [0, 4, 5, 1], [2, 3, 7, 6], [0, 2, 6, 4], [1, 5, 7, 3]].forEach(function (q) {
+        var p0 = c[q[0]], p1 = c[q[1]], p2 = c[q[2]], p3 = c[q[3]];
+        var nx = (p1[1] - p0[1]) * (p2[2] - p0[2]) - (p1[2] - p0[2]) * (p2[1] - p0[1]), ny = (p1[2] - p0[2]) * (p2[0] - p0[0]) - (p1[0] - p0[0]) * (p2[2] - p0[2]), nz = (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p1[1] - p0[1]) * (p2[0] - p0[0]);
+        var dot = nx * ((p0[0] + p2[0]) / 2 - mid[0]) + ny * ((p0[1] + p2[1]) / 2 - mid[1]) + nz * ((p0[2] + p2[2]) / 2 - mid[2]);
+        if (dot < 0) { p1 = c[q[3]]; p3 = c[q[1]]; } // nach außen drehen
+        [p0, p1, p2, p0, p2, p3].forEach(function (p) { out.push(p[0], p[1], p[2]); });
+      });
+    }
+    function lauf(pts, H, seite, ohneStart) { // Linienzug pts (x, z) als Zaun der Höhe H; ohneStart: am Anfang steht schon ein Pfosten
+      var out = [];
+      for (var i = 0; i + 1 < pts.length; i++) {
+        var p = pts[i], q = pts[i + 1], L = Math.hypot(q[0] - p[0], q[1] - p[1]), u = [(q[0] - p[0]) / L, (q[1] - p[1]) / L], hn = [-u[1], 0, u[0]], n = Math.ceil(L / ZW);
+        function fuss(s) { return meshY(p[0] + u[0] * s, p[1] + u[1] * s); }
+        for (var k = 0; k <= n; k++) {
+          var s0 = L * k / n;
+          if (k === 0 && (i > 0 || ohneStart)) continue; // Eckpfosten stehen schon
+          var px = p[0] + u[0] * s0, pz = p[1] + u[1] * s0, y0 = fuss(s0);
+          bar(out, [px, y0 - 0.25, pz], [px, y0 + H, pz], hn, PW, PW);
+        }
+        for (var k2 = 0; k2 < n; k2++) { // eine Matte zwischen zwei Pfosten
+          var a = L * k2 / n + PW / 2, b = L * (k2 + 1) / n - PW / 2, ya = fuss(a), yb = fuss(b), top = H - CAP - GAP, m = Math.ceil(top / 0.2) + 1, W = b - a;
+          var at = function (s, y) { var f = (s - a) / W; return [p[0] + u[0] * s, ya + (yb - ya) * f + y, p[1] + u[1] * s]; };
+          for (var j = 0; j < m; j++) { // Doppelstab: je ein Stab vor und hinter dem senkrechten Stab
+            var yy = GAP + 0.01 + (top - 0.02) * j / (m - 1);
+            [-1, 1].forEach(function (sd) {
+              var o = [hn[0] * 0.007 * sd, 0, hn[2] * 0.007 * sd], c0 = at(a, yy), c1 = at(b, yy);
+              bar(out, [c0[0] + o[0], c0[1], c0[2] + o[2]], [c1[0] + o[0], c1[1], c1[2] + o[2]], hn, 0.008, 0.008);
+            });
+          }
+          var nv = Math.round(W / 0.05);
+          for (var v = 0; v < nv; v++) {
+            var sv = a + W * (v + 0.5) / nv;
+            bar(out, at(sv, GAP), at(sv, GAP + top), hn, 0.006, 0.006);
+          }
+        }
+      }
+      var g = new THREE.BufferGeometry();
+      g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(out), 3));
+      g.computeVertexNormals();
+      var o2 = mesh(g, mat.zaun, true, gGarden, true);
+      o2.receiveShadow = false;
+      o2.userData = { kind: 'zaun', seite: seite, hoehe: H };
+    }
+    var sw = innen(5, IN), so = innen(4, IN), oe = innen(3, IN);
+    var A = [HOF_POLY[3][0], HOF_POLY[3][1] + WIESE_DZ], B = [HOF_POLY[4][0], HOF_POLY[4][1] + WIESE_DZ], C = [F.x1 + PW / 2, HOF_POLY[5][1] + WIESE_DZ];
+    var q = schnitt(oe, [PLOT[2][0] - PLOT[3][0], PLOT[2][1] - PLOT[3][1]], A, [B[0] - A[0], B[1] - A[1]]); // Ende der Wiese an der Straße
+    lauf([[sw[0], 5.46], sw], 2.0, 'west');         // ab Südwestecke des Geräteraums (Carport) bis zur Straße
+    lauf([sw, so, oe, q], 1.0, 'grenze', true);     // Süd-, Südost- und Ostgrenze bis zum Ende der Wiese
+    lauf([q, B, C], 1.0, 'wiese', true);            // Wiesenkante von der Straße bis zur Hauswand
   })();
 
   /* ---------- Beschriftungen: Höhen und Maße ---------- */
