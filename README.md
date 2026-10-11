@@ -7,9 +7,9 @@ Interaktives, maßstabsgetreues 3D-Modell von Grundstück, Haus und Dachausbau (
 ## Aufbau
 | Ordner | Inhalt |
 |---|---|
-| `src/` | `model.js` (Geometrie), `app.js` (Bedienung), `tpl.html` (Seitenvorlage) |
+| `src/` | `data/haus.json` (Rohbau-Maße als Daten), `werte.js` (Achsen auflösen), `model.js` (Geometrie), `app.js` (Bedienung), `tpl.html` (Seitenvorlage) |
 | `dist/` | gebaute Seite `haus-und-grundstueck-3d.html` (wird als Artifact veröffentlicht) |
-| `tools/` | Modelltest, Screenshot-Werkzeug |
+| `tools/` | Tests (Daten, Modell), gesperrte Werte, Screenshot-Werkzeug |
 | `eingaben/` | Originalpläne, PDFs, Fotos und Skizzen des Nutzers, Seitenbilder der Pläne |
 | `analyse/` | Hilfsskripte und Zwischendaten der Planauswertung |
 | `archiv/` | frühere Modellstände (v1–v4) |

@@ -21,10 +21,10 @@ Erster Build dauert einige Minuten, jeder Rebuild danach unter einer Minute (Lay
 
 ## Arbeitsablauf
 
-- Quellen: `src/model.js` (Geometrie, Daten aus den Plänen), `src/app.js` (Steuerung, Kamera, Schalter), `src/tpl.html` (Seite, Styles, Hinweistexte). Ordnerlayout in `README.md`. Bibliothek: three@0.128.0, ohne weitere Abhängigkeiten.
+- Quellen: `src/data/haus.json` (Rohbau-Maße aus den Plänen: Achsen, gesperrte Außenmaße, Wandtypen, Wände, Öffnungen, Räume, Dach; ganze Millimeter), `src/werte.js` (löst Achsen und Maßausdrücke auf), `src/model.js` (Geometrie, Gelände, Außenanlagen), `src/app.js` (Steuerung, Kamera, Schalter), `src/tpl.html` (Seite, Styles, Hinweistexte). **Ein Rohbau-Maß wird in `haus.json` geändert, nicht als Zahl in `model.js`.** Ordnerlayout in `README.md`. Bibliothek: three@0.128.0, ohne weitere Abhängigkeiten.
 - `npm ci` einmal vor dem ersten Test. Nach **jeder** Änderung am Code: `npm test` (`tools/test_model.js`) und `npm run build` (`python3 build.py`).
 - `npm run build` baut `dist/haus-und-grundstueck-3d.html` (CDN-Three.js, wird veröffentlicht) und `dist/test_page.html` (lokal, nicht eingecheckt). Typprüfung, Lint und Format sind nicht eingerichtet.
-- `npm test` prüft feste Randbedingungen (keine NaN, Dachneigung 35°, First, Traufe, Geschosshöhe), vergleicht Kennwerte und Raumflächen mit `tools/snapshot.json` und berichtet die Prüfmaße aus dem Aufmaß (`tools/pruefmasse.json`).
+- `npm test` führt `tools/test_daten.js` (Datenquelle, Auflösung der Achsen, gesperrte Werte aus `tools/gesperrt.json`, Folgen einer Maßänderung) und `tools/test_model.js` aus. Letzterer prüft feste Randbedingungen (keine NaN, Dachneigung 35°, First, Traufe, Geschosshöhe), vergleicht Kennwerte und Raumflächen mit `tools/snapshot.json` und berichtet die Prüfmaße aus dem Aufmaß (`tools/pruefmasse.json`).
 - Screenshots: `NODE_PATH=$(npm root -g) OUT=/tmp node tools/shot_view.js '[{"p":[x,y,z],"t":[x,y,z]}]' dg` (Playwright, Ansicht `dg`, `inside`, …; Kamera in Modellkoordinaten). Alternativ `dist/test_page.html` im Browser öffnen.
 - **Änderungen am Modell nur über dieses Git-Repository.** Die veröffentlichte Seite speichert nichts.
 - Umbauplan (Datenmodell, 2D-Bemaßung, Prüfung): `docs/plan-parametrisches-modell.md`. Entscheidungen mit Tragweite bekommen dort einen kurzen, datierten Eintrag (Abschnitt 9). Eine arc42-Datei und ADRs gibt es noch nicht (siehe `TODO.md`, „Offene Fragen").
