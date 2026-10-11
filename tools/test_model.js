@@ -176,7 +176,7 @@ const inPoly = (poly, x, z) => { let ins = false; for (let i = 0, j = poly.lengt
 
   const ray = new THREE.Raycaster(), down = new THREE.Vector3(0, -1, 0);
   const gelaende = (x, z) => { ray.set(new THREE.Vector3(x, 60, z), down); const h = ray.intersectObject(m.terrain); return h.length ? h[0].point.y : NaN; };
-  const ecken = o => { const p = o.geometry.attributes.position, a = []; for (let i = 0; i < p.count; i++) a.push(new THREE.Vector3(p.getX(i), p.getY(i), p.getZ(i)).applyMatrix4(o.matrixWorld)); return a; };
+  const ecken = o => { const a = []; o.traverse(c => { if (!c.isMesh) return; const p = c.geometry.attributes.position; for (let i = 0; i < p.count; i++) a.push(new THREE.Vector3(p.getX(i), p.getY(i), p.getZ(i)).applyMatrix4(c.matrixWorld)); }); return a; }; // alle Eckpunkte eines Netzes oder einer Gruppe
   const SOLL = { west: 2.0, grenze: 1.0, wiese: 1.0 };
   const zaun = kinds('zaun'), seite = s => zaun.filter(z => z.userData.seite === s), punkte = {};
   check(zaun.length === 3 && Object.keys(SOLL).every(s => seite(s).length === 1), 'Zaun: erwartet je ein Teilstück West, Grenze und Wiese, gefunden: ' + (zaun.map(z => z.userData.seite).join(', ') || 'keins'));
@@ -267,6 +267,58 @@ const inPoly = (poly, x, z) => { let ins = false; for (let i = 0, j = poly.lengt
     if (west.length === 1) {
       const e = box(west[0]), c = e.getCenter(new THREE.Vector3());
       check(c.x >= 6.4 && c.x <= 6.7 && e.min.z <= 20.42 && e.max.z >= 20.395 + 0.4 && e.max.x <= b.min.x + 0.01, 'Abschlussstein an der Terrassenkante liegt nicht quer über dem Streifenende (x ' + c.x.toFixed(2) + ', z ' + e.min.z.toFixed(2) + '…' + e.max.z.toFixed(2) + ')');
+    }
+  }
+
+  /* Spielplatz (Fotos und Luftbild vom 11.10.2026, Trampolin Angabe des Nutzers): Spielturm aus Holz mit Stauraum unter der Plattform,
+     blauem Planendach, Leiter an der Ostseite und grüner Rutsche nach Norden, an der Westgrenze. Der Schaukelbalken geht vom Turm nach Osten
+     an der Hecke entlang (zwei rote Sitze, ein Trapez, Schräggestell am Ostende). Zwischen Schaukel und Pool steht ein Trampolin mit 3 m Durchmesser.
+     Maße des Turms und der Schaukel sind aus den Fotos geschätzt (Toleranzen weit). */
+  const turm = kinds('spielturm'), tramp = kinds('trampolin');
+  check(turm.length === 1, 'Spielturm: ' + turm.length + ' Gruppen statt 1');
+  check(tramp.length === 1, 'Trampolin: ' + tramp.length + ' statt 1');
+  const teile = { rutsche: 1, leiter: 1, schaukelbalken: 1, schaukelgestell: 1, schaukelsitz: 2, trapez: 1, 'spielturm-kasten': 1, 'spielturm-dach': 1 };
+  Object.keys(teile).forEach(k => check(kinds(k).length === teile[k], 'Spielturm: ' + kinds(k).length + ' × ' + k + ' statt ' + teile[k]));
+  const mitte = o => box(o).getCenter(new THREE.Vector3());
+  if (turm.length === 1 && Object.keys(teile).every(k => kinds(k).length === teile[k])) {
+    const tb = box(turm[0]), kasten = box(kinds('spielturm-kasten')[0]), balken = box(kinds('schaukelbalken')[0]), rutsche = box(kinds('rutsche')[0]), dach = kinds('spielturm-dach')[0];
+    const g = (x, z) => gelaende(x, z), kc = kasten.getCenter(new THREE.Vector3());
+    check(kc.x >= 1.2 && kc.x <= 3.0 && kc.z >= 23.5 && kc.z <= 25.2, 'Spielturm steht bei ' + kc.x.toFixed(1) + ' / ' + kc.z.toFixed(1) + ' statt in der Südwestecke (Luftbild: etwa 2,0 / 24,3)');
+    const platte = kasten.max.y - g(kc.x, kc.z);
+    check(platte >= 1.0 && platte <= 1.3, 'Plattform des Spielturms liegt ' + platte.toFixed(2) + ' m über dem Gelände statt etwa 1,15 m (Fotos)');
+    check(dach.material.color.b > dach.material.color.r + 0.2 && dach.material.color.b > dach.material.color.g, 'Spielturmdach ist nicht blau');
+    const dachH = box(dach).max.y - g(kc.x, kc.z);
+    check(dachH >= 2.6 && dachH <= 3.3, 'Spielturm ist ' + dachH.toFixed(2) + ' m hoch statt etwa 3 m (Fotos)');
+    // Rutsche: oben an der Plattform, läuft nach Norden (z kleiner), unten am Boden
+    check(rutsche.max.y >= kasten.max.y - 0.1 && rutsche.max.y <= kasten.max.y + 0.2, 'Rutsche beginnt nicht an der Plattform');
+    check(rutsche.min.z <= kasten.min.z - 1.5 && rutsche.max.z <= kasten.min.z + 0.3, 'Rutsche läuft nicht nach Norden vom Turm weg (z ' + rutsche.min.z.toFixed(2) + '…' + rutsche.max.z.toFixed(2) + ', Turm ab ' + kasten.min.z.toFixed(2) + ')');
+    check(rutsche.min.y - g((rutsche.min.x + rutsche.max.x) / 2, rutsche.min.z) <= 0.3, 'Rutsche endet nicht am Boden');
+    // Leiter an der Ostseite des Stauraums
+    const leiter = box(kinds('leiter')[0]);
+    check(leiter.min.x >= kasten.max.x - 0.1 && leiter.max.x <= kasten.max.x + 0.9 && leiter.max.y >= kasten.max.y - 0.3, 'Leiter steht nicht an der Ostseite des Turms');
+    // Schaukelbalken: vom Turm nach Osten, mindestens 3,5 m, in 2,0–2,6 m Höhe (unter der Traufe des Turmdachs), Ende etwa bei x 7 (Luftbild)
+    const bm = balken.getCenter(new THREE.Vector3());
+    check(balken.min.x <= kasten.max.x + 0.1 && balken.max.x - kasten.max.x >= 3.5 && balken.max.z - balken.min.z <= 0.3, 'Schaukelbalken geht nicht vom Turm nach Osten (x ' + balken.min.x.toFixed(2) + '…' + balken.max.x.toFixed(2) + ')');
+    check(balken.max.x >= 6.5 && balken.max.x <= 7.5, 'Schaukelbalken endet bei x ' + balken.max.x.toFixed(2) + ' statt etwa 7 (Luftbild)');
+    const bh = balken.max.y - g(bm.x, bm.z);
+    check(bh >= 2.0 && bh <= 2.6, 'Schaukelbalken liegt ' + bh.toFixed(2) + ' m hoch statt etwa 2,1 m');
+    kinds('schaukelsitz').forEach(sz => { const c = mitte(sz), h = c.y - g(c.x, c.z); check(c.x > kasten.max.x && c.x < balken.max.x && Math.abs(c.z - bm.z) <= 0.15 && h >= 0.3 && h <= 0.6, 'Schaukelsitz hängt nicht unter dem Balken in 30–60 cm Höhe'); });
+    const gestell = box(kinds('schaukelgestell')[0]);
+    check(gestell.min.x >= balken.max.x - 1.6 && gestell.max.x <= balken.max.x + 0.1 && gestell.max.z - gestell.min.z >= 1.2, 'Schräggestell steht nicht am Ostende des Balkens');
+    // Lage im Grundstück, Abstand zu Zaun und Hecke
+    [[tb.min.x, tb.min.z], [tb.max.x, tb.min.z], [tb.min.x, tb.max.z], [tb.max.x, tb.max.z]].forEach(q => check(inPoly(m.zones.plot, q[0], q[1]), 'Spielturm ragt aus dem Grundstück bei ' + q[0].toFixed(1) + ' / ' + q[1].toFixed(1)));
+    check(tb.min.x >= 0.3, 'Spielturm steht im Zaun (kleinster Abstand zur Westgrenze ' + tb.min.x.toFixed(2) + ' m)');
+    check(hecke.length === 1 && tb.max.z <= box(hecke[0]).min.z - 0.3, 'Spielturm steht in der Hecke');
+    if (tramp.length === 1) {
+      const tr = box(tramp[0]), ts = tr.getSize(new THREE.Vector3()), tc = tr.getCenter(new THREE.Vector3());
+      check(Math.abs(ts.x - 3.0) <= 0.03 && Math.abs(ts.z - 3.0) <= 0.03, 'Trampolin hat ' + ts.x.toFixed(2) + ' × ' + ts.z.toFixed(2) + ' m Durchmesser statt 3,00 m');
+      check(tr.min.x >= tb.max.x + 0.3, 'Trampolin steht zu nah an der Schaukel (Abstand ' + (tr.min.x - tb.max.x).toFixed(2) + ' m)');
+      const pc = pb ? pb.getCenter(new THREE.Vector3()) : null, pr = pb ? pb.getSize(new THREE.Vector3()).x / 2 : 0;
+      check(pc && tc.x > tb.max.x && tc.x < pc.x, 'Trampolin steht nicht zwischen Schaukel und Pool');
+      check(pc && Math.hypot(tc.x - pc.x, tc.z - pc.z) >= pr + 1.5 + 0.05, 'Trampolin berührt den Pool (Mittenabstand ' + (pc ? Math.hypot(tc.x - pc.x, tc.z - pc.z).toFixed(2) : '?') + ' m, mindestens ' + (pr + 1.55).toFixed(2) + ' m)');
+      check(hecke.length === 1 && tr.max.z <= box(hecke[0]).min.z - 0.1, 'Trampolin steht in der Hecke');
+      check(tc.z >= 23.5 && tc.z <= 25.5, 'Trampolin steht bei z ' + tc.z.toFixed(1) + ' statt auf Höhe von Pool und Schaukel (Luftbild: etwa 24,4)');
+      check(ecken(tramp[0]).reduce((l, v) => Math.min(l, v.y - g(v.x, v.z)), 9) <= 0.05, 'Trampolin schwebt');
     }
   }
 }

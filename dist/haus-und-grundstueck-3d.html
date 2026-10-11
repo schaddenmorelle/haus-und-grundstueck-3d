@@ -109,7 +109,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
     </section>
     <section><h2>Grundlagen und Annahmen</h2>
       <p class="note"><b>Aus den Plänen und Angaben:</b> Grundstücksgrenzen, Hausmaße, alle Wände, Türen und Fenster des Erdgeschosses nach dem bemaßten Grundriss und Ihrem Aufmaß (Außenwand 18,5 cm Poroton plus 20 cm Dämmung; mittlere Fenster zweigeteilt, das breite im Wohnzimmer dreigeteilt), First- und Traufhöhe, Dachfenster, nicht ausgebaute Randzonen im Dach, kein Keller, Geschosshöhe 2,971 m und die Treppe (15 Steigungen, Wendelung an der Ostwand) nach der Treppenplanung und Ihren Aufmaßen (Wandabstand im Dachgeschoss 1,60 m, Treppenlauf 90 cm, Geländer 15 cm, Nische 54 cm), außerdem aus dem Binderplan Dachneigung 35°, Dachüberstand 23,5 cm und die Sparrenachsen, aus dem Plan der Balkenlage der Kamin und der Stützpfosten an der Terrassenecke, nach Ihren Angaben die Terrasse auf Fußbodenhöhe und die Pergola (3 × 5 m, 2,525 m hoch).</p>
-      <p class="note"><b>Angenommen:</b> Geländehöhen im Grundstück (±15 cm), Raumhöhe 2,525 m, Kaminhöhe (bis 149,60 m ü. NN), Fensterhöhen außer den bemaßten, Wanddicken im Dachausbau einheitlich 12,5 cm, Lage von Pool, Carport und Gartenelementen nach Luftbild, Zaun 15 cm innerhalb der Grenzlinie, Hecke 40 cm tief, Spritzschutzstreifen 40 cm breit. Die Flächen im Dachausbau sind Grundflächen zwischen den Kniewänden, keine Wohnfläche. Die Wand von Pias Zimmer zur Treppe ist gegenüber dem Dachausbauplan um etwa 14 cm in den Raum gerückt, damit Treppe (90 cm), Geländer (15 cm) und Nische (54 cm) zwischen die Wände passen.</p>
+      <p class="note"><b>Angenommen:</b> Geländehöhen im Grundstück (±15 cm), Raumhöhe 2,525 m, Kaminhöhe (bis 149,60 m ü. NN), Fensterhöhen außer den bemaßten, Wanddicken im Dachausbau einheitlich 12,5 cm, Lage von Pool, Carport und Gartenelementen nach Luftbild, Zaun 15 cm innerhalb der Grenzlinie, Hecke 40 cm tief, Spritzschutzstreifen 40 cm breit, Maße und Lage von Spielturm, Schaukel und Trampolin nach Fotos und Luftbild geschätzt. Die Flächen im Dachausbau sind Grundflächen zwischen den Kniewänden, keine Wohnfläche. Die Wand von Pias Zimmer zur Treppe ist gegenüber dem Dachausbauplan um etwa 14 cm in den Raum gerückt, damit Treppe (90 cm), Geländer (15 cm) und Nische (54 cm) zwischen die Wände passen.</p>
     </section>
   </div>
   <div id="fallback" hidden><p>Der Browser kann das 3D-Modell nicht darstellen (WebGL fehlt).</p></div>
@@ -185,6 +185,32 @@ function buildModel(THREE) {
     var o = mesh(new THREE.BoxGeometry(w, h, d), m, true, parent, true);
     o.position.set(x, yc, z);
     if (ry) o.rotation.y = ry;
+    return o;
+  }
+
+  function bar(out, a, b, hn, t, h) { // Quader von a nach b, t quer waagerecht (Richtung hn), h senkrecht dazu; hängt 12 Dreiecke an out
+    var d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], L = Math.hypot(d[0], d[1], d[2]);
+    d = [d[0] / L, d[1] / L, d[2] / L];
+    var w = [d[1] * hn[2], d[2] * hn[0] - d[0] * hn[2], -d[1] * hn[0]], c = [], i, k;
+    for (var e = 0; e < 2; e++) for (var sx = -1; sx <= 1; sx += 2) for (var sy = -1; sy <= 1; sy += 2) {
+      var o = e ? b : a;
+      c.push([o[0] + sx * hn[0] * t / 2 + sy * w[0] * h / 2, o[1] + sx * hn[1] * t / 2 + sy * w[1] * h / 2, o[2] + sx * hn[2] * t / 2 + sy * w[2] * h / 2]);
+    }
+    var mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
+    [[0, 1, 3, 2], [4, 6, 7, 5], [0, 4, 5, 1], [2, 3, 7, 6], [0, 2, 6, 4], [1, 5, 7, 3]].forEach(function (q) {
+      var p0 = c[q[0]], p1 = c[q[1]], p2 = c[q[2]], p3 = c[q[3]];
+      var nx = (p1[1] - p0[1]) * (p2[2] - p0[2]) - (p1[2] - p0[2]) * (p2[1] - p0[1]), ny = (p1[2] - p0[2]) * (p2[0] - p0[0]) - (p1[0] - p0[0]) * (p2[2] - p0[2]), nz = (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p1[1] - p0[1]) * (p2[0] - p0[0]);
+      var dot = nx * ((p0[0] + p2[0]) / 2 - mid[0]) + ny * ((p0[1] + p2[1]) / 2 - mid[1]) + nz * ((p0[2] + p2[2]) / 2 - mid[2]);
+      if (dot < 0) { p1 = c[q[3]]; p3 = c[q[1]]; } // nach außen drehen
+      [p0, p1, p2, p0, p2, p3].forEach(function (p) { out.push(p[0], p[1], p[2]); });
+    });
+  }
+  function barMesh(out, m, parent, data) { // Netz aus den von bar() gesammelten Dreiecken, optional mit userData
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(out), 3));
+    g.computeVertexNormals();
+    var o = mesh(g, m, true, parent, true);
+    if (data) o.userData = data;
     return o;
   }
 
@@ -973,18 +999,6 @@ function buildModel(THREE) {
     hg.setAttribute('position', new THREE.BufferAttribute(new Float32Array(hp), 3));
     hg.computeVertexNormals();
     mesh(hg, mat.hedge, true, gGarden, true).userData = { kind: 'hecke', hoehe: hkH };
-    // Spielturm und Schaukelgestell
-    var st = pl(355, 1445), sy = Y(142.65);
-    [[-0.6, -0.6], [0.6, -0.6], [-0.6, 0.6], [0.6, 0.6]].forEach(function (o) { boxAt(0.1, 2.4, 0.1, mat.wood, st[0] + o[0], sy + 1.2, st[1] + o[1], gGarden); });
-    boxAt(1.4, 0.08, 1.4, mat.wood, st[0], sy + 1.2, st[1], gGarden);
-    var rf = mesh(new THREE.ConeGeometry(1.15, 0.8, 4), M(0xa33a2a, 0.8), true, gGarden, false);
-    rf.position.set(st[0], sy + 2.8, st[1]); rf.rotation.y = Math.PI / 4;
-    var sl = boxAt(0.45, 0.05, 2.6, M(0x3c7fd0, 0.5), st[0] + 0.0, sy + 0.62, st[1] + 2.0, gGarden); sl.rotation.x = 0.46;
-    var sw = pl(543, 1500);
-    boxAt(3.4, 0.1, 0.1, mat.wood, sw[0], sy + 2.3, sw[1], gGarden);
-    [[-1.6, -0.6], [-1.6, 0.6], [1.6, -0.6], [1.6, 0.6]].forEach(function (o) {
-      var p = boxAt(0.09, 2.45, 0.09, mat.wood, sw[0] + o[0], sy + 1.15, sw[1] + o[1], gGarden); p.rotation.z = o[0] < 0 ? -0.0 : 0.0;
-    });
   })();
 
   /* ---------- Vorbeet: Mauer aus Winkelsteinen, innen bündig mit dem Beetumriss, steht BED_WALL über dem Pflaster ---------- */
@@ -1051,23 +1065,6 @@ function buildModel(THREE) {
     function schnitt(p, d, q, e) { // Schnittpunkt der Geraden p + t·d und q + s·e
       var t = ((q[0] - p[0]) * e[1] - (q[1] - p[1]) * e[0]) / (d[0] * e[1] - d[1] * e[0]);
       return [p[0] + d[0] * t, p[1] + d[1] * t];
-    }
-    function bar(out, a, b, hn, t, h) { // Quader von a nach b, t quer waagerecht (Richtung hn), h senkrecht dazu; hängt 12 Dreiecke an out
-      var d = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], L = Math.hypot(d[0], d[1], d[2]);
-      d = [d[0] / L, d[1] / L, d[2] / L];
-      var w = [d[1] * hn[2], d[2] * hn[0] - d[0] * hn[2], -d[1] * hn[0]], c = [], i, k;
-      for (var e = 0; e < 2; e++) for (var sx = -1; sx <= 1; sx += 2) for (var sy = -1; sy <= 1; sy += 2) {
-        var o = e ? b : a;
-        c.push([o[0] + sx * hn[0] * t / 2 + sy * w[0] * h / 2, o[1] + sx * hn[1] * t / 2 + sy * w[1] * h / 2, o[2] + sx * hn[2] * t / 2 + sy * w[2] * h / 2]);
-      }
-      var mid = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
-      [[0, 1, 3, 2], [4, 6, 7, 5], [0, 4, 5, 1], [2, 3, 7, 6], [0, 2, 6, 4], [1, 5, 7, 3]].forEach(function (q) {
-        var p0 = c[q[0]], p1 = c[q[1]], p2 = c[q[2]], p3 = c[q[3]];
-        var nx = (p1[1] - p0[1]) * (p2[2] - p0[2]) - (p1[2] - p0[2]) * (p2[1] - p0[1]), ny = (p1[2] - p0[2]) * (p2[0] - p0[0]) - (p1[0] - p0[0]) * (p2[2] - p0[2]), nz = (p1[0] - p0[0]) * (p2[1] - p0[1]) - (p1[1] - p0[1]) * (p2[0] - p0[0]);
-        var dot = nx * ((p0[0] + p2[0]) / 2 - mid[0]) + ny * ((p0[1] + p2[1]) / 2 - mid[1]) + nz * ((p0[2] + p2[2]) / 2 - mid[2]);
-        if (dot < 0) { p1 = c[q[3]]; p3 = c[q[1]]; } // nach außen drehen
-        [p0, p1, p2, p0, p2, p3].forEach(function (p) { out.push(p[0], p[1], p[2]); });
-      });
     }
     function lauf(pts, H, seite, ohneStart) { // Linienzug pts (x, z) als Zaun der Höhe H; ohneStart: am Anfang steht schon ein Pfosten
       var out = [];
@@ -1147,6 +1144,110 @@ function buildModel(THREE) {
     for (var j = 0; j < ns; j++) { var xa = xA + (xO + W - xA) * j / ns, xb = xA + (xO + W - xA) * (j + 1) / ns; stein('kiesrand', (xa + xb) / 2, zr, xb - xa + 0.005, KB); } // Südseite bis zum Randstein der Ostseite
     stein('kiesabschluss', xO + (W + KB) / 2, zE + KB / 2, W + KB, KB);   // quer an der Stufe, über die ganze Streifenbreite samt Randstein
     stein('kiesabschluss', xT + KB / 2, zS + (W + KB) / 2, KB, W + KB);   // quer an der Terrassenkante
+  })();
+
+  /* ---------- Spielplatz: Spielturm mit Schaukel und Trampolin (Fotos und Luftbild vom 11.10.2026, Trampolin Angabe des Nutzers) ----------
+     Spielturm aus Holz an der Westgrenze: Stauraum mit Brettertüren unter der Plattform, Geländer, blaues Planendach (First in Nord-Süd-Richtung),
+     Leiter an der Ostseite, grüne Rutsche nach Norden. Der Schaukelbalken geht vom Turm nach Osten an der Hecke entlang: zwei rote Sitze, Trapez,
+     Schräggestell nahe dem Ostende. Zwischen Schaukel und Pool steht das Trampolin (3 m Durchmesser, Fangnetz, sechs Pfosten).
+     Alle Maße des Turms und der Schaukel sind aus Fotos und Luftbild geschätzt (Annahmen); Lage nach Luftbild, Rutsche gerade statt wellig. */
+  (function spielplatz() {
+    var xt = 1.95, zt = 24.3, g0 = meshY(xt, zt), HB = 0.65, PB = 0.09;       // Turmmitte, Gelände am Turm, halbe Kastenbreite, Pfostenstärke
+    var KH = 1.10, DK = 1.15, TR = 2.15, FI = 2.95, RB = 1.85;                // Kasten, Plattformoberkante, Traufe, First, Dachbreite (Höhen über g0)
+    var BX1 = 7.0, BY = 2.00, AX = 6.10, SX = [4.0, 5.0], TX = 6.60;           // Balkenende, Balkenmitte, Schräggestell, Sitze, Trapez
+    var V = [1, 0, 0], Zr = [0, 0, 1];
+    var holz = M(0xc08f55, 0.8), plane = M(0x1f4fb0, 0.65), rutscheM = M(0x2f9a80, 0.35), seilG = M(0x1f9d8a, 0.8), seilW = M(0xf0ede6, 0.8), sitzM = M(0xd9303a, 0.5);
+    var kastenM = M(0xc3925a, 0.85);
+    if (typeof document !== 'undefined') { // Bretterwand: acht waagerechte Bretter über die Kastenhöhe
+      var bc = document.createElement('canvas'); bc.width = 32; bc.height = 256;
+      var bg = bc.getContext('2d'); bg.fillStyle = '#c3925a'; bg.fillRect(0, 0, 32, 256); bg.fillStyle = '#7d5630';
+      for (var bi = 1; bi < 8; bi++) bg.fillRect(0, bi * 32 - 1, 32, 2);
+      kastenM.map = new THREE.CanvasTexture(bc); kastenM.color.set(0xffffff);
+    }
+    var turm = new THREE.Group(); turm.userData = { kind: 'spielturm' }; gGarden.add(turm);
+    // Stauraum unter der Plattform, reicht 10 cm unter das Gelände
+    var kasten = mesh(new THREE.BoxGeometry(2 * HB, KH + 0.1, 2 * HB), kastenM, true, turm, true);
+    kasten.position.set(xt, g0 + (KH - 0.1) / 2, zt); kasten.userData = { kind: 'spielturm-kasten' };
+    var w = [], r = [];
+    bar(w, [xt, g0 + KH, zt], [xt, g0 + DK, zt], V, 2 * HB + 0.06, 2 * HB + 0.06);                  // Plattform
+    [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(function (o) { var x = xt + o[0] * (HB - PB / 2), z = zt + o[1] * (HB - PB / 2); bar(w, [x, g0 - 0.1, z], [x, g0 + 2.38, z], V, PB, PB); });
+    function gel(ax, az, bx, bz) { // Geländer: zwei Holme und Stäbe alle 10 cm
+      var L = Math.hypot(bx - ax, bz - az), u = [(bx - ax) / L, (bz - az) / L], hn = [-u[1], 0, u[0]], n = Math.max(1, Math.round(L / 0.10));
+      bar(w, [ax, g0 + DK + 0.05, az], [bx, g0 + DK + 0.05, bz], hn, 0.04, 0.05);
+      bar(w, [ax, g0 + DK + 0.70, az], [bx, g0 + DK + 0.70, bz], hn, 0.05, 0.06);
+      for (var i = 0; i <= n; i++) { var x = ax + (bx - ax) * i / n, z = az + (bz - az) * i / n; bar(w, [x, g0 + DK + 0.07, z], [x, g0 + DK + 0.68, z], hn, 0.035, 0.03); }
+    }
+    var e = HB - PB / 2;
+    gel(xt + e, zt + e, xt + e, zt - 0.20);       // Ostseite, offen an der Leiter
+    gel(xt + e, zt + e, xt - e, zt + e);          // Südseite
+    gel(xt - e, zt + e, xt - e, zt - e);          // Westseite
+    gel(xt - e, zt - e, xt - 0.02, zt - e);       // Nordseite, offen an der Rutsche
+    bar(w, [xt, g0 + FI - 0.03, zt - RB / 2], [xt, g0 + FI - 0.03, zt + RB / 2], V, 0.08, 0.07);   // Firstbalken
+    barMesh(w, holz, turm);
+    // Planendach: zwei Platten, First in Nord-Süd-Richtung
+    var dach = [];
+    bar(dach, [xt - RB / 2, g0 + TR, zt], [xt, g0 + FI, zt], Zr, RB, 0.012);
+    bar(dach, [xt + RB / 2, g0 + TR, zt], [xt, g0 + FI, zt], Zr, RB, 0.012);
+    barMesh(dach, plane, turm, { kind: 'spielturm-dach' });
+    // Brettertüren: zwei schwarze Bänder an der Ostseite
+    var bd = [];
+    [0.80, 0.30].forEach(function (y) { bar(bd, [xt + HB + 0.008, g0 + y, zt - 0.05], [xt + HB + 0.008, g0 + y, zt + 0.55], V, 0.016, 0.04); });
+    barMesh(bd, mat.steelDark, turm);
+    // Leiter an der Ostseite, am Nordende, Sprossen bunt
+    var lt = new THREE.Group(); lt.userData = { kind: 'leiter' }; turm.add(lt);
+    var lw = [], zl = [zt - 0.55, zt - 0.20], x0 = xt + 1.20, x1 = xt + 0.70, y0 = g0 - 0.02, y1 = g0 + DK + 0.02;
+    zl.forEach(function (z) { bar(lw, [x0, y0, z], [x1, y1, z], Zr, 0.04, 0.07); });
+    barMesh(lw, holz, lt);
+    [0xe0506a, 0x2aa89a, 0xf08a3a, 0x6cb44a].forEach(function (c, i) {
+      var y = g0 + 0.28 + i * 0.26, t = (y - y0) / (y1 - y0), x = x0 + (x1 - x0) * t, o = [];
+      bar(o, [x, y, zl[0]], [x, y, zl[1]], V, 0.03, 0.03);
+      barMesh(o, M(c, 0.6), lt);
+    });
+    // Rutsche: grün, vom Nordrand der Plattform nach Norden, gerade statt wellig
+    var rt = new THREE.Group(); rt.userData = { kind: 'rutsche' }; turm.add(rt);
+    var rs = [], xs = xt + 0.25, za = zt - HB, zb = za - 2.15, ya = g0 + 1.13, yb = g0 + 0.10;
+    bar(rs, [xs, ya, za], [xs, yb, zb], V, 0.46, 0.04);
+    [-0.215, 0.215].forEach(function (o) { bar(rs, [xs + o, ya + 0.07, za], [xs + o, yb + 0.07, zb], V, 0.03, 0.12); });
+    barMesh(rs, rutscheM, rt);
+    // Schaukelbalken nach Osten, Schräggestell nahe dem Ostende
+    var bm = [];
+    bar(bm, [xt + HB + 0.05, g0 + BY, zt], [BX1, g0 + BY, zt], Zr, 0.12, 0.20);
+    barMesh(bm, holz, turm, { kind: 'schaukelbalken' });
+    var sg = new THREE.Group(); sg.userData = { kind: 'schaukelgestell' }; turm.add(sg);
+    var gs = [];
+    [-0.95, 0.95].forEach(function (o) { bar(gs, [AX, g0 + BY - 0.05, zt], [AX, meshY(AX, zt + o) - 0.05, zt + o], V, 0.09, 0.14); });
+    bar(gs, [AX, g0 + 0.90, zt - 0.55], [AX, g0 + 0.90, zt + 0.55], V, 0.05, 0.07);
+    barMesh(gs, holz, sg);
+    // Sitze (rot, an grünen Seilen) und Trapez (weiße Seile, Holzstange)
+    var sl = [];
+    SX.forEach(function (x) {
+      [-0.21, 0.21].forEach(function (o) { bar(sl, [x + o, g0 + BY - 0.10, zt], [x + o, g0 + 0.46, zt], Zr, 0.015, 0.015); });
+      var s = [], gx = meshY(x, zt);
+      bar(s, [x - 0.21, gx + 0.45, zt], [x + 0.21, gx + 0.45, zt], Zr, 0.17, 0.035);
+      barMesh(s, sitzM, turm, { kind: 'schaukelsitz' });
+    });
+    barMesh(sl, seilG, turm);
+    var tp = [], tw = [];
+    [-0.28, 0.28].forEach(function (o) { bar(tw, [TX + o, g0 + BY - 0.10, zt], [TX + o, g0 + 1.27, zt], Zr, 0.015, 0.015); });
+    bar(tp, [TX - 0.33, g0 + 1.25, zt], [TX + 0.33, g0 + 1.25, zt], Zr, 0.04, 0.04);
+    barMesh(tw, seilW, turm);
+    barMesh(tp, M(0xe8d8b0, 0.7), turm, { kind: 'trapez' });
+
+    // Trampolin: blauer Randschutz, schwarze Matte, sechs Beine, sechs Pfosten (unten Schaum, oben Stahl) mit schwarzem Fangnetz
+    var cx = 9.4, cz = 24.4, g1 = meshY(cx, cz), tg = new THREE.Group(); tg.userData = { kind: 'trampolin', d: 3.0 }; gGarden.add(tg);
+    var blau = M(0x1d4fa6, 0.7, 0, { side: THREE.DoubleSide }), schwarz = M(0x1b1b1d, 0.9, 0, { side: THREE.DoubleSide }), schaum = M(0x1c1c1e, 0.95);
+    var netz = M(0x111214, 1, 0, { transparent: true, opacity: 0.38, side: THREE.DoubleSide, depthWrite: false });
+    var ring = mesh(new THREE.RingGeometry(1.10, 1.5, 48), blau, true, tg, false); ring.rotation.x = -Math.PI / 2; ring.position.set(cx, g1 + 0.86, cz);
+    var rim = mesh(new THREE.TorusGeometry(1.44, 0.06, 8, 48), blau, true, tg, false); rim.rotation.x = Math.PI / 2; rim.position.set(cx, g1 + 0.84, cz);
+    var matte = mesh(new THREE.CircleGeometry(1.10, 48), schwarz, false, tg, false); matte.rotation.x = -Math.PI / 2; matte.position.set(cx, g1 + 0.845, cz);
+    for (var k = 0; k < 6; k++) {
+      var a1 = k * Math.PI / 3 + Math.PI / 6, lx = cx + 1.30 * Math.cos(a1), lz = cz + 1.30 * Math.sin(a1), lg = meshY(lx, lz), lh = g1 + 0.80 - (lg - 0.03);
+      var bein = mesh(new THREE.CylinderGeometry(0.025, 0.025, lh, 8), mat.steel, true, tg, false); bein.position.set(lx, lg - 0.03 + lh / 2, lz);
+      var a2 = k * Math.PI / 3, px = cx + 1.46 * Math.cos(a2), pz = cz + 1.46 * Math.sin(a2);
+      var sc = mesh(new THREE.CylinderGeometry(0.035, 0.035, 0.64, 10), schaum, true, tg, false); sc.position.set(px, g1 + 1.18, pz);
+      var pf = mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.50, 8), mat.steel, true, tg, false); pf.position.set(px, g1 + 1.75, pz);
+    }
+    var nz = mesh(new THREE.CylinderGeometry(1.45, 1.45, 1.10, 36, 1, true), netz, false, tg, false); nz.position.set(cx, g1 + 1.45, cz);
   })();
 
   /* ---------- Beschriftungen: Höhen und Maße ---------- */
