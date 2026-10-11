@@ -20,7 +20,7 @@ Stand: 11.10.2026. Die Räume in `src/data/haus.json` haben keine Polygone mehr.
 | Pias Zimmer | 33,1173 | 33,1173 | 0 | Wand mit Tür zum Flur (3) |
 | Arbeitszimmer | 15,5545 | 15,5545 | 0 | |
 | Abstellkammer | 8,6356 | 8,6356 | 0 | Wand mit Tür zum Flur (3) |
-| **Treppe und Flur (DG)** | 3,3165 | 2,6128 | **−0,7037** | die beiden Treppenwände und die zwei Wände mit Tür im Flur lagen im alten Polygon (2, 3) |
+| **Treppe und Flur (DG)** | 3,3165 | 2,6122 | **−0,7043** | die beiden Treppenwände und die zwei Wände mit Tür im Flur lagen im alten Polygon (2, 3) |
 
 In `tools/snapshot.json` ändern sich dadurch nur Bad (8,92 → 8,79) und Treppe und Flur DG (3,32 → 2,61); alle anderen Flächen bleiben auf zwei Stellen gleich. Die Prüfmaße aus dem Aufmaß (`tools/pruefmasse.json`) sind vor und nach dem Umbau Wert für Wert gleich.
 

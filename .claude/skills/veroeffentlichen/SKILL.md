@@ -15,6 +15,8 @@ Der Dienst lehnt jede Veröffentlichung ab, bis die Live-Version **vollständig 
 
 Erfahrung vom 11.10.2026: Nach einmaligem vollständigem Lesen einer Live-Version wurde die Veröffentlichung beim ersten Versuch angenommen, solange die Version unverändert blieb. Die Ablehnungen kamen vorher, weil das Lesen fehlte, und danach durch das unveränderte Wiederholen.
 
+Zweite Erfahrung: Ist die Live-Version die, die diese Sitzung selbst zuletzt veröffentlicht hat, ist kein erneutes Lesen nötig. Dann genügt `read` mit `path: "index.html"` für die Hash-Prüfung (Schritt 4), und die Veröffentlichung wird beim ersten Versuch angenommen. Das vollständige Lesen (Schritte 2 und 3) ist nur nötig, wenn die Live-Version aus einer anderen Sitzung stammt.
+
 ## Ablauf
 
 1. **Voraussetzungen:** `npm test` grün, `npm run build`, Screenshot-Prüfung der betroffenen Ansichten (`tools/shot_view.js`), die gebaute Seite unterscheidet sich vom Stand in `dist/veroeffentlicht.json` (sonst nichts zu tun).
