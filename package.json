@@ -5,9 +5,10 @@
   "description": "Maßstabsgetreues 3D-Modell von Grundstück, Haus und Dachausbau",
   "scripts": {
     "build": "python3 build.py",
-    "test": "node tools/test_daten.js && node tools/test_model.js"
+    "test": "node tools/test_daten.js && node tools/test_pruefen.js && node tools/test_model.js"
   },
   "dependencies": {
+    "polygon-clipping": "0.15.7",
     "three": "^0.128.0"
   }
 }

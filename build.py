@@ -8,12 +8,17 @@ import json, os, re
 root = os.path.dirname(os.path.abspath(__file__))
 rd = lambda p: open(os.path.join(root, p), encoding='utf-8').read()
 tpl = rd('src/tpl.html')
-strip_exports = lambda t: re.sub(r"^if [(]typeof module !== 'undefined'[)].*$", "", t, flags=re.M)  # Node-Export entfällt in der Seite
-model = strip_exports(rd('src/model.js')).replace("if (typeof require !== 'undefined') var werteAufloesen = require('./werte.js').werteAufloesen;", "")
-werte = strip_exports(rd('src/werte.js'))
+# Node-Export und require() entfallen in der Seite (die Module liegen dort als globale Funktionen hintereinander)
+strip_exports = lambda t: re.sub(r"^if [(]typeof (module|require) !== 'undefined'[)].*$", "", t, flags=re.M)
+model = strip_exports(rd('src/model.js'))
+werte, raeume, dach, pruefen = (strip_exports(rd('src/' + n + '.js')) for n in ('werte', 'raeume', 'dach', 'pruefen'))
+# polygon-clipping (MIT) wird in die Seite eingebaut, kein zusätzliches CDN
+clip_lizenz = rd('node_modules/polygon-clipping/LICENSE.md').replace('*/', '* /')
+clipping = '/* polygon-clipping 0.15.7\n' + clip_lizenz + '\n*/\n' + rd('node_modules/polygon-clipping/dist/polygon-clipping.umd.min.js')
 haus = json.dumps(json.loads(rd('src/data/haus.json')), ensure_ascii=False, separators=(',', ':'))
 app = rd('src/app.js')
-page = tpl.replace('/*HAUS*/', haus).replace('/*WERTE*/', werte).replace('/*MODEL*/', model).replace('/*APP*/', app)
+page = tpl.replace('/*HAUS*/', haus).replace('/*CLIPPING*/', clipping).replace('/*WERTE*/', werte).replace('/*RAEUME*/', raeume) \
+           .replace('/*DACH*/', dach).replace('/*PRUEFEN*/', pruefen).replace('/*MODEL*/', model).replace('/*APP*/', app)
 os.makedirs(os.path.join(root, 'dist'), exist_ok=True)
 open(os.path.join(root, 'dist/haus-und-grundstueck-3d.html'), 'w', encoding='utf-8').write(page)
 local = page.replace('https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js', '../node_modules/three/build/three.min.js') \

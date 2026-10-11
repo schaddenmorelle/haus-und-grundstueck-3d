@@ -223,6 +223,28 @@
     }
   }
 
+  /* ---------- Prüfung (Befunde aus src/pruefen.js) ---------- */
+  var befList = document.getElementById('befunde'), befSumme = document.getElementById('befundSumme');
+  var STUFE = { fehler: 'Fehler', warnung: 'Warnung', hinweis: 'Hinweis' }, zaehl = { fehler: 0, warnung: 0, hinweis: 0 };
+  model.befunde.forEach(function (b) {
+    zaehl[b.stufe]++;
+    var li = document.createElement('li'), btn = document.createElement('button');
+    btn.type = 'button'; btn.className = 'bef ' + b.stufe;
+    var k = document.createElement('b'); k.textContent = STUFE[b.stufe] + ' · Regel ' + b.regel;
+    var t = document.createElement('span'); t.textContent = b.text;
+    btn.appendChild(k); btn.appendChild(t); li.appendChild(btn); befList.appendChild(li);
+    btn.disabled = !b.ort;
+    btn.addEventListener('click', function () {
+      if (!b.ort) return;
+      var q = model.toWorld(b.ort[0] / 1000, b.ort[1] / 1000), dg = b.geschoss === 'DG', y = dg ? model.levels.dg : model.levels.eg;
+      state.roof = false; state.rafters = false; state.rooms = true; state.dg = dg; applyState();
+      viewBtns.forEach(function (v) { v.classList.remove('on'); v.setAttribute('aria-pressed', 'false'); });
+      flyTo([q[0] - 3, y + 6, q[1] + 5], [q[0], y, q[1]], 800);
+    });
+  });
+  function anz(n, eins, viele) { return n + ' ' + (n === 1 ? eins : viele); }
+  befSumme.textContent = model.befunde.length ? anz(zaehl.fehler, 'Fehler', 'Fehler') + ', ' + anz(zaehl.warnung, 'Warnung', 'Warnungen') + ', ' + anz(zaehl.hinweis, 'Hinweis', 'Hinweise') : 'Keine Befunde: Wände, Räume, Öffnungen, Höhen und Dachausbau sind stimmig.';
+
   /* ---------- Beschriftungen ---------- */
   var tagBox = document.getElementById('tags'), tagEls = [];
   model.tags.forEach(function (t) {

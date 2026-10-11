@@ -31,8 +31,10 @@ const cur = {
   plotArea: r2(m.info.plotArea), footArea: r2(m.info.footArea),
   ridge: r3(ridge), levels: { eg: r3(m.levels.eg), dg: r3(m.levels.dg) },
   terrain: [r2(minY + m.datum), r2(maxY + m.datum)],
+  befunde: { fehler: 0, warnung: 0, hinweis: 0 },
   rooms: {}
 };
+m.befunde.forEach(b => { cur.befunde[b.stufe]++; });
 m.rooms.forEach(r => { cur.rooms[r.id] = { name: r.name, level: r.level, area: r2(r.area) }; });
 console.log({ meshes: cur.meshes, tris: cur.tris, nonFinite: bad, ridge: cur.ridge });
 m.rooms.forEach(r => console.log('  ' + r.level.padEnd(4) + r.name.padEnd(24) + r.area.toFixed(2) + ' m²'));
@@ -40,6 +42,10 @@ m.rooms.forEach(r => console.log('  ' + r.level.padEnd(4) + r.name.padEnd(24) + 
 /* Feste Randbedingungen (AGENTS.md) */
 const fails = [];
 function check(ok, msg) { if (!ok) fails.push(msg); }
+/* Prüfregeln (src/pruefen.js): Fehler lassen den Test scheitern, Warnungen und Hinweise werden berichtet und stehen als Anzahl im Snapshot */
+console.log('\nPrüfbefunde: ' + cur.befunde.fehler + ' Fehler, ' + cur.befunde.warnung + ' Warnungen, ' + cur.befunde.hinweis + ' Hinweise');
+m.befunde.forEach(b => console.log('  ' + b.stufe.padEnd(8) + 'Regel ' + String(b.regel).padStart(2) + '  ' + b.text));
+m.befunde.filter(b => b.stufe === 'fehler').forEach(b => fails.push('Prüfregel ' + b.regel + ': ' + b.text));
 check(bad === 0, 'nicht endliche Koordinaten: ' + bad);
 check(Math.abs(m.info.pitchDeg - 35) < 1e-6, 'Dachneigung ist ' + m.info.pitchDeg + '° statt 35°');
 check(Math.abs(ridge - 149.08) < 0.01, 'First ' + ridge.toFixed(3) + ' statt 149,08');

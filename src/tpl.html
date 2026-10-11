@@ -39,6 +39,14 @@ section{padding-top:14px;margin-top:14px;border-top:1px solid var(--rule)}
 #rooms button:hover{background:var(--chip)}
 #rooms button.on{background:var(--on);color:var(--onfg)}
 .num{font-variant-numeric:tabular-nums;white-space:nowrap}
+#befunde{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:2px}
+#befunde button{width:100%;display:grid;gap:2px;border:0;border-left:3px solid var(--muted);background:transparent;color:var(--ink);padding:6px 8px;border-radius:0 4px 4px 0;font:inherit;font-size:13px;text-align:left;cursor:pointer}
+#befunde button:disabled{cursor:default}
+#befunde button:not(:disabled):hover{background:var(--chip)}
+#befunde button b{font:600 11px/1.2 'Barlow Condensed',Barlow,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+#befunde .fehler{border-left-color:var(--red)}#befunde .fehler b{color:var(--red)}
+#befunde .warnung{border-left-color:#c08a1c}#befunde .warnung b{color:#c08a1c}
+#befunde button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:5px 12px;font-variant-numeric:tabular-nums}
 dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
 .note{font-size:12.5px;color:var(--muted)}
@@ -98,6 +106,11 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
       <p id="readout" aria-live="polite"></p>
     </section>
     <section><h2>Räume</h2><ul id="rooms"></ul></section>
+    <section><h2>Prüfung</h2>
+      <p id="befundSumme" class="note" aria-live="polite"></p>
+      <ul id="befunde"></ul>
+      <p class="note">Die Räume entstehen aus den Wänden (Geschossfläche minus Wandflächen), jede Fläche trägt den Namen des Raumes, dessen Stempel in ihr liegt. Geprüft werden Wände, Öffnungen, Höhen, Treppe und die Wände im Dachausbau.</p>
+    </section>
     <section><h2>Kennzahlen</h2>
       <dl>
         <dt>Grundstück</dt><dd id="k-plot"></dd>
@@ -118,7 +131,11 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
 var HAUS = /*HAUS*/;
+/*CLIPPING*/
 /*WERTE*/
+/*RAEUME*/
+/*DACH*/
+/*PRUEFEN*/
 /*MODEL*/
 </script>
 <script>

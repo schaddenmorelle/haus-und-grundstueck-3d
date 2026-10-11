@@ -1,9 +1,11 @@
 /* Modell: baut Grundstück, Gelände, Haus, Räume, Dach und Außenanlagen.
    Koordinaten: x = Plan nach rechts, z = Plan nach unten (Meter), y = Höhe über 142,00 m ü. NN.
    Ursprung: nordwestliche Grundstücksecke des Lageplans.
-   Rohbau-Maße (Achsen, Außenmaße, Wandtypen, Wände, Öffnungen, Räume, Dach) kommen aus src/data/haus.json (Parameter haus),
-   aufgelöst mit werteAufloesen() aus src/werte.js. Außenanlagen, Gelände und Ausstattung stehen noch als Zahlen in diesem Code. */
-if (typeof require !== 'undefined') var werteAufloesen = require('./werte.js').werteAufloesen;
+   Rohbau-Maße (Achsen, Außenmaße, Wandtypen, Wände, Öffnungen, Räume, Dach, Treppe) kommen aus src/data/haus.json (Parameter haus),
+   aufgelöst mit werteAufloesen() aus src/werte.js. Die Räume leitet raeumeAbleiten() aus den Wänden ab (src/raeume.js), die Dachhöhe
+   dachAbleiten() (src/dach.js), die Prüfregeln pruefen() (src/pruefen.js) liefern die Befunde. Außenanlagen, Gelände und Ausstattung
+   stehen noch als Zahlen in diesem Code. */
+if (typeof require !== 'undefined') { var werteAufloesen = require('./werte.js').werteAufloesen, wandLinie = require('./raeume.js').wandLinie, raeumeAbleiten = require('./raeume.js').raeumeAbleiten, dachAbleiten = require('./dach.js').dachAbleiten, pruefen = require('./pruefen.js').pruefen; }
 function buildModel(THREE, haus) {
   if (!haus) throw new Error('buildModel: Hausdaten (src/data/haus.json) fehlen');
   var WV = werteAufloesen(haus);
@@ -338,10 +340,15 @@ function buildModel(THREE, haus) {
   var yF = Y(H.FFB), yE = Y(H.EAVE), yC = yF + CEIL, yD = yF + haus.geschosse.DG.okff / 1000; // Geschosshöhe OKFF–OKFF 2,971 m, Decke 44,6 cm (Treppenplanung)
   function polyAx(pts) { return pts.map(function (q) { return [axM(q[0]), axM(q[1])]; }); } // Polygon aus Achsen, hausrelativ in Metern
   var footPts = polyAx(haus.huelle.aussen).map(function (q) { return [LAGE.x + q[0], LAGE.z + q[1]]; });
-  function shapeOf(pts) {
+  function shapeOf(pts, holes) {
     var s = new THREE.Shape();
     pts.forEach(function (p, i) { if (i) s.lineTo(p[0], -p[1]); else s.moveTo(p[0], -p[1]); });
     s.closePath();
+    (holes || []).forEach(function (hp) {
+      var h = new THREE.Path();
+      hp.forEach(function (p, i) { if (i) h.lineTo(p[0], -p[1]); else h.moveTo(p[0], -p[1]); });
+      h.closePath(); s.holes.push(h);
+    });
     return s;
   }
   (function slab() {
@@ -350,22 +357,12 @@ function buildModel(THREE, haus) {
     o.rotation.x = -Math.PI / 2; o.position.y = 0.0;
   })();
 
+  var ABL = raeumeAbleiten(haus, WV), DACH = dachAbleiten(haus, WV), BEFUNDE = pruefen(haus, WV, ABL, DACH); // Räume, Dachhöhe und Prüfbefunde aus den Daten
   var HW = axM('x.O') - axM('x.W'), HD = axM('z.S') - axM('z.N'), XL = axM('x.V') - axM('x.W'), ZU = axM('z.U') - axM('z.N');
   function P(x, z) { return [F.x0 + x, F.z0 + z]; }
   var ZS = axM('z.ZS');                                 // Nordseite Wand Nähzimmer / Speisekammer (Anker der Treppe)
 
-  /* Wände aus haus.json. Mittellinie aus von/bis, Flucht und Dicke (in mm, hausrelativ); n zeigt von der Mittellinie zur Flucht-Seite
-     (bei Außenwänden nach außen). */
-  function wandLinie(w) {
-    var tm = w.dicke != null ? w.dicke : WV.dicke(w.typ), d = tm / 2, n = [0, 0], sg;
-    var a = [WV.mm(w.von[0]), WV.mm(w.von[1])], b = [WV.mm(w.bis[0]), WV.mm(w.bis[1])];
-    var horiz = a[1] === b[1], vert = a[0] === b[0];
-    if (w.flucht === 'mitte') n = [0, 0];
-    else if (horiz && (w.flucht === 'oben' || w.flucht === 'unten')) { sg = w.flucht === 'oben' ? 1 : -1; a[1] += sg * d; b[1] += sg * d; n = [0, -sg]; }
-    else if (vert && (w.flucht === 'links' || w.flucht === 'rechts')) { sg = w.flucht === 'links' ? 1 : -1; a[0] += sg * d; b[0] += sg * d; n = [-sg, 0]; }
-    else throw new Error('Wand ' + w.id + ': Flucht "' + w.flucht + '" passt nicht zur Richtung der Wand');
-    return { a: a, b: b, t: tm, n: n };
-  }
+  /* Wände aus haus.json: Mittellinie, Dicke und Normale (in mm, hausrelativ) liefert wandLinie() aus src/raeume.js. */
   var OEFFNUNG_ART = { fenster: 'glass', fenstertuer: 'glass', tuer: 'door', durchgang: 'gap' };
   function wandOeffnungen(w, ln) { // Öffnungen in Metern ab Wandanfang; ab als Zahl = mm ab Wandanfang, als Achse = Lage auf der Achse
     var along = Math.abs(ln.b[0] - ln.a[0]) >= Math.abs(ln.b[1] - ln.a[1]) ? 0 : 1, dir = ln.b[along] >= ln.a[along] ? 1 : -1;
@@ -381,7 +378,7 @@ function buildModel(THREE, haus) {
   // Fenster: Brüstung 1,125, sichtbare Höhe 1,25 (Rohbauöffnung 1,50 inkl. Rollladenkasten), Oberkante wie Türen 2,375 (Daten: bruestung + hoehe)
   haus.waende.forEach(function (w) {
     if (w.geschoss !== 'EG') return;
-    var ln = wandLinie(w), os = wandOeffnungen(w, ln), typ = haus.wandtypen[w.typ], y1 = w.hoehe === 'traufe' ? yE : yC;
+    var ln = wandLinie(haus, WV, w), os = wandOeffnungen(w, ln), typ = haus.wandtypen[w.typ], y1 = w.hoehe === 'traufe' ? yE : yC;
     var a = P(ln.a[0] / 1000, ln.a[1] / 1000), b = P(ln.b[0] / 1000, ln.b[1] / 1000);
     if (typ.schichten) { // Außenwand: Schichten von außen (Flucht-Seite) nach innen, nur die innerste trägt Fenster und Türen
       var off = ln.t / 2;
@@ -398,9 +395,10 @@ function buildModel(THREE, haus) {
   });
 
   /* Räume (Polygone in hx/hz, Innenkanten). Der Vorraum mit Bad- und Ankleidetür gehört zum Elternschlafzimmer. */
+  function mmPoly(ring) { return ring.map(function (q) { return [q[0] / 1000, q[1] / 1000]; }); } // Ring in mm → Meter, hausrelativ
   var BODEN = { holz: 0xb99466, fliese: 0xc9ced1, 'fliese-hell': 0xd8d4cb, beton: 0xbab8b1, dg: 0xcdae82 };
-  var ROOMS = haus.raeume.filter(function (r) { return r.geschoss === 'EG'; }).map(function (r) {
-    return { id: r.id, name: r.name, col: BODEN[r.boden], poly: polyAx(r.polygon) };
+  var ROOMS = ABL.raeume.filter(function (r) { return r.geschoss === 'EG'; }).map(function (r) {
+    return { id: r.id, name: r.name, col: BODEN[r.boden], poly: mmPoly(r.ring), holes: r.loecher.map(mmPoly), area: r.flaeche / 1e6 };
   });
   function polyArea(p) { var s = 0; for (var i = 0; i < p.length; i++) { var a = p[i], b = p[(i + 1) % p.length]; s += a[0] * b[1] - b[0] * a[1]; } return Math.abs(s) / 2; }
   function centroid(p) {
@@ -411,12 +409,12 @@ function buildModel(THREE, haus) {
   var roomsOut = [];
   ROOMS.forEach(function (r) {
     var pts = r.poly.map(function (q) { return P(q[0], q[1]); });
-    var geo = new THREE.ShapeGeometry(shapeOf(pts));
+    var geo = new THREE.ShapeGeometry(shapeOf(pts, r.holes.map(function (h) { return h.map(function (q) { return P(q[0], q[1]); }); })));
     var m = M(r.col, 0.85);
     var o = new THREE.Mesh(geo, m);
     o.rotation.x = -Math.PI / 2; o.position.y = yF + 0.012; o.receiveShadow = true;
     gInner.add(o); pickables.push(o);
-    var c = centroid(pts), area = polyArea(pts);
+    var c = centroid(pts), area = r.area;
     roomsOut.push({ id: r.id, name: r.name, area: area, center: c, mesh: o, base: r.col, level: 'eg', poly: r.poly });
     tags.push({ kind: 'room', layer: 'rooms', level: 'eg', name: r.name, area: area, pos: [c[0], yF + 0.25, c[1]] });
   });
@@ -482,16 +480,14 @@ function buildModel(THREE, haus) {
   })();
 
   /* ---------- Dach (zwei Walmflügel, Höhe als Maximum beider) ---------- */
-  var AR = { x0: F.x0 - OVER, x1: F.x1 + OVER, z0: F.z0 - OVER, z1: F.z0 + 2 * RUN + OVER };
-  var BR = { x0: F.xn - OVER, x1: F.x1 + OVER, z0: F.z0 - OVER, z1: F.z1 + OVER };
+  function dachRechteck(r) { return { x0: F.x0 + r.x0 / 1000, x1: F.x0 + r.x1 / 1000, z0: F.z0 + r.z0 / 1000, z1: F.z0 + r.z1 / 1000 }; } // Dachflügel aus src/dach.js in Standortkoordinaten
+  var AR = dachRechteck(DACH.A), BR = dachRechteck(DACH.B);
   var EPS = 1e-6;
   function inR(r, x, z) { return x >= r.x0 - EPS && x <= r.x1 + EPS && z >= r.z0 - EPS && z <= r.z1 + EPS; }
   function dR(r, x, z) { return Math.min(x - r.x0, r.x1 - x, z - r.z0, r.z1 - z); }
-  function roofH(x, z) {
-    var h = -1e9;
-    if (inR(AR, x, z)) h = Math.max(h, H.EAVE - OVER * TAN + TAN * dR(AR, x, z));
-    if (inR(BR, x, z)) h = Math.max(h, H.EAVE - OVER * TAN + TAN * dR(BR, x, z));
-    return h;
+  function roofH(x, z) { // Dachhaut in m ü. NN an der Standortstelle (x, z); -1e9 außerhalb des Daches
+    var h = DACH.hoehe((x - F.x0) * 1000, (z - F.z0) * 1000);
+    return h < -1e8 ? h : H.FFB + h / 1000;
   }
   function gridLines(min, max, extra, step) {
     var n = Math.ceil((max - min) / step), arr = [];
@@ -570,22 +566,22 @@ function buildModel(THREE, haus) {
     var zone = new THREE.Mesh(new THREE.ShapeGeometry(shapeOf(zonePts.map(function (p) { return P(p[0], p[1]); }))), zoneMat);
     zone.rotation.x = -Math.PI / 2; zone.position.y = yD + 0.008; zone.receiveShadow = true; gDeck.add(zone); pickables.push(zone);
     // Räume im Dachausbau (Innenmaße in hx/hz)
-    var DGR = haus.raeume.filter(function (r) { return r.geschoss === 'DG'; }).map(function (r) {
-      return { id: r.id, name: r.name, poly: polyAx(r.polygon) };
+    var DGR = ABL.raeume.filter(function (r) { return r.geschoss === 'DG'; }).map(function (r) {
+      return { id: r.id, name: r.name, poly: mmPoly(r.ring), holes: r.loecher.map(mmPoly), area: r.flaeche / 1e6 };
     });
     DGR.forEach(function (r) {
       var pts = r.poly.map(function (q) { return P(q[0], q[1]); });
       var mm = M(0xcdae82, 0.8, 0, { polygonOffset: true, polygonOffsetFactor: -5, polygonOffsetUnits: -5 });
-      var rm = new THREE.Mesh(new THREE.ShapeGeometry(shapeOf(pts)), mm);
+      var rm = new THREE.Mesh(new THREE.ShapeGeometry(shapeOf(pts, r.holes.map(function (h) { return h.map(function (q) { return P(q[0], q[1]); }); }))), mm);
       rm.rotation.x = -Math.PI / 2; rm.position.y = yD + 0.01; rm.receiveShadow = true; gDeck.add(rm); pickables.push(rm);
-      var c = centroid(pts), area = polyArea(pts);
+      var c = centroid(pts), area = r.area;
       roomsOut.push({ id: r.id, name: r.name, area: area, center: c, mesh: rm, base: 0xcdae82, level: 'dg', poly: r.poly });
       tags.push({ kind: 'room', layer: 'rooms', level: 'dg', name: r.name, area: area, pos: [c[0], yD + 0.35, c[1]] });
     });
 
     // Wände des Dachausbaus, oben an der Dachschräge abgeschnitten
-    // Oberkante: höchstens 2,45 m (bzw. hm) über dem Boden und mindestens 22 cm unter der Dachhaut, also unter den Sparren
-    function topAt(x, z, hm, bOnly) { var h = bOnly && inR(BR, x, z) ? H.EAVE - OVER * TAN + TAN * dR(BR, x, z) : roofH(x, z); hm = hm || 2.45; return h < -1e8 ? yD + 2.2 : Math.min(yD + hm, Y(h) - 0.22); }
+    // Oberkante: höchstens 2,45 m (bzw. hm) über dem Boden und mindestens 22 cm unter der Dachhaut, also unter den Sparren (DACH.wandOK, Werte in haus.dg)
+    function topAt(x, z, hm, bOnly) { return yF + DACH.wandOK((x - F.x0) * 1000, (z - F.z0) * 1000, hm ? hm * 1000 : undefined, bOnly) / 1000; }
     function dgWall(x0, x1, z0, z1, hm, bOnly) {
       var horiz = (x1 - x0) >= (z1 - z0), len = horiz ? x1 - x0 : z1 - z0, n = Math.max(1, Math.ceil(len / 0.1)), t = horiz ? z1 - z0 : x1 - x0;
       var cA = horiz ? (z0 + z1) / 2 : (x0 + x1) / 2, s0 = horiz ? x0 : z0, ht = t / 2;
@@ -613,7 +609,7 @@ function buildModel(THREE, haus) {
     // Oberkante; die Wand wird dort in zwei Stücke geteilt.
     haus.waende.forEach(function (w) {
       if (w.geschoss !== 'DG') return;
-      var ln = wandLinie(w), hm = w.hoehe && w.hoehe.max ? w.hoehe.max / 1000 : undefined, bOnly = w.dach === 'B';
+      var ln = wandLinie(haus, WV, w), hm = w.hoehe && w.hoehe.max ? w.hoehe.max / 1000 : undefined, bOnly = w.dach === 'B';
       var horiz = ln.a[1] === ln.b[1], half = ln.t / 2;
       var s0 = horiz ? Math.min(ln.a[0], ln.b[0]) : Math.min(ln.a[1], ln.b[1]), s1 = horiz ? Math.max(ln.a[0], ln.b[0]) : Math.max(ln.a[1], ln.b[1]);
       var c = horiz ? ln.a[1] : ln.a[0], dir = (horiz ? ln.b[0] - ln.a[0] : ln.b[1] - ln.a[1]) >= 0 ? 1 : -1;
@@ -633,17 +629,18 @@ function buildModel(THREE, haus) {
     // Treppe nach Treppenplanung (Wortmann): 15 Steigungen à 19,81 cm, Auftritt 25 cm, Laufbreite 1,0125 m,
     // Viertelwendelung (Stufen 1 bis 6) an der Ostwand, danach gerader Lauf nach Westen. (u, v) = Maße der Zeichnung ab Innenecke.
     (function stair() {
-      var rise = (yD - (yF + 0.012)) / 15, TH = 0.044, W = 0.90, PV = [0.95, W];
-      function toP(u, v) { return P(axM('x.Oi') - u, ZS - v); }
+      var T = haus.treppe, rise = (yD - (yF + 0.012)) / T.steigungen, TH = 0.044, W = T.laufbreite / 1000, PV = [0.95, W];
+      var U0 = T.geraderLaufAb / 1000, U1 = T.laufEnde / 1000;                  // u-Maße des geraden Laufs (Stufe 7 bis Austritt)
+      function toP(u, v) { return P(axM(T.anker[0]) - u, axM(T.anker[1]) - v); }
       function top(n) { return yF + 0.012 + n * rise; }
-      var UN = []; for (var i = 7; i <= 15; i++) UN[i] = 1.357 + (i - 7) * (2.008 / 8);
+      var UN = []; for (var i = 7; i <= 15; i++) UN[i] = U0 + (i - 7) * ((U1 - U0) / 8);
       var polys = {
         1: [[0, 1.4], [0.95, 1.4], PV, [0, 1.16]],
         2: [[0, 1.16], PV, [0, 0.70]],
         3: [[0, 0.70], PV, [0, 0.25]],
         4: [[0, 0.25], PV, [0.35, 0], [0, 0]],
         5: [[0.35, 0], PV, [0.80, 0]],
-        6: [[0.80, 0], PV, [1.357, W], [1.357, 0]]
+        6: [[0.80, 0], PV, [U0, W], [U0, 0]]
       };
       for (var n = 7; n <= 14; n++) polys[n] = [[UN[n], 0], [UN[n + 1], 0], [UN[n + 1], W], [UN[n], W]];
       Object.keys(polys).forEach(function (k) {
@@ -653,8 +650,8 @@ function buildModel(THREE, haus) {
       });
       // Geländer: Handlauf Eiche, Stäbe Edelstahl 16 mm
       // Geländer: von unten hoch, oben zweimal 90 Grad (15 cm) und zurück bis zur Dachschräge; Nische (54 cm) daneben
-      var RB = 0.15, UE = axM('x.Oi') - axM('x.dgOi'), YT = top(15) + 0.9;
-      var rp = [[0.95, 1.4, top(1) + 0.9], [0.95, W, top(4) + 0.9], [1.357, W, top(7) + 0.9], [3.365, W, YT], [3.365, W + RB, YT], [UE, W + RB, YT]];
+      var RB = T.gelaender / 1000, UE = axM('x.Oi') - axM('x.dgOi'), YT = top(15) + 0.9;
+      var rp = [[0.95, 1.4, top(1) + 0.9], [0.95, W, top(4) + 0.9], [U0, W, top(7) + 0.9], [U1, W, YT], [U1, W + RB, YT], [UE, W + RB, YT]];
       function pt(p) { var q = toP(p[0], p[1]); return new THREE.Vector3(q[0], p[2], q[1]); }
       var up = new THREE.Vector3(0, 1, 0), lens = [];
       for (var j = 0; j < rp.length - 1; j++) {
@@ -671,7 +668,7 @@ function buildModel(THREE, haus) {
         }
       }
       // Pfosten oben an der Treppe und am Dachschrägenende
-      [pt([3.365, W, 0]), pt([UE, W + RB, 0])].forEach(function (pp) {
+      [pt([U1, W, 0]), pt([UE, W + RB, 0])].forEach(function (pp) {
         var nw = mesh(new THREE.BoxGeometry(0.06, 1.0, 0.06), mat.oak, true, gInner, false);
         nw.position.set(pp.x, yD + 0.45, pp.z);
       });
@@ -1299,7 +1296,8 @@ function buildModel(THREE, haus) {
   return {
     root: root, groups: { house: gHouse, inner: gInner, dg: gDG, rafters: gRaf, deck: gDeck, roof: gRoof, garden: gGarden, terrain: gTerrain, marks: gMarks },
     terrain: root.userData.terrain, pickables: pickables, tags: tags, rooms: roomsOut, zones: zones, info: info,
-    groundY: groundY, pflasterE: pflasterE, bounds: BOUNDS, north: NORTH, H: H, datum: DATUM, levels: { eg: yF, dg: yD }, sunDir: sunDir, roofH: roofH
+    groundY: groundY, pflasterE: pflasterE, bounds: BOUNDS, north: NORTH, H: H, datum: DATUM, levels: { eg: yF, dg: yD }, sunDir: sunDir, roofH: roofH,
+    befunde: BEFUNDE, abgeleitet: ABL, dach: DACH, toWorld: P
   };
 }
 if (typeof module !== 'undefined') module.exports = { buildModel: buildModel };
