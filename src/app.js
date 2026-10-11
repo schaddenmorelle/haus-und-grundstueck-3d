@@ -89,7 +89,7 @@
     c.beginPath(); c.moveTo(-bw / 2 + rr, -bh / 2); c.lineTo(bw / 2 - rr, -bh / 2); c.quadraticCurveTo(bw / 2, -bh / 2, bw / 2, -bh / 2 + rr);
     c.lineTo(bw / 2, bh / 2 - rr); c.quadraticCurveTo(bw / 2, bh / 2, bw / 2 - rr, bh / 2); c.lineTo(-bw / 2 + rr, bh / 2);
     c.quadraticCurveTo(-bw / 2, bh / 2, -bw / 2, bh / 2 - rr); c.lineTo(-bw / 2, -bh / 2 + rr); c.quadraticCurveTo(-bw / 2, -bh / 2, -bw / 2 + rr, -bh / 2); c.closePath();
-    c.fillStyle = '#6b5339'; c.fill(); c.lineWidth = 3; c.strokeStyle = '#2b2b2b'; c.stroke(); c.restore();
+    c.fillStyle = '#6b5339'; c.fill(); c.restore();
     // Grundstücksgrenze (strichpunktiert)
     path(Z.plot); c.setLineDash([16, 6, 3, 6]); c.lineWidth = 2; c.strokeStyle = '#1b1b1b'; c.stroke(); c.setLineDash([]);
     var tex = new THREE.CanvasTexture(cv);

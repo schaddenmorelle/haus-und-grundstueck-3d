@@ -46,6 +46,72 @@ check(Math.abs(m.roofH(3.05, 8) - 145.77) < 1e-6 && Math.abs(m.roofH(16.0, 8) - 
 check(Math.abs(m.levels.dg - m.levels.eg - 2.971) < 1e-9, 'Geschosshöhe nicht 2,971 m');
 const ids = new Set(); m.rooms.forEach(r => { check(!ids.has(r.id), 'Raum-ID doppelt: ' + r.id); ids.add(r.id); });
 
+/* Einfahrt (Angaben des Nutzers vom 11.10.2026): Pflaster an der Haustür auf Schwellenhöhe, vor dem Nebeneingang
+   30 cm unter der Schwelle, von der Haustür bis zur Straße stetig fallend. Schwelle = Fußboden EG (142,80), Toleranz 3 cm. */
+const gE = (x, z) => m.groundY(x, z) + m.datum;
+const FFB = m.H.FFB;
+check(Math.abs(gE(16.3, 11.1) - FFB) <= 0.03, 'Pflaster vor der Haustür ' + gE(16.3, 11.1).toFixed(3) + ' statt auf Schwellenhöhe ' + FFB.toFixed(2));
+check(Math.abs(gE(9.1, 5.3) - (FFB - 0.30)) <= 0.03, 'Pflaster vor dem Nebeneingang ' + gE(9.1, 5.3).toFixed(3) + ' statt 30 cm unter der Schwelle ' + (FFB - 0.30).toFixed(2));
+{ // Pfad von der Haustür an der Hauswand nach Norden und dann nach Osten zum Straßenrand (am Vorbeet vorbei)
+  const pfad = [[16.3, 11.1], [16.3, 7.0], [24.5, 7.0]], start = gE(16.3, 11.1);
+  let prev = start, steigt = null;
+  for (let k = 0; k + 1 < pfad.length; k++) {
+    const [x0, z0] = pfad[k], [x1, z1] = pfad[k + 1], n = Math.ceil(Math.hypot(x1 - x0, z1 - z0) / 0.1);
+    for (let i = 1; i <= n; i++) { const x = x0 + (x1 - x0) * i / n, z = z0 + (z1 - z0) * i / n, h = gE(x, z); if (h > prev + 0.001) steigt = steigt || x.toFixed(1) + ' / ' + z.toFixed(1); prev = h; }
+  }
+  check(steigt === null, 'Pflaster steigt von der Haustür zur Straße bei ' + steigt);
+  check(start - prev >= 0.3, 'Pflaster fällt von der Haustür bis zur Straße nur um ' + (start - prev).toFixed(2) + ' m');
+}
+
+/* Szenenprüfung über benannte Objekte (userData.kind) und deren Hüllquader */
+const kinds = k => { const a = []; m.root.traverse(o => { if (o.userData && o.userData.kind === k) a.push(o); }); return a; };
+const box = o => new THREE.Box3().setFromObject(o);
+/* Carport: Pfosten direkt an der Hauswand (Nordwand, z 5,74), keiner außerhalb des Grundstücks (Angabe des Nutzers vom 11.10.2026) */
+{
+  const inPoly = (poly, x, z) => { let ins = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const a = poly[j], b = poly[i]; if ((b[1] > z) !== (a[1] > z) && x < (a[0] - b[0]) * (z - b[1]) / (a[1] - b[1]) + b[0]) ins = !ins; } return ins; };
+  const pf = [];
+  m.root.traverse(o => { if (o.userData && o.userData.kind === 'carportpfosten') pf.push(box(o)); });
+  check(pf.length === 6, 'Carport: ' + pf.length + ' Pfosten statt 6');
+  pf.forEach(b => {
+    [[b.min.x, b.min.z], [b.max.x, b.min.z], [b.min.x, b.max.z], [b.max.x, b.max.z]].forEach(c => { if (!inPoly(m.zones.plot, c[0], c[1])) fails.push('Carportpfosten steht außerhalb des Grundstücks bei ' + c[0].toFixed(2) + ' / ' + c[1].toFixed(2)); });
+  });
+  const hinten = pf.filter(b => b.max.z > 5);
+  check(hinten.length === 3 && hinten.every(b => Math.abs(b.max.z - 5.74) <= 0.01), 'Carport: die drei Pfosten an der Hauswand stehen nicht direkt an der Wand (z 5,74)');
+}
+
+/* Vorbeet, Nebeneingang und Mülltonnen (Angaben des Nutzers vom 11.10.2026, Fotos in eingaben/bilder/foto-einfahrt-*).
+   Nebeneingang: Tür hx 5,555–6,565 in der Nordwand (Standort x 8,605–9,615, z 5,74). */
+{
+  const bed = m.zones.bed, a = bed.rot * Math.PI / 180;
+  const local = (x, z) => { const dx = x - bed.c[0], dz = z - bed.c[1]; return [dx * Math.cos(a) + dz * Math.sin(a), -dx * Math.sin(a) + dz * Math.cos(a)]; };
+  const bueschen = kinds('busch');
+  check(bueschen.length >= 1, 'Vorbeet: kein Strauch vorhanden');
+  bueschen.forEach(b => {
+    const c = box(b).getCenter(new THREE.Vector3()), [u, v] = local(c.x, c.z), r = b.userData.r;
+    check(Math.abs(u) + r <= bed.w / 2 + 0.01 && Math.abs(v) + r <= bed.h / 2 + 0.01, 'Strauch ragt über das Vorbeet hinaus bei ' + c.x.toFixed(1) + ' / ' + c.z.toFixed(1));
+  });
+  const heraus = gE(bed.c[0], bed.c[1]) - m.pflasterE(bed.c[0], bed.c[1]);
+  check(heraus >= 0.1 && heraus <= 0.5, 'Vorbeet-Mauer steht ' + heraus.toFixed(2) + ' m über dem Pflaster (erwartet: wenig, 0,1–0,5 m)');
+}
+{
+  const stufen = kinds('stufe').sort((p, q) => box(p).max.y - box(q).max.y);
+  check(stufen.length === 2, 'Nebeneingang: ' + stufen.length + ' Stufen statt 2');
+  if (stufen.length === 2) {
+    const top = stufen.map(s => box(s).max.y + m.datum);
+    check(Math.abs(top[0] - (FFB - 0.15)) <= 0.02 && Math.abs(top[1] - FFB) <= 0.02, 'Stufenoberkanten ' + top.map(t => t.toFixed(3)).join(' / ') + ' statt ' + (FFB - 0.15).toFixed(2) + ' / ' + FFB.toFixed(2));
+    stufen.forEach(s => { const b = box(s); check(b.min.x < 9.11 && b.max.x > 9.11 && b.max.z <= 5.76 && b.min.z >= 4.8, 'Stufe liegt nicht vor der Nebeneingangstür'); });
+  }
+  const tuer = kinds('nebeneingang-tuer');
+  check(tuer.length === 1 && tuer[0].userData.oben === 'glas' && tuer[0].userData.unten === 'fuellung', 'Nebeneingangstür: oben Glas, unten Füllung erwartet');
+  const tonnen = kinds('tonne'), farbe = f => tonnen.filter(t => t.userData.deckel === f);
+  check(tonnen.length === 3 && farbe('blau').length === 1 && farbe('gelb').length === 1 && farbe('schwarz').length === 1, 'Mülltonnen: erwartet je eine mit blauem, gelbem und schwarzem Deckel, gefunden ' + tonnen.length);
+  tonnen.forEach(t => { const c = box(t).getCenter(new THREE.Vector3()); check(c.z < 5.74 && c.z > 4.6, 'Tonne ' + t.userData.deckel + ' steht nicht an der Nordwand'); });
+  if (tonnen.length === 3) {
+    const cx = f => box(farbe(f)[0]).getCenter(new THREE.Vector3()).x;
+    check(cx('blau') > 9.7 && cx('gelb') > 9.2 && cx('blau') > cx('gelb') && cx('schwarz') < 8.6, 'Tonnen: blau und gelb östlich, schwarz westlich der Nebeneingangstür erwartet');
+  }
+}
+
 /* Prüfmaße aus dem Aufmaß: nur Bericht, kein Fehler (bekannte Abweichungen stehen in docs/abgleich-eg-grundriss.md) */
 function span(poly, dir, at) {
   const ts = [];

@@ -34,7 +34,8 @@ function buildModel(THREE) {
     metal: M(0x6b7178, 0.5, 0.5), hedge: M(0x2f5a33, 1), trunk: M(0x6b4a2f, 1), crown: M(0x4f7d3a, 1),
     crown2: M(0x6a9547, 1), water: M(0x4fc3d8, 0.1, 0, { transparent: true, opacity: 0.8 }), poolwall: M(0x7fa7cf, 0.6, 0, { side: THREE.DoubleSide }),
     bin1: M(0x2a2c30, 0.8), bin2: M(0xe0b52b, 0.8), stone: M(0xf2f0ea, 0.9), stoneTop: M(0xc8321e, 0.8),
-    retain: M(0xb4b3ad, 0.95), step: M(0x9c9a94, 0.95), timber: M(0xc9a27a, 0.8), steelDark: M(0x2b2e33, 0.5, 0.6), chimney: M(0xd8d3c8, 0.95), chimneyOut: M(0x35383c, 0.85), sockel: M(0x46484b, 0.95), zinc: M(0xbfc3c6, 0.5, 0.4), glassDark: M(0x56616b, 0.2, 0.1), board: M(0xf0eee8, 0.95), oak: M(0xc89b64, 0.6), steel: M(0xb7bcc2, 0.35, 0.8)
+    retain: M(0xb4b3ad, 0.95), step: M(0x9c9a94, 0.95), timber: M(0xc9a27a, 0.8), steelDark: M(0x2b2e33, 0.5, 0.6), chimney: M(0xd8d3c8, 0.95), chimneyOut: M(0x35383c, 0.85), sockel: M(0x46484b, 0.95), zinc: M(0xbfc3c6, 0.5, 0.4), glassDark: M(0x56616b, 0.2, 0.1), board: M(0xf0eee8, 0.95), oak: M(0xc89b64, 0.6), steel: M(0xb7bcc2, 0.35, 0.8),
+    winkel: M(0x5b5c59, 0.95), stoop: M(0x3a3e44, 0.75), deckelBlau: M(0x1f5fb0, 0.6), deckelGelb: M(0xe5c617, 0.6), deckelSchwarz: M(0x26282c, 0.7)
   };
   mat.insul = M(0xcfd0cb, 0.95, 0, { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
   if (typeof document !== 'undefined') {
@@ -100,6 +101,13 @@ function buildModel(THREE) {
       } else if (o.type === 'door') {
         var d = mesh(new THREE.BoxGeometry(w, hh, 0.06), mat.door, true, parent, true);
         d.position.set(cx, cy, cz); d.rotation.y = ang;
+        if (o.look === 'glas-oben') { // Nebeneingang (Foto): oben dunkles Glas, unten weiße Füllung, Griff an der Ostseite
+          d.userData = { kind: 'nebeneingang-tuer', oben: 'glas', unten: 'fuellung' };
+          var gl = mesh(new THREE.BoxGeometry(w * 0.8, hh * 0.44, 0.07), mat.glassDark, false, parent, false);
+          gl.position.set(cx, y0 + o.sill + hh * 0.74, cz); gl.rotation.y = ang;
+          var gr = mesh(new THREE.BoxGeometry(0.025, 0.22, 0.14), mat.steel, false, parent, false);
+          gr.position.set(cx + ux * w * 0.38, y0 + o.sill + hh * 0.46, cz + uz * w * 0.38); gr.rotation.y = ang;
+        }
         if (o.strip) { // senkrechter Glasstreifen im Türblatt
           var gs = mesh(new THREE.BoxGeometry(0.1, hh - 0.6, 0.07), mat.glassDark, false, parent, false);
           gs.position.set(cx + ux * o.strip * w, cy + 0.05, cz + uz * o.strip * w); gs.rotation.y = ang;
@@ -151,9 +159,53 @@ function buildModel(THREE) {
     }
     return { d: inside ? -best : best, edge: bi };
   }
+  /* Einfahrt: Pflasterhöhen als Dreiecksnetz (Angaben des Nutzers vom 11.10.2026, Fotos eingaben/bilder/foto-einfahrt-*).
+     Haustür: Pflaster auf Schwellenhöhe (142,78 = 2 cm unter OK Fußboden, Annahme). Vor dem Nebeneingang 30 cm unter der Schwelle
+     (142,50), Carport und Nordstreifen eben auf dieser Höhe. Von der Haustür bis zum Straßenrand stetig fallend. Straßenhöhen:
+     Lageplan 2014 (Baustraße) plus ca. 3 cm Bordstein, Annahme. Die Südseite (Stufe zum tieferen Pflaster am Gartentor) fehlt noch. */
+  var HOF_POLY = [[0.1, 0.35], [7.9, 0.35], [25.9, 3.04], [22.06, 15.72], [16.4, 13.6], [16.0, 13.6], [16.0, 5.74], [0.1, 5.74]];
+  var HP = [
+    [0.1, 0.35, 142.50], [7.9, 0.35, 142.50], [7.9, 5.74, 142.50], [0.1, 5.74, 142.50], // Carport
+    [16.0, 5.74, 142.50],                                                              // Nordostecke Haus
+    [16.0, 11.1, 142.78], [16.0, 13.6, 142.78],                                        // Haustür
+    [25.9, 3.04, 141.82], [24.7, 7.0, 141.90], [23.46, 11.1, 142.00], [22.06, 15.72, 142.10], // Straßenrand
+    [17.2, 11.1, 142.78]                                                               // ebener Absatz vor der Haustür (1,2 m)
+  ];
+  var HT = [[0, 1, 2], [0, 2, 3], [1, 2, 4], [1, 4, 7], [4, 7, 8], [4, 8, 11], [8, 9, 11], [9, 10, 11], [10, 6, 11], [6, 5, 11], [5, 4, 11]];
+  function pflasterE(x, z) { // Dreieck mit größtem kleinsten Schwerpunktsmaß: innen exakt, knapp außerhalb fortgesetzt
+    var best = -1e9, bh = 0;
+    for (var i = 0; i < HT.length; i++) {
+      var a = HP[HT[i][0]], b = HP[HT[i][1]], c = HP[HT[i][2]];
+      var d = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1]);
+      var l1 = ((b[1] - c[1]) * (x - c[0]) + (c[0] - b[0]) * (z - c[1])) / d;
+      var l2 = ((c[1] - a[1]) * (x - c[0]) + (a[0] - c[0]) * (z - c[1])) / d;
+      var l3 = 1 - l1 - l2, mn = Math.min(l1, l2, l3);
+      if (mn > best) { best = mn; bh = l1 * a[2] + l2 * b[2] + l3 * c[2]; }
+    }
+    return bh;
+  }
+  function inPoly(poly, x, z) {
+    var ins = false;
+    for (var i = 0, j = poly.length - 1; i < poly.length; j = i++) {
+      var a = poly[j], b = poly[i];
+      if (((b[1] > z) !== (a[1] > z)) && (x < (a[0] - b[0]) * (z - b[1]) / (a[1] - b[1]) + b[0])) ins = !ins;
+    }
+    return ins;
+  }
+  /* Vorbeet: Mauer aus Winkelsteinen steht BED_WALL über dem Pflaster heraus (Annahme 30 cm, Fotos), Erde liegt darin */
+  var BED = { c: pl(1355, 780), w: 3.5, h: 5.8, rot: 18 }, BED_R = 0.7, BED_WALL = 0.30;
+  function bedLocal(x, z) {
+    var a = BED.rot * Math.PI / 180, dx = x - BED.c[0], dz = z - BED.c[1];
+    return [dx * Math.cos(a) + dz * Math.sin(a), -dx * Math.sin(a) + dz * Math.cos(a)];
+  }
+  function inBed(x, z) {
+    var q = bedLocal(x, z), ex = Math.max(Math.abs(q[0]) - (BED.w / 2 - BED_R), 0), ez = Math.max(Math.abs(q[1]) - (BED.h / 2 - BED_R), 0);
+    return ex * ex + ez * ez <= BED_R * BED_R;
+  }
   var BLEND = [0.3, 0.3, 2.5, 2.5, 1.5, 0.3];
   function sm(t) { return t * t * (3 - 2 * t); }
   function groundE(x, z) {
+    if (inPoly(HOF_POLY, x, z)) return pflasterE(x, z) + (inBed(x, z) ? BED_WALL : 0);
     var info = polyInfo(x, z), g = idw(GP, x, z), e = idw(EP, x, z);
     if (info.d <= 0) return g;
     var w = BLEND[info.edge];
@@ -245,7 +297,7 @@ function buildModel(THREE) {
   function win(a, b) { return { a: a, b: b, sill: 1.125, head: 2.375, type: 'glass' }; }
   function gdoor(a, b) { return { a: a, b: b, sill: 0, head: 2.375, type: 'glass' }; }
   // Außenwände 38,5 cm. Öffnungen aus den Maßketten des bemaßten EG-Grundrisses, Westwand Wohnen nach Aufmaß (Pfeiler 53 / 111 / 108 cm)
-  xw([0, hw], [HW, hw], [{ a: 5.555, b: 6.565, sill: 0, head: 2.375, type: 'door' }, win(9.055, 10.565)], [0, -1]);
+  xw([0, hw], [HW, hw], [{ a: 5.555, b: 6.565, sill: 0, head: 2.375, type: 'door', look: 'glas-oben' }, win(9.055, 10.565)], [0, -1]);
   xw([HW - hw, 0], [HW - hw, HD], [win(1.01, 1.77), win(3.01, 3.77), { a: 4.51, b: 5.67, sill: 0, head: 2.375, type: 'door', strip: 0.12 }, { a: 5.67, b: 6.27, sill: 0, head: 2.375, type: 'glass', parts: 1 }, win(7.01, 8.52), win(11.885, 13.395)], [1, 0]);
   xw([HW, HD - hw], [XL, HD - hw], [gdoor(HW - 6.895, HW - 3.885)], [0, 1]);
   xw([XL + hw, HD], [XL + hw, ZU - TW], [gdoor(HD - 14.27, HD - 13.26), gdoor(HD - 12.17, HD - 10.16), gdoor(HD - 9.05, HD - 7.04)], [-1, 0]);
@@ -351,10 +403,35 @@ function buildModel(THREE) {
     tags.push({ kind: 'room', layer: 'rooms', name: 'Pergola', area: area, pos: [c[0], TERR + 0.25, c[1]] });
     roomsOut.push({ id: 'pergola', name: 'Pergola', area: area, center: c, mesh: first, base: 0xe9e9e6, level: 'out' });
   })();
-  // Eingangspodest Ost
-  (function podest() {
-    var a = pl(1100, 735), b = pl(1180, 840);
-    boxAt(b[0] - a[0], 0.3, b[1] - a[1], mat.step, (a[0] + b[0]) / 2, Y(142.65) - 0.15, (a[1] + b[1]) / 2, gGarden);
+  // Nebeneingang (Nordwand, Tür hx 5,555–6,565): zwei Stufen aus anthrazitfarbenem Stein à 15 cm, oben auf Schwellenhöhe (Fotos, Angabe Nutzer)
+  var NE_X = F.x0 + 6.06, NE_Z = F.z0;
+  (function nebeneingang() {
+    function stufe(w, d, top, z1) {
+      var gy = groundY(NE_X, z1 - d / 2), h = top - gy + 0.1;
+      var o = boxAt(w, h, d, mat.stoop, NE_X, gy - 0.1 + h / 2, z1 - d / 2, gGarden);
+      o.userData = { kind: 'stufe' };
+    }
+    stufe(1.05, 0.38, yF - 0.005, NE_Z);          // obere Stufe vor der Schwelle
+    stufe(1.15, 0.38, yF - 0.155, NE_Z - 0.38);   // untere Stufe
+  })();
+  // Mülltonnen an der Nordwand: blau und gelb östlich der Tür, schwarz westlich beim Carportpfosten (Fotos)
+  (function tonnen() {
+    function tonne(x, z, deckel, dm, w, d, h) {
+      var g = new THREE.Group(), gy = groundY(x, z);
+      g.userData = { kind: 'tonne', deckel: deckel };
+      var bg = new THREE.BoxGeometry(w, h - 0.12, d), pa = bg.attributes.position;
+      for (var i = 0; i < pa.count; i++) if (pa.getY(i) < 0) { pa.setX(i, pa.getX(i) * 0.82); pa.setZ(i, pa.getZ(i) * 0.86); }
+      bg.computeVertexNormals();
+      var b = mesh(bg, mat.bin1, true, g, false); b.position.set(0, 0.06 + (h - 0.12) / 2, 0);
+      var l = mesh(new THREE.BoxGeometry(w + 0.03, 0.07, d + 0.03), dm, true, g, false); l.position.set(0, h - 0.045, 0);
+      [-1, 1].forEach(function (sx) { var r = mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.05, 14), mat.bin1, true, g, false); r.rotation.z = Math.PI / 2; r.position.set(sx * w * 0.4, 0.1, d * 0.28); });
+      g.position.set(x, gy, z);
+      gGarden.add(g);
+    }
+    var tz = NE_Z - 0.54;
+    tonne(NE_X + 0.92, tz, 'gelb', mat.deckelGelb, 0.58, 0.72, 1.07);
+    tonne(NE_X + 1.54, tz, 'blau', mat.deckelBlau, 0.58, 0.72, 1.07);
+    tonne(NE_X - 1.06, tz, 'schwarz', mat.deckelSchwarz, 0.62, 0.76, 1.12);
   })();
 
   /* ---------- Dach (zwei Walmflügel, Höhe als Maximum beider) ---------- */
@@ -669,29 +746,24 @@ function buildModel(THREE) {
 
   /* ---------- Carport und Geräteraum (41 m² unter einem Dach) ---------- */
   (function carport() {
-    var base = Y(142.25), hRoof = base + 2.6;
-    // Boden
-    var a = pl(270, 232), b = pl(675, 505);
-    boxAt(b[0] - a[0], 0.1, b[1] - a[1], M(0xa8a8a4, 0.95), (a[0] + b[0]) / 2, base - 0.05, (a[1] + b[1]) / 2, gGarden);
+    var base = Y(142.50), hRoof = Y(142.25) + 2.6; // Boden: Pflaster auf Höhe Nebeneingang; Dach bleibt in der alten Höhe (Annahme)
     // Geräteraum
     var gx0 = 0.15, gx1 = 2.55, gz0 = 0.35, gz1 = 5.35;
     wall([gx0, gz0], [gx1, gz0], 0.15, base, hRoof, [], gGarden, 0.075, mat.carportWall);
     wall([gx1, gz0], [gx1, gz1], 0.15, base, hRoof, [{ a: 1.9, b: 3.0, sill: 0, head: 2.0, type: 'door' }], gGarden, 0.075, mat.carportWall);
     wall([gx1, gz1], [gx0, gz1], 0.15, base, hRoof, [], gGarden, 0.075, mat.carportWall);
     wall([gx0, gz1], [gx0, gz0], 0.15, base, hRoof, [], gGarden, 0.075, mat.carportWall);
-    // Pfosten Carport
-    [[2.9, 0.4], [2.9, 5.35], [5.4, 0.4], [5.4, 5.35], [7.9, 0.4], [7.9, 5.35]].forEach(function (p) {
-      boxAt(0.14, hRoof - base, 0.14, mat.wood, p[0], (base + hRoof) / 2, p[1], gGarden);
+    // Pfosten Carport: hintere Reihe direkt an der Hauswand (Angabe Nutzer), vordere im Abstand 4,95 m, damit keiner über die Grenze steht
+    var pz1 = F.z0 - 0.07, pz0 = pz1 - 4.95;
+    [[2.9, pz0], [2.9, pz1], [5.4, pz0], [5.4, pz1], [7.9, pz0], [7.9, pz1]].forEach(function (p) {
+      var po = boxAt(0.14, hRoof - base, 0.14, mat.wood, p[0], (base + hRoof) / 2, p[1], gGarden);
+      po.userData = { kind: 'carportpfosten' };
     });
     // Dach (flach)
     var ra = pl(268, 226), rb = pl(682, 512);
     boxAt(rb[0] - ra[0], 0.18, rb[1] - ra[1], mat.carportRoof, (ra[0] + rb[0]) / 2, hRoof + 0.09, (ra[1] + rb[1]) / 2, gGarden);
     tags.push({ kind: 'room', layer: 'rooms', name: 'Geräteraum', area: 12, pos: [(gx0 + gx1) / 2, base + 0.4, (gz0 + gz1) / 2] });
     tags.push({ kind: 'room', layer: 'rooms', name: 'Carport', area: 29, pos: [5.4, base + 0.4, 2.9] });
-    // Mülltonnen
-    var t1 = pl(690, 488), t2 = pl(790, 484);
-    boxAt(0.55, 1.0, 0.6, mat.bin1, t1[0], Y(142.33) + 0.5, t1[1], gGarden);
-    boxAt(0.55, 1.0, 0.6, mat.bin2, t2[0], Y(142.33) + 0.5, t2[1], gGarden);
   })();
 
   /* ---------- Garten: Pool, Beet, Spielgeräte, Hecke ---------- */
@@ -705,15 +777,16 @@ function buildModel(THREE) {
     var rim = mesh(new THREE.TorusGeometry(r, 0.04, 8, 56), mat.metal, true, gGarden, false);
     rim.rotation.x = Math.PI / 2; rim.position.set(pc[0], py + 1.26, pc[1]);
     // Beet mit Baum und Sträuchern
-    var bc = pl(1355, 780);
+    var bc = BED.c;
     var tx = bc[0], tz = bc[1] + 0.2, ty = groundY(tx, tz);
     var tr = mesh(new THREE.CylinderGeometry(0.1, 0.14, 2.2, 10), mat.trunk, true, gGarden, false);
     tr.position.set(tx, ty + 1.1, tz);
     var cr = mesh(new THREE.SphereGeometry(1.35, 18, 14), mat.crown, true, gGarden, false);
     cr.position.set(tx, ty + 3.1, tz); cr.scale.set(1, 0.9, 1);
-    [[-1.2, 1.9], [1.1, -2.0], [1.3, 1.6], [-0.9, -1.8]].forEach(function (o) {
+    [[-1.1, 1.65], [1.1, -2.0]].forEach(function (o) { // zwei der ersten vier Sträucher entfernt (Angabe Nutzer: einer stand auf der Straße, einer ragte über das Vorbeet)
       var s = mesh(new THREE.SphereGeometry(0.55, 12, 10), mat.crown2, true, gGarden, false);
       s.position.set(tx + o[0], groundY(tx + o[0], tz + o[1]) + 0.4, tz + o[1]); s.scale.set(1, 0.75, 1);
+      s.userData = { kind: 'busch', r: 0.55 };
     });
     var sc = pl(1190, 1480);
     [[0, 0, 1.0], [-0.9, 0.7, 0.8], [0.8, 0.9, 0.7]].forEach(function (o) {
@@ -737,6 +810,27 @@ function buildModel(THREE) {
     });
   })();
 
+  /* ---------- Vorbeet: Mauer aus Winkelsteinen, innen bündig mit dem Beetumriss, steht BED_WALL über dem Pflaster ---------- */
+  (function vorbeetMauer() {
+    var a = BED.rot * Math.PI / 180, T = 0.30, hx = BED.w / 2 - BED_R, hz = BED.h / 2 - BED_R, pts = [];
+    [[hx, hz, 0], [-hx, hz, 90], [-hx, -hz, 180], [hx, -hz, 270]].forEach(function (c) {
+      for (var k = 0; k <= 4; k++) { var t = (c[2] + k * 22.5) * Math.PI / 180; pts.push([c[0] + BED_R * Math.cos(t), c[1] + BED_R * Math.sin(t)]); }
+    });
+    for (var i = 0; i < pts.length; i++) {
+      var p = pts[i], q = pts[(i + 1) % pts.length], L = Math.hypot(q[0] - p[0], q[1] - p[1]);
+      if (L < 1e-3) continue;
+      var ux = (q[0] - p[0]) / L, uv = (q[1] - p[1]) / L, nu = uv, nv = -ux, n = Math.ceil(L / 0.45);
+      for (var j = 0; j < n; j++) {
+        var f = (j + 0.5) / n, lu = p[0] + (q[0] - p[0]) * f + nu * T / 2, lv = p[1] + (q[1] - p[1]) * f + nv * T / 2;
+        var wx = BED.c[0] + lu * Math.cos(a) - lv * Math.sin(a), wz = BED.c[1] + lu * Math.sin(a) + lv * Math.cos(a);
+        var wdx = ux * Math.cos(a) - uv * Math.sin(a), wdz = ux * Math.sin(a) + uv * Math.cos(a);
+        var pe = pflasterE(wx, wz), top = Y(pe) + BED_WALL + 0.02, bot = Y(pe) - 0.08;
+        var o = boxAt(L / n + 0.03, top - bot, T, mat.winkel, wx, (top + bot) / 2, wz, gGarden);
+        o.rotation.y = -Math.atan2(wdz, wdx);
+      }
+    }
+  })();
+
   /* ---------- Beschriftungen: Höhen und Maße ---------- */
   function hTag(txt, x, z, yy) { tags.push({ kind: 'h', layer: 'heights', text: txt, pos: [x, yy, z] }); }
   var mw = [[270, 405, '142,25'], [970, 285, '142,25'], [270, 790, '142,45'], [270, 1115, '142,65']];
@@ -744,7 +838,8 @@ function buildModel(THREE) {
   hTag('OK FFB 142,80', F.x1 + 0.2, 8.4, yF + 0.3);
   hTag('Traufe 145,77', F.x0 + 0.4, F.z0 + 0.2, yE + 0.4);
   hTag('First 149,08', (AR.x0 + 5.25 + AR.x1 - 5.25) / 2, F.z0 + RUN, Y(H.RIDGE) + 0.5);
-  hTag('Schotterhöhe 142,35', 9.3, 4.4, Y(142.35) + 0.2);
+  hTag('Pflaster Nebeneingang 142,50', 9.3, 4.0, Y(142.50) + 0.2);
+  hTag('Pflaster Haustür 142,78', 17.0, 11.1, Y(142.78) + 0.3);
   [[268, 215, '141,38'], [1060, 262, '141,69'], [1560, 348, '141,79'], [255, 500, '141,46'], [255, 868, '141,65'], [250, 1402, '142,05'], [250, 1578, '142,18']].forEach(function (s) {
     var p = pl(s[0], s[1]); hTag('Bestand ' + s[2], p[0] - (s[0] < 400 ? 1.6 : 0), p[1], Y(parseFloat(s[2].replace(',', '.'))) + 0.2);
   });
@@ -766,13 +861,13 @@ function buildModel(THREE) {
   var zones = {
     plot: PLOT,
     neighbor: [[-12, -12], [40, -12], [40, 5.1], [25.77, 2.975], [3.85, -0.25], [0, 0], [0, 26.795], [-12, 26.795]],
-    paving: [pl(675, 232), pl(1610, 372), pl(1410, 1030), pl(1118, 922), pl(1100, 922), pl(1100, 505), pl(675, 505)],
+    paving: [[7.9, 0.35], [25.9, 3.04], [22.06, 15.72], [16.4, 13.6], [16.0, 13.6], [16.0, 5.74], [7.9, 5.74]],
     pavingWest: [pl(370, 510), pl(420, 510), pl(420, 1000), pl(370, 1000)],
     terrace: [[3.1, 12.6], [6.5, 12.6], [6.5, 20.4], [3.1, 20.4]],
-    carport: [pl(270, 232), pl(675, 232), pl(675, 505), pl(270, 505)],
+    carport: [[0.1, 0.35], [7.9, 0.35], [7.9, 5.74], [0.1, 5.74]],
     poolSlab: [pl(830, 1368), pl(1037, 1368), pl(1037, 1575), pl(830, 1575)],
     mulch: [pl(1405, 1032), pl(1275, 1445), pl(1085, 1600)],
-    bed: { c: pl(1355, 780), w: 3.5, h: 5.8, rot: 18 }
+    bed: BED
   };
 
   var info = {
@@ -787,7 +882,7 @@ function buildModel(THREE) {
   return {
     root: root, groups: { house: gHouse, inner: gInner, dg: gDG, rafters: gRaf, deck: gDeck, roof: gRoof, garden: gGarden, terrain: gTerrain, marks: gMarks },
     terrain: root.userData.terrain, pickables: pickables, tags: tags, rooms: roomsOut, zones: zones, info: info,
-    groundY: groundY, bounds: BOUNDS, north: NORTH, H: H, datum: DATUM, levels: { eg: yF, dg: yD }, sunDir: sunDir, roofH: roofH
+    groundY: groundY, pflasterE: pflasterE, bounds: BOUNDS, north: NORTH, H: H, datum: DATUM, levels: { eg: yF, dg: yD }, sunDir: sunDir, roofH: roofH
   };
 }
 if (typeof module !== 'undefined') module.exports = { buildModel: buildModel };
