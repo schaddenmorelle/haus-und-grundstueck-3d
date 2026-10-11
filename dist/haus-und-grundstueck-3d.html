@@ -278,20 +278,28 @@ function buildModel(THREE) {
     }
     return { d: inside ? -best : best, edge: bi };
   }
+  /* Straße: glatte Ebene (Ausgleichsebene durch die Höhen der Baustraße im Lageplan 2014) plus 15 cm für den endgültigen Belag
+     (Schätzung des Nutzers vom 11.10.2026). Sie gilt für die graue Fläche östlich und südlich des Grundstücks; nördlich und westlich
+     liegen die Nachbargrundstücke mit den Höhenpunkten des Lageplans. */
+  var NEIGHBOR = [[-12, -12], [40, -12], [40, 5.1], [25.77, 2.975], [3.85, -0.25], [0, 0], [0, 26.795], [-12, 26.795]];
+  var STR_UP = 0.15, CURB = 0.03; // Bordstein steht 3 cm über der Straße, das Pflaster schließt bündig an
+  function strasseE(x, z) { return 141.468 + 0.00849 * x + 0.02559 * z + STR_UP; }
   /* Einfahrt: Pflasterhöhen als Dreiecksnetz (Angaben des Nutzers vom 11.10.2026, Fotos eingaben/bilder/foto-einfahrt-*).
      Haustür: Pflaster auf Schwellenhöhe (142,78 = 2 cm unter OK Fußboden, Annahme). Vor dem Nebeneingang 30 cm unter der Schwelle
      (142,50), Carport und Nordstreifen eben auf dieser Höhe. Von der Haustür bis zum Straßenrand stetig fallend. Straßenhöhen:
-     Lageplan 2014 (Baustraße) plus ca. 3 cm Bordstein, Annahme. Die Südseite (Stufe zum tieferen Pflaster am Gartentor) fehlt noch. */
+     an der Straße 3 cm über der Straßenebene (Bordstein).
+     Stufe 30 cm südlich der Haustüröffnung (Tür und Seitenteil, z 12,01), 11 cm tief (Angabe Nutzer). Ausdehnung des tieferen Pflasters
+     bis zum Gartentor fehlt noch. */
   var HOF_POLY = [[0.1, 0.35], [7.9, 0.35], [25.9, 3.04], [22.06, 15.72], [16.4, 13.6], [16.0, 13.6], [16.0, 5.74], [0.1, 5.74]];
   var HP = [
     [0.1, 0.35, 142.50], [7.9, 0.35, 142.50], [7.9, 5.74, 142.50], [0.1, 5.74, 142.50], // Carport
     [16.0, 5.74, 142.50],                                                              // Nordostecke Haus
     [16.0, 11.1, 142.78], [16.0, 13.6, 142.78],                                        // Haustür
-    [25.9, 3.04, 141.82], [24.7, 7.0, 141.90], [23.46, 11.1, 142.00], [22.06, 15.72, 142.10], // Straßenrand
+    [25.9, 3.04, strasseE(25.9, 3.04) + CURB], [24.7, 7.0, strasseE(24.7, 7.0) + CURB], [23.46, 11.1, strasseE(23.46, 11.1) + CURB], [22.06, 15.72, strasseE(22.06, 15.72) + CURB], // Straßenrand
     [17.2, 11.1, 142.78]                                                               // ebener Absatz vor der Haustür (1,2 m)
   ];
   var HT = [[0, 1, 2], [0, 2, 3], [1, 2, 4], [1, 4, 7], [4, 7, 8], [4, 8, 11], [8, 9, 11], [9, 10, 11], [10, 6, 11], [6, 5, 11], [5, 4, 11]];
-  function pflasterE(x, z) { // Dreieck mit größtem kleinsten Schwerpunktsmaß: innen exakt, knapp außerhalb fortgesetzt
+  function pflasterOben(x, z) { // Dreieck mit größtem kleinsten Schwerpunktsmaß: innen exakt, knapp außerhalb fortgesetzt
     var best = -1e9, bh = 0;
     for (var i = 0; i < HT.length; i++) {
       var a = HP[HT[i][0]], b = HP[HT[i][1]], c = HP[HT[i][2]];
@@ -311,6 +319,8 @@ function buildModel(THREE) {
     }
     return ins;
   }
+  var STEP_Z = F.z0 + 6.27 + 0.30, STEP_H = 0.11; // Stufe: 30 cm südlich der Haustüröffnung (hz 6,27), 11 cm tief
+  function pflasterE(x, z) { return pflasterOben(x, z) - (z > STEP_Z && !inBed(x, z) ? STEP_H : 0); }
   /* Vorbeet: Mauer aus Winkelsteinen steht BED_WALL über dem Pflaster heraus (Annahme 30 cm, Fotos), Erde liegt darin */
   var BED = { c: pl(1355, 780), w: 3.5, h: 5.8, rot: 18 }, BED_R = 0.7, BED_WALL = 0.30;
   function bedLocal(x, z) {
@@ -324,8 +334,8 @@ function buildModel(THREE) {
   var BLEND = [0.3, 0.3, 2.5, 2.5, 1.5, 0.3];
   function sm(t) { return t * t * (3 - 2 * t); }
   function groundE(x, z) {
-    if (inPoly(HOF_POLY, x, z)) return pflasterE(x, z) + (inBed(x, z) ? BED_WALL : 0);
-    var info = polyInfo(x, z), g = idw(GP, x, z), e = idw(EP, x, z);
+    if (inPoly(HOF_POLY, x, z)) return inBed(x, z) ? pflasterOben(x, z) + BED_WALL : pflasterE(x, z);
+    var info = polyInfo(x, z), g = idw(GP, x, z), e = inPoly(NEIGHBOR, x, z) ? idw(EP, x, z) : strasseE(x, z);
     if (info.d <= 0) return g;
     var w = BLEND[info.edge];
     if (info.d >= w) return e;
@@ -943,10 +953,36 @@ function buildModel(THREE) {
         var f = (j + 0.5) / n, lu = p[0] + (q[0] - p[0]) * f + nu * T / 2, lv = p[1] + (q[1] - p[1]) * f + nv * T / 2;
         var wx = BED.c[0] + lu * Math.cos(a) - lv * Math.sin(a), wz = BED.c[1] + lu * Math.sin(a) + lv * Math.cos(a);
         var wdx = ux * Math.cos(a) - uv * Math.sin(a), wdz = ux * Math.sin(a) + uv * Math.cos(a);
-        var pe = pflasterE(wx, wz), top = Y(pe) + BED_WALL + 0.02, bot = Y(pe) - 0.08;
+        var nwx = nu * Math.cos(a) - nv * Math.sin(a), nwz = nu * Math.sin(a) + nv * Math.cos(a); // Mauer außen: Fuß am Pflaster vor der Mauer
+        var top = Y(pflasterOben(wx, wz)) + BED_WALL + 0.02, bot = Y(pflasterE(wx + nwx * (T / 2 + 0.1), wz + nwz * (T / 2 + 0.1))) - 0.08;
         var o = boxAt(L / n + 0.03, top - bot, T, mat.winkel, wx, (top + bot) / 2, wz, gGarden);
         o.rotation.y = -Math.atan2(wdz, wdx);
       }
+    }
+  })();
+
+  /* ---------- Stufe südlich der Haustür: Randsteinreihe von der Hauswand bis zum Vorbeet, Oberkante auf dem höheren Pflaster ---------- */
+  (function randsteine() {
+    var x0 = F.x1, x1 = x0;
+    while (x1 < 24 && !inBed(x1, STEP_Z)) x1 += 0.05;
+    var n = Math.ceil((x1 - x0) / 0.5);
+    for (var i = 0; i < n; i++) {
+      var xa = x0 + (x1 - x0) * i / n, xb = x0 + (x1 - x0) * (i + 1) / n, xc = (xa + xb) / 2;
+      var top = Y(pflasterOben(xc, STEP_Z)), bot = Y(pflasterE(xc, STEP_Z + 0.1)) - 0.08;
+      var o = boxAt(xb - xa + 0.01, top - bot, 0.08, mat.winkel, xc, (top + bot) / 2, STEP_Z + 0.04, gGarden);
+      o.userData = { kind: 'randstein' };
+    }
+  })();
+
+  /* ---------- Bordstein zwischen Pflaster und Straße (Foto: heller Randstein), 15 cm breit, 3 cm über der Straße ---------- */
+  (function bordstein() {
+    var a = HOF_POLY[2], b = HOF_POLY[3], dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz), ux = dx / L, uz = dz / L, nx = uz, nz = -ux; // nach außen = Richtung Straße (Osten)
+    var stone = M(0xc9c6bd, 0.9), n = Math.ceil(L / 0.5);
+    for (var i = 0; i < n; i++) {
+      var f = (i + 0.5) / n, cx = a[0] + dx * f + nx * 0.075, cz = a[1] + dz * f + nz * 0.075;
+      var top = Y(strasseE(cx, cz) + CURB), bot = Y(strasseE(cx, cz)) - 0.1;
+      var o = boxAt(L / n + 0.02, top - bot, 0.15, stone, cx, (top + bot) / 2, cz, gGarden, -Math.atan2(dz, dx));
+      o.userData = { kind: 'bordstein' };
     }
   })();
 
@@ -959,6 +995,7 @@ function buildModel(THREE) {
   hTag('First 149,08', (AR.x0 + 5.25 + AR.x1 - 5.25) / 2, F.z0 + RUN, Y(H.RIDGE) + 0.5);
   hTag('Pflaster Nebeneingang 142,50', 9.3, 4.0, Y(142.50) + 0.2);
   hTag('Pflaster Haustür 142,78', 17.0, 11.1, Y(142.78) + 0.3);
+  hTag('Pflaster südlich der Stufe 142,67', 17.2, 13.0, Y(142.67) + 0.3);
   [[268, 215, '141,38'], [1060, 262, '141,69'], [1560, 348, '141,79'], [255, 500, '141,46'], [255, 868, '141,65'], [250, 1402, '142,05'], [250, 1578, '142,18']].forEach(function (s) {
     var p = pl(s[0], s[1]); hTag('Bestand ' + s[2], p[0] - (s[0] < 400 ? 1.6 : 0), p[1], Y(parseFloat(s[2].replace(',', '.'))) + 0.2);
   });
@@ -979,7 +1016,7 @@ function buildModel(THREE) {
   /* ---------- Flächen für die Bodentextur (Meter) ---------- */
   var zones = {
     plot: PLOT,
-    neighbor: [[-12, -12], [40, -12], [40, 5.1], [25.77, 2.975], [3.85, -0.25], [0, 0], [0, 26.795], [-12, 26.795]],
+    neighbor: NEIGHBOR,
     paving: [[7.9, 0.35], [25.9, 3.04], [22.06, 15.72], [16.4, 13.6], [16.0, 13.6], [16.0, 5.74], [7.9, 5.74]],
     pavingWest: [pl(370, 510), pl(420, 510), pl(420, 1000), pl(370, 1000)],
     terrace: [[3.1, 12.6], [6.5, 12.6], [6.5, 20.4], [3.1, 20.4]],

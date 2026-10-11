@@ -66,6 +66,30 @@ check(Math.abs(gE(9.1, 5.3) - (FFB - 0.30)) <= 0.03, 'Pflaster vor dem Nebeneing
 /* Szenenprüfung über benannte Objekte (userData.kind) und deren Hüllquader */
 const kinds = k => { const a = []; m.root.traverse(o => { if (o.userData && o.userData.kind === k) a.push(o); }); return a; };
 const box = o => new THREE.Box3().setFromObject(o);
+/* Straße (Angaben des Nutzers vom 11.10.2026): glatt ohne Wellen und 15 cm über den Höhen des Lageplans von 2014 (Baustraße).
+   Straßenfläche = grau texturiert, östlich und südlich des Grundstücks. Höhen der Baustraße aus dem Lageplan. */
+{
+  const ebene = (xs, zs, name) => { // Ebene durch drei Eckpunkte, alle Rasterpunkte der Fläche müssen innerhalb 1 cm darauf liegen
+    const p0 = [xs[0], zs[0], gE(xs[0], zs[0])], bx = (gE(xs[1], zs[0]) - p0[2]) / (xs[1] - xs[0]), bz = (gE(xs[0], zs[1]) - p0[2]) / (zs[1] - zs[0]);
+    let worst = 0;
+    for (let x = xs[0]; x <= xs[1] + 1e-9; x += 0.5) for (let z = zs[0]; z <= zs[1] + 1e-9; z += 0.5) worst = Math.max(worst, Math.abs(gE(x, z) - (p0[2] + bx * (x - p0[0]) + bz * (z - p0[1]))));
+    check(worst <= 0.01, 'Straße ' + name + ' ist nicht eben, größte Welle ' + (worst * 100).toFixed(1) + ' cm');
+  };
+  ebene([27, 33], [8, 22], 'Ost');
+  ebene([2, 14], [30, 37], 'Süd');
+  const lp = [[28, 6, 141.85], [27, 14, 142.0], [24.5, 20, 142.3], [22, 26, 142.35], [0, 28.5, 142.2], [8, 28.8, 142.25], [16, 28.5, 142.33], [26, 28, 142.35]];
+  const mittel = lp.reduce((s, q) => s + gE(q[0], q[1]) - q[2], 0) / lp.length;
+  check(Math.abs(mittel - 0.15) <= 0.01, 'Straße liegt im Mittel ' + (mittel * 100).toFixed(1) + ' cm über dem Lageplan statt 15 cm');
+}
+
+/* Stufe südlich der Haustür (Angabe des Nutzers vom 11.10.2026): 30 cm links der Haustüröffnung, von vorn gesehen, 11 cm tief.
+   Öffnung = Tür und Seitenteil (hz 4,51–6,27, südliche Kante bei z 12,01), die Stufe liegt also bei z 12,31. */
+{
+  const tuer = gE(16.3, 11.1), vorStufe = gE(16.3, 12.2), nachStufe = gE(16.3, 12.45);
+  check(Math.abs(vorStufe - tuer) <= 0.005, 'Pflaster bis zur Stufe nicht mehr auf Türhöhe: ' + (vorStufe - tuer).toFixed(3) + ' m bei z 12,2');
+  check(Math.abs(vorStufe - nachStufe - 0.11) <= 0.01, 'Stufe südlich der Haustür ' + (vorStufe - nachStufe).toFixed(3) + ' m statt 0,11 m');
+}
+
 /* Carport: Pfosten direkt an der Hauswand (Nordwand, z 5,74), keiner außerhalb des Grundstücks (Angabe des Nutzers vom 11.10.2026) */
 {
   const inPoly = (poly, x, z) => { let ins = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const a = poly[j], b = poly[i]; if ((b[1] > z) !== (a[1] > z) && x < (a[0] - b[0]) * (z - b[1]) / (a[1] - b[1]) + b[0]) ins = !ins; } return ins; };

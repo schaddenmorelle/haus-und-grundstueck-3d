@@ -1,7 +1,7 @@
 {
- "meshes": 578,
- "tris": 164488,
- "tags": 48,
+ "meshes": 611,
+ "tris": 164884,
+ "tags": 49,
  "plotArea": 569.77,
  "footArea": 162.22,
  "ridge": 149.078,
@@ -11,7 +11,7 @@
  },
  "terrain": [
   141.38,
-  142.87
+  142.92
  ],
  "rooms": {
   "eltern": {
