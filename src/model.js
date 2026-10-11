@@ -38,6 +38,7 @@ function buildModel(THREE) {
     zaun: M(0x383e42, 0.55, 0.35), winkel: M(0x5b5c59, 0.95), stoop: M(0x3a3e44, 0.75), deckelBlau: M(0x1f5fb0, 0.6), deckelGelb: M(0xe5c617, 0.6), deckelSchwarz: M(0x26282c, 0.7)
   };
   mat.insul = M(0xcfd0cb, 0.95, 0, { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
+  mat.kies = M(0x5b6168, 1); mat.kante = M(0x8c8e90, 0.95); // Spritzschutz: dunkelgrauer Splitt (Foto), Randstein aus Beton
   if (typeof document !== 'undefined') {
     var hc = document.createElement('canvas'); hc.width = hc.height = 128;
     var hg = hc.getContext('2d'); hg.fillStyle = '#d3d4cf'; hg.fillRect(0, 0, 128, 128);
@@ -46,6 +47,12 @@ function buildModel(THREE) {
     hg.stroke();
     var ht = new THREE.CanvasTexture(hc); ht.wrapS = ht.wrapT = THREE.RepeatWrapping; ht.repeat.set(1, 1);
     mat.insul.map = ht;
+    var kc = document.createElement('canvas'); kc.width = kc.height = 256; // Splitt: Körner in Grautönen, Kachel 1 m × 1 m
+    var kg = kc.getContext('2d'), ks = 7, kr = function () { ks = (ks * 16807) % 2147483647; return ks / 2147483647; };
+    kg.fillStyle = '#565c63'; kg.fillRect(0, 0, 256, 256);
+    for (var kk = 0; kk < 1400; kk++) { kg.fillStyle = ['#3d4247', '#494f55', '#6d737b', '#80868e', '#5f656c'][Math.floor(kr() * 5)]; kg.fillRect(kr() * 256, kr() * 256, 3 + kr() * 5, 3 + kr() * 4); }
+    var kt = new THREE.CanvasTexture(kc); kt.wrapS = kt.wrapT = THREE.RepeatWrapping; kt.anisotropy = 4;
+    mat.kies.map = kt; mat.kies.color.set(0xffffff);
   }
 
   function mesh(geo, m, shadow, parent, pick) {
@@ -788,7 +795,7 @@ function buildModel(THREE) {
     tags.push({ kind: 'room', layer: 'rooms', name: 'Carport', area: 29, pos: [5.4, base + 0.4, 2.9] });
   })();
 
-  var ZAUN_IN = 0.15, ZAUN_PW = 0.06; // Zaun: Achse 15 cm innerhalb der Grenzlinie, Pfosten 6 cm (siehe zaun(); die Hecke hält Abstand dazu)
+  var ZAUN_IN = 0.15, ZAUN_PW = 0.06, ZAUN_WIESE = 0.08; // Zaun: Achse 15 cm innerhalb der Grenzlinie, Pfosten 6 cm, an der Wiesenkante 8 cm auf der Wiesenseite (siehe zaun(); Hecke und Spritzschutz richten sich danach)
 
   /* ---------- Garten: Pool, Beet, Spielgeräte, Hecke ---------- */
   (function garden() {
@@ -915,7 +922,7 @@ function buildModel(THREE) {
      Pfosten 6 × 6 cm im Abstand von höchstens 2,5 m, Matten 8/6/8 (waagerechte Doppelstäbe alle 20 cm, senkrechte Stäbe alle 5 cm),
      Höhe = Pfostenoberkante über dem Gelände am Pfosten. */
   (function zaun() {
-    var IN = ZAUN_IN, WIESE_DZ = 0.08, PW = ZAUN_PW, ZW = 2.5, GAP = 0.04, CAP = 0.03;
+    var IN = ZAUN_IN, WIESE_DZ = ZAUN_WIESE, PW = ZAUN_PW, ZW = 2.5, GAP = 0.04, CAP = 0.03;
     function innen(k, d) { // Eckpunkt k des Grundstücksumrisses um d nach innen verschoben (Gehrung)
       var n = PLOT.length, p = PLOT[(k + n - 1) % n], q = PLOT[k], r = PLOT[(k + 1) % n];
       var l1 = Math.hypot(q[0] - p[0], q[1] - p[1]), l2 = Math.hypot(r[0] - q[0], r[1] - q[1]);
@@ -984,6 +991,38 @@ function buildModel(THREE) {
     lauf([[sw[0], 5.46], sw], 2.0, 'west');         // ab Südwestecke des Geräteraums (Carport) bis zur Straße
     lauf([sw, so, oe, q], 1.0, 'grenze', true);     // Süd-, Südost- und Ostgrenze bis zum Ende der Wiese
     lauf([q, B, C], 1.0, 'wiese', true);            // Wiesenkante von der Straße bis zur Hauswand
+  })();
+
+  /* ---------- Spritzschutzstreifen aus Kies an der Hauswand (Angabe des Nutzers vom 11.10.2026, Foto) ----------
+     Ostseite ab dem Zaun an der Hauswand nach Süden, um die Südostecke und an der Südwand entlang bis zur Kante der Terrasse.
+     Annahmen nach Foto: 40 cm breit, Kiesoberfläche 2 cm über dem Gelände, Betonrandstein 8 cm breit außen, 4 cm über dem Gelände. */
+  (function spritzschutz() {
+    var W = 0.40, KB = 0.08, KH = 0.04, KO = 0.02;
+    var xO = F.x1, zS = F.z1, zN = HOF_POLY[5][1] + ZAUN_WIESE + ZAUN_PW / 2, xT = (F.x0 + F.xn) / 2 + 1.7; // Ostwand, Südwand, Zaunende an der Hauswand, Terrassenkante (x 6,5)
+    var kp = [], ku = [];
+    function kv(x, z) { kp.push(x, meshY(x, z) + KO, z); ku.push(x, z); } // Eckpunkt auf dem Gelände, Textur nach Lageplan (1 m Kachel)
+    function kies(x0, x1, z0, z1) { // Rechteck mit Stützstellen alle 0,25 m
+      var nx = Math.max(1, Math.ceil((x1 - x0) / 0.25)), nz = Math.max(1, Math.ceil((z1 - z0) / 0.25));
+      for (var i = 0; i < nx; i++) for (var j = 0; j < nz; j++) {
+        var a = x0 + (x1 - x0) * i / nx, b = x0 + (x1 - x0) * (i + 1) / nx, c = z0 + (z1 - z0) * j / nz, d = z0 + (z1 - z0) * (j + 1) / nz;
+        kv(a, c); kv(a, d); kv(b, d); kv(a, c); kv(b, d); kv(b, c);
+      }
+    }
+    kies(xO, xO + W, zN, zS + W);       // Ostwand, bis über die Südostecke hinaus
+    kies(xT, xO, zS, zS + W);           // Südwand bis zur Terrassenkante
+    var g = new THREE.BufferGeometry();
+    g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(kp), 3));
+    g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(ku), 2));
+    g.computeVertexNormals();
+    var km = mesh(g, mat.kies, false, gGarden, true);
+    km.receiveShadow = true; km.userData = { kind: 'kies', breite: W };
+    function stein(xc, zc, w, d) { // Randstein-Stück, Oberkante KH über dem Gelände
+      var yc = meshY(xc, zc) + KH - 0.07;
+      boxAt(w, 0.14, d, mat.kante, xc, yc, zc, gGarden).userData = { kind: 'kiesrand' };
+    }
+    var xr = xO + W + KB / 2, zr = zS + W + KB / 2, ne = Math.ceil((zr + KB / 2 - zN) / 0.5), ns = Math.ceil((xO + W - xT) / 0.5);
+    for (var i = 0; i < ne; i++) { var za = zN + (zr + KB / 2 - zN) * i / ne, zb = zN + (zr + KB / 2 - zN) * (i + 1) / ne; stein(xr, (za + zb) / 2, KB, zb - za + 0.005); } // Ostseite, schließt die Ecke
+    for (var j = 0; j < ns; j++) { var xa = xT + (xO + W - xT) * j / ns, xb = xT + (xO + W - xT) * (j + 1) / ns; stein((xa + xb) / 2, zr, xb - xa + 0.005, KB); } // Südseite bis zum Randstein der Ostseite
   })();
 
   /* ---------- Beschriftungen: Höhen und Maße ---------- */

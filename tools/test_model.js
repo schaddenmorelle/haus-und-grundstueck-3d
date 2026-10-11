@@ -232,6 +232,29 @@ const inPoly = (poly, x, z) => { let ins = false; for (let i = 0, j = poly.lengt
   check(hecke.length === 0 || luft >= 0.05, 'Hecke rückt nicht vom Zaun ab (kleinster Abstand ' + (luft * 100).toFixed(0) + ' cm, erwartet mindestens 5 cm)');
   check(imPool === 0, 'Hecke ragt in den Pool');
   check(draussen === 0, 'Hecke ragt über die Grundstücksgrenze (' + draussen + ' Ecken)');
+
+  /* Spritzschutzstreifen aus Kies (Angabe des Nutzers vom 11.10.2026, Foto): an der Hauswand auf der Ostseite ab dem Zaun nach Süden,
+     um die Südostecke und an der Südwand entlang bis zur Kante der Terrasse. Breite mindestens 30 cm (übliches Mindestmaß, Annahme). */
+  const kies = kinds('kies'), rand = kinds('kiesrand');
+  check(kies.length === 1, 'Spritzschutzstreifen: ' + kies.length + ' Teile statt 1');
+  check(rand.length > 0, 'Spritzschutzstreifen: kein Randstein');
+  if (kies.length === 1) {
+    const vs = ecken(kies[0]), b = box(kies[0]), nah = (x, z) => mn(vs.map(v => Math.hypot(v.x - x, v.z - z)));
+    check(b.min.z >= 13.6 && b.min.z <= 13.9, 'Streifen beginnt bei z ' + b.min.z.toFixed(2) + ' statt am Zaun an der Hauswand (z 13,7)');
+    check(b.min.x >= 6.4 && b.min.x <= 6.6, 'Streifen endet bei x ' + b.min.x.toFixed(2) + ' statt an der Terrassenkante (x 6,5)');
+    const ost = []; for (let z = 13.9; z <= 20.3; z += 0.2) ost.push([16.02, z]);
+    const sued = []; for (let x = 6.6; x <= 15.9; x += 0.2) sued.push([x, 20.42]);
+    const luecken = ost.concat(sued).filter(q => nah(q[0], q[1]) > 0.35);
+    check(luecken.length === 0, 'Streifen hat Lücken an der Hauswand (z. B. bei ' + (luecken[0] ? luecken[0][0].toFixed(1) + ' / ' + luecken[0][1].toFixed(1) : '') + ')');
+    const breitO = mx(vs.filter(v => v.z > 14 && v.z < 20).map(v => v.x)) - 16.0, breitS = mx(vs.filter(v => v.x > 7 && v.x < 15.9).map(v => v.z)) - 20.395;
+    check(breitO >= 0.3 && breitO <= 0.6 && breitS >= 0.3 && breitS <= 0.6, 'Streifenbreite ' + (breitO * 100).toFixed(0) + ' / ' + (breitS * 100).toFixed(0) + ' cm statt 30–60 cm');
+    check(vs.every(v => !(v.x > 6.6 && v.x < 15.95 && v.z < 20.35)) && vs.every(v => v.x >= 15.99 || v.z >= 20.39), 'Streifen liegt im Haus');
+    const hh = vs.map(v => v.y - gelaende(v.x, v.z));
+    check(mn(hh) >= 0.005 && mx(hh) <= 0.06, 'Streifen liegt ' + (mn(hh) * 100).toFixed(1) + ' bis ' + (mx(hh) * 100).toFixed(1) + ' cm über dem Gelände statt 0,5–6 cm');
+    const aussen = rand.filter(r => { const c = box(r).getCenter(new THREE.Vector3()); return !(c.x > 16.3 || c.z > 20.7); });
+    check(aussen.length === 0, 'Randstein liegt nicht außen am Streifen (' + aussen.length + ' Stücke)');
+    check(rand.every(r => { const c = box(r).getCenter(new THREE.Vector3()), t = box(r).max.y - gelaende(c.x, c.z); return t >= 0.02 && t <= 0.1; }), 'Randstein steht nicht 2–10 cm über dem Gelände');
+  }
 }
 
 /* Prüfmaße aus dem Aufmaß: nur Bericht, kein Fehler (bekannte Abweichungen stehen in docs/abgleich-eg-grundriss.md) */
