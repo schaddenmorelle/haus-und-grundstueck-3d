@@ -166,7 +166,7 @@
     { "id": "eg.har-sued", "geschoss": "EG", "typ": "IW175", "von": ["x.eltO", "z.harSi"], "bis": ["x.julW", "z.harSi"], "flucht": "oben", "hoehe": "decke",
       "oeffnungen": [{ "art": "durchgang", "ab": 2155, "breite": 885, "hoehe": 2190, "quelle": "aufmass", "notiz": "Tür HAR 88,5/219" }] },
     { "id": "eg.querwand-elterntuer", "geschoss": "EG", "typ": "IW175", "von": ["x.elt2", "z.harSa"], "bis": ["x.elt2", "z.ankN"], "flucht": "links", "hoehe": "decke",
-      "oeffnungen": [{ "art": "durchgang", "ab": 130, "breite": 885, "hoehe": 2190, "notiz": "Elterntür 88,5/219, Lage und Breite angenommen" }] },
+      "oeffnungen": [{ "art": "durchgang", "ab": 130, "breite": 885, "hoehe": 2190, "quelle": "annahme", "notiz": "Elterntür 88,5/219, Lage und Breite angenommen" }] },
     { "id": "eg.har-julian", "geschoss": "EG", "typ": "IW175", "von": ["x.harO", "z.Ni"], "bis": ["x.harO", "z.harSa"], "flucht": "links", "hoehe": "decke" },
     { "id": "eg.julian-flur-schraeg", "geschoss": "EG", "typ": "IW175", "von": [7900, 3356], "bis": [8867, 4323], "flucht": "mitte", "verlaengerung": 50, "hoehe": "decke",
       "notiz": "Schrägwand 45° (Planänderung 1), Flurseite 1,2375 m; Mittellinie, 5 cm Verlängerung an beiden Enden. Der Anfang liegt in der Wand HAR / Julian (war 7992 / 3448, auch mit der Verlängerung fehlten 3,8 cm bis zur Wand und die Ecke blieb offen; die Linie ist dieselbe)" },

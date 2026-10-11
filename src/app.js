@@ -207,6 +207,7 @@
     btn.addEventListener('click', function () { selectRoom(selected === r.id ? null : r.id, true); });
   });
   function selectRoom(id, fly) {
+    if (id && window.__plan2d && window.__plan2d.aktiv()) { selected = id; window.__plan2d.zeigeRaum(id); return; } // im Grundriss: Raum dort auswählen
     selected = id;
     model.rooms.forEach(function (r) {
       var on = r.id === id;
@@ -236,6 +237,7 @@
     btn.disabled = !b.ort;
     btn.addEventListener('click', function () {
       if (!b.ort) return;
+      if (window.__plan2d && window.__plan2d.aktiv()) { window.__plan2d.zeigeBefund(b); return; }
       var q = model.toWorld(b.ort[0] / 1000, b.ort[1] / 1000), dg = b.geschoss === 'DG', y = dg ? model.levels.dg : model.levels.eg;
       state.roof = false; state.rafters = false; state.rooms = true; state.dg = dg; applyState();
       viewBtns.forEach(function (v) { v.classList.remove('on'); v.setAttribute('aria-pressed', 'false'); });
@@ -344,12 +346,15 @@
   /* ---------- Schleife ---------- */
   window.__m3d = { camera: camera, controls: controls };
   setView('sw', 0);
+  var shell = document.getElementById('shell');
   function frame(now) {
-    stepTween(now);
-    controls.update();
-    renderer.render(scene, camera);
-    updateTags();
-    updateCompass();
+    if (!shell.classList.contains('modus2d')) { // im Grundriss ruht das 3D-Bild
+      stepTween(now);
+      controls.update();
+      renderer.render(scene, camera);
+      updateTags();
+      updateCompass();
+    }
     requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
