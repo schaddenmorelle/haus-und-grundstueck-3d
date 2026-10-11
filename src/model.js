@@ -237,17 +237,18 @@ function buildModel(THREE) {
     wall(sh(a, 0.0925), sh(b, 0.0925), 0.20, yF, yE, gaps, gHouse, 0, mat.plaster);
     wall(sh(a, -0.1), sh(b, -0.1), 0.185, yF, yE, opens, gHouse, 0, mat.plasterIn);
   }
-  function win(a, b) { return { a: a, b: b, sill: 1.125, head: 2.625, type: 'glass' }; }
+  // Fenster: Brüstung 1,125, sichtbare Höhe 1,25 (Rohbauöffnung 1,50 inkl. Rollladenkasten), Oberkante wie Türen 2,375
+  function win(a, b) { return { a: a, b: b, sill: 1.125, head: 2.375, type: 'glass' }; }
   function gdoor(a, b) { return { a: a, b: b, sill: 0, head: 2.375, type: 'glass' }; }
-  // Außenwände 38,5 cm (Öffnungen aus den Maßketten des Plans)
+  // Außenwände 38,5 cm. Öffnungen aus den Maßketten des bemaßten EG-Grundrisses, Westwand Wohnen nach Aufmaß (Pfeiler 53 / 111 / 108 cm)
   xw([0, hw], [HW, hw], [{ a: 5.555, b: 6.565, sill: 0, head: 2.375, type: 'door' }, win(9.055, 10.565)], [0, -1]);
-  xw([HW - hw, 0], [HW - hw, HD], [win(1.036, 1.783), win(3.056, 3.795), { a: 4.559, b: 6.29, sill: 0, head: 2.375, type: 'door' }, win(7.063, 8.548), win(11.944, 13.438)], [1, 0]);
+  xw([HW - hw, 0], [HW - hw, HD], [win(1.01, 1.77), win(3.01, 3.77), { a: 4.51, b: 6.27, sill: 0, head: 2.375, type: 'door' }, win(7.01, 8.52), win(11.885, 13.395)], [1, 0]);
   xw([HW, HD - hw], [XL, HD - hw], [gdoor(HW - 6.895, HW - 3.885)], [0, 1]);
-  xw([XL + hw, HD], [XL + hw, ZU - TW], [gdoor(HD - 14.27, HD - 13.26), gdoor(HD - 12.395, HD - 10.385), gdoor(HD - 9.27, HD - 7.26)], [-1, 0]);
-  xw([XL, ZU - hw], [0, ZU - hw], [{ a: XL - 3.25, b: XL - 1.75, sill: 1.5, head: 2.375, type: 'glass' }], [0, 1]);
+  xw([XL + hw, HD], [XL + hw, ZU - TW], [gdoor(HD - 14.27, HD - 13.26), gdoor(HD - 12.17, HD - 10.16), gdoor(HD - 9.05, HD - 7.04)], [-1, 0]);
+  xw([XL, ZU - hw], [0, ZU - hw], [{ a: XL - 3.27, b: XL - 1.76, sill: 1.5, head: 2.375, type: 'glass' }], [0, 1]);
   xw([hw, ZU], [hw, 0], [gdoor(ZU - 2.895, ZU - 0.885), gdoor(ZU - 5.145, ZU - 4.385)], [-1, 0]);
 
-  // Innenwände (rechteckig: x0,x1,z0,z1 und Öffnungen als [von,bis] in hx bzw. hz)
+  // Innenwände (rechteckig: x0,x1,z0,z1 und Öffnungen als [von,bis] in hx bzw. hz), Maße aus dem bemaßten EG-Grundriss
   function rw(x0, x1, z0, z1, opens) {
     var horiz = (x1 - x0) >= (z1 - z0), t = horiz ? z1 - z0 : x1 - x0;
     var a = horiz ? P(x0, (z0 + z1) / 2) : P((x0 + x1) / 2, z0), b = horiz ? P(x1, (z0 + z1) / 2) : P((x0 + x1) / 2, z1);
@@ -255,42 +256,48 @@ function buildModel(THREE) {
     var os = (opens || []).map(function (o) { return { a: o[0] - o0, b: o[1] - o0, sill: 0, head: 2.19, type: 'gap' }; });
     wall(a, b, t, yF, yC, os, gInner, 0, mat.plasterIn);
   }
-  function dw(p, q, t) { wall(P(p[0], p[1]), P(q[0], q[1]), t, yF, yC, [], gInner, 0.05, mat.plasterIn); }
-  rw(4.57, 4.745, 0.385, 3.535);                       // HAR West
-  rw(4.57, 7.93, 3.36, 3.535, [[6.775, 7.62]]);        // HAR Süd mit Tür
-  rw(2.56, 4.57, 3.36, 3.535, [[3.245, 4.105]]);       // Eltern / Flur mit Tür (nicht im Bauplan; Dicke, Lage und Breite angenommen)
-  rw(7.755, 7.93, 0.385, 3.36);                        // HAR / Kind II
-  dw([7.93, 3.45], [8.83, 4.35], 0.2);                 // schräge Wand Kind II / Diele
-  rw(8.8, 12.565, 4.30, 4.425, [[9.46, 10.32], [11.71, 12.565]]); // Kind II und D-Bad Süd
-  rw(10.46, 10.635, 2.29, 4.30);                       // D-Bad West
-  rw(10.46, 12.565, 2.29, 2.405);                      // D-Bad Nord
-  rw(0.385, 2.56, 3.35, 3.525);                        // Installationswand Eltern-Bad
-  rw(1.26, 1.435, 3.525, 4.69);                        // WC-Wand
-  dw([2.56, 3.44], [2.95, 3.82], 0.175);               // Knick vor der Badtür
-  rw(3.885, 6.82, 4.60, 4.775, [[4.75, 5.37]]);        // Ankleide Nord mit Tür
-  dw([6.78, 4.72], [7.70, 5.64], 0.2);                 // schräge Wand Ankleide
-  rw(7.64, 7.815, 5.62, 6.58);                         // Ankleide Ost
-  rw(3.71, 3.885, 4.60, 6.78);                         // Bad / Ankleide
-  rw(3.885, 8.01, 6.405, 6.58);                        // Wand Wohnen / Flur
-  rw(8.87, 12.565, 6.375, 6.50, [[9.95, 10.81]]);      // Kind I Nord mit Tür
-  rw(9.0, 9.175, 6.375, 11.245);                       // Kind I / Speisekammer West
-  rw(9.175, 12.565, 9.69, 9.815);                      // Kind I / Speisekammer
-  rw(9.0, 12.565, 11.07, 11.245, [[11.07, 11.81]]);    // Speisekammer / Küche
+  // schräge Wand: Mittellinie p–q, Dicke t, Öffnungen als [von,bis] in Metern ab p
+  function dw(p, q, t, opens) {
+    var os = (opens || []).map(function (o) { return { a: o[0], b: o[1], sill: 0, head: 2.19, type: 'gap' }; });
+    wall(P(p[0], p[1]), P(q[0], q[1]), t, yF, yC, os, gInner, 0.05, mat.plasterIn);
+  }
+  var ZS = 9.645;                                       // Nordseite Wand Nähzimmer / Speisekammer (Anker der Treppe)
+  rw(4.57, 4.745, 0.385, 3.51);                         // Eltern / HAR
+  rw(4.57, 7.93, 3.335, 3.51, [[6.725, 7.61]]);         // HAR Süd mit Tür (HAR 2,95 tief)
+  rw(6.26, 6.435, 3.51, 4.645, [[3.64, 4.525]]);        // Querwand mit Elterntür (Vorraum Eltern / Flur)
+  rw(7.755, 7.93, 0.385, 3.51);                         // HAR / Julians Zimmer
+  dw([7.992, 3.448], [8.867, 4.323], 0.175);            // schräge Wand Julians Zimmer / Flur (17,5 cm, Flurseite 1,2375 m)
+  rw(8.80, 12.565, 4.27, 4.385, [[9.275, 10.16], [11.66, 12.42]]); // Julians Zimmer und D-Bad Süd (Türen nach Aufmaß 47 / 150 cm)
+  rw(10.44, 10.565, 2.27, 4.27);                        // D-Bad West (12,5 cm)
+  rw(10.44, 12.565, 2.27, 2.385);                       // D-Bad Nord
+  rw(0.385, 2.52, 3.395, 3.51);                         // Wand Eltern / Bad (Eltern 3,01 tief)
+  rw(1.285, 1.40, 3.51, 4.635);                         // WC-Wand im Bad
+  dw([2.479, 3.436], [3.729, 4.686], 0.115, [[0.633, 1.518]]); // schräge Wand Vorraum / Bad mit Badtür
+  rw(3.885, 6.70, 4.645, 4.76, [[4.615, 5.375]]);       // Ankleide Nord mit Tür
+  dw([6.67, 4.701], [7.733, 5.764], 0.133);             // schräge Wand Ankleide / Flur (Flurseite 1,5725 m)
+  rw(7.645, 7.82, 5.70, 6.51);                          // Ankleide Ost
+  rw(3.77, 3.885, 4.645, 6.395);                        // Bad / Ankleide (11,5 cm)
+  rw(3.885, 7.645, 6.395, 6.51);                        // Ankleide / Wohnen (11,5 cm)
+  rw(7.82, 9.005, 6.335, 6.51, [[7.995, 8.88]]);        // Flur / Wohnen mit Tür
+  rw(9.18, 12.565, 6.335, 6.45, [[9.93, 10.815]]);      // Nähzimmer Nord mit Tür
+  rw(9.005, 9.18, 6.335, 11.195);                       // Nähzimmer und Speisekammer West
+  rw(9.18, 12.565, ZS, ZS + 0.115);                     // Nähzimmer / Speisekammer
+  rw(9.005, 12.565, 11.02, 11.195, [[11.06, 11.82]]);   // Speisekammer / Küche mit Tür
 
-  /* Räume (Polygone in hx/hz, Innenkanten) */
+  /* Räume (Polygone in hx/hz, Innenkanten). Der Vorraum mit Bad- und Ankleidetür gehört zum Elternschlafzimmer. */
   var WOOD = 0xb99466, TILE = 0xc9ced1, TILE2 = 0xd8d4cb, CONC = 0xbab8b1;
   var ROOMS = [
-    { id: 'eltern', name: 'Eltern', col: WOOD, poly: [[0.385, 0.385], [4.57, 0.385], [4.57, 3.36], [2.56, 3.36], [0.385, 3.35]] },
-    { id: 'har', name: 'HAR', col: CONC, poly: [[4.745, 0.385], [7.755, 0.385], [7.755, 3.36], [4.745, 3.36]] },
-    { id: 'kind2', name: 'Julians Zimmer', col: WOOD, poly: [[7.93, 0.385], [12.565, 0.385], [12.565, 2.29], [10.46, 2.29], [10.46, 4.30], [8.83, 4.30], [8.0, 3.535], [7.93, 3.535]] },
-    { id: 'dbad', name: 'D-Bad', col: TILE, poly: [[10.635, 2.405], [12.565, 2.405], [12.565, 4.30], [10.635, 4.30]] },
-    { id: 'bad', name: 'Bad (Eltern)', col: TILE, poly: [[0.385, 3.525], [2.56, 3.525], [3.62, 4.5], [3.71, 4.6], [3.71, 6.405], [0.385, 6.405]] },
-    { id: 'ankleide', name: 'Ankleide', col: WOOD, poly: [[3.885, 4.775], [6.78, 4.775], [7.64, 5.64], [7.64, 6.405], [3.885, 6.405]] },
-    { id: 'flur', name: 'Flur / Diele', col: TILE2, poly: [[2.78, 3.535], [7.93, 3.535], [8.83, 4.425], [12.565, 4.425], [12.565, 6.375], [8.83, 6.375], [8.83, 6.405], [7.815, 6.405], [7.815, 5.64], [6.82, 4.6], [3.885, 4.6], [3.62, 4.5]] },
-    { id: 'kind1', name: 'Nähzimmer', col: WOOD, poly: [[9.175, 6.5], [12.565, 6.5], [12.565, 9.69], [9.175, 9.69]] },
-    { id: 'speis', name: 'Speisekammer', col: TILE, poly: [[9.175, 9.815], [12.565, 9.815], [12.565, 11.07], [9.175, 11.07]] },
-    { id: 'wohnen', name: 'Wohnen / Essen', col: WOOD, poly: [[3.885, 6.58], [9.0, 6.58], [9.0, 14.27], [3.885, 14.27]] },
-    { id: 'kueche', name: 'Küche', col: TILE, poly: [[9.0, 11.245], [12.565, 11.245], [12.565, 14.27], [9.0, 14.27]] }
+    { id: 'eltern', name: 'Eltern', col: WOOD, poly: [[0.385, 0.385], [4.57, 0.385], [4.57, 3.51], [6.26, 3.51], [6.26, 4.645], [3.77, 4.645], [2.52, 3.395], [0.385, 3.395]] },
+    { id: 'har', name: 'HAR', col: CONC, poly: [[4.745, 0.385], [7.755, 0.385], [7.755, 3.335], [4.745, 3.335]] },
+    { id: 'kind2', name: 'Julians Zimmer', col: WOOD, poly: [[7.93, 0.385], [12.565, 0.385], [12.565, 2.27], [10.44, 2.27], [10.44, 4.27], [8.9375, 4.27], [7.93, 3.2625]] },
+    { id: 'dbad', name: 'D-Bad', col: TILE, poly: [[10.565, 2.385], [12.565, 2.385], [12.565, 4.27], [10.565, 4.27]] },
+    { id: 'bad', name: 'Bad (Eltern)', col: TILE, poly: [[0.385, 3.51], [2.4724, 3.51], [3.77, 4.8076], [3.77, 6.395], [0.385, 6.395]] },
+    { id: 'ankleide', name: 'Ankleide', col: WOOD, poly: [[3.885, 4.76], [6.635, 4.76], [7.645, 5.77], [7.645, 6.395], [3.885, 6.395]] },
+    { id: 'flur', name: 'Flur / Diele', col: TILE2, poly: [[6.435, 3.51], [7.93, 3.51], [8.805, 4.385], [12.565, 4.385], [12.565, 6.335], [7.82, 6.335], [7.82, 5.757], [6.708, 4.645], [6.435, 4.645]] },
+    { id: 'kind1', name: 'Nähzimmer', col: WOOD, poly: [[9.18, 6.45], [12.565, 6.45], [12.565, ZS], [9.18, ZS]] },
+    { id: 'speis', name: 'Speisekammer', col: TILE, poly: [[9.18, ZS + 0.115], [12.565, ZS + 0.115], [12.565, 11.02], [9.18, 11.02]] },
+    { id: 'wohnen', name: 'Wohnen / Essen', col: WOOD, poly: [[3.885, 6.51], [9.005, 6.51], [9.005, 14.27], [3.885, 14.27]] },
+    { id: 'kueche', name: 'Küche', col: TILE, poly: [[9.005, 11.195], [12.565, 11.195], [12.565, 14.27], [9.005, 14.27]] }
   ];
   function polyArea(p) { var s = 0; for (var i = 0; i < p.length; i++) { var a = p[i], b = p[(i + 1) % p.length]; s += a[0] * b[1] - b[0] * a[1]; } return Math.abs(s) / 2; }
   function centroid(p) {
@@ -307,7 +314,7 @@ function buildModel(THREE) {
     o.rotation.x = -Math.PI / 2; o.position.y = yF + 0.012; o.receiveShadow = true;
     gInner.add(o); pickables.push(o);
     var c = centroid(pts), area = polyArea(pts);
-    roomsOut.push({ id: r.id, name: r.name, area: area, center: c, mesh: o, base: r.col, level: 'eg' });
+    roomsOut.push({ id: r.id, name: r.name, area: area, center: c, mesh: o, base: r.col, level: 'eg', poly: r.poly });
     tags.push({ kind: 'room', layer: 'rooms', level: 'eg', name: r.name, area: area, pos: [c[0], yF + 0.25, c[1]] });
   });
   // überdachte Terrasse und Terrassenplatten
@@ -365,7 +372,9 @@ function buildModel(THREE) {
   /* ---------- Dachausbau (DG) und Dachstuhl ---------- */
   (function dgLayer() {
     var inset = [[0.385, 0.385], [HW - 0.385, 0.385], [HW - 0.385, HD - 0.385], [XL + 0.385, HD - 0.385], [XL + 0.385, ZU - 0.385], [0.385, ZU - 0.385]];
-    var stairHole = [[9.2, 8.70], [12.54, 8.70], [12.54, 9.69], [9.2, 9.69]];
+    // Treppenöffnung 99 cm vor der Wand Nähzimmer / Speisekammer, lichter Abstand der Treppenwände 1,60 m
+    var TS = ZS, TN = TS - 1.60, HN = TS - 0.99;
+    var stairHole = [[9.2, HN], [12.54, HN], [12.54, TS], [9.2, TS]];
     function holeOf(pts) {
       var h = new THREE.Path();
       pts.forEach(function (p, i) { var q = P(p[0], p[1]); if (i) h.lineTo(q[0], -q[1]); else h.moveTo(q[0], -q[1]); });
@@ -385,9 +394,9 @@ function buildModel(THREE) {
     var Z = { x0: 5.20, x1: 11.24, z0: 1.73, z1: 12.96 };
     // Trockenbauwände im DG einheitlich 12,5 cm (Annahme, genaue Maße folgen). Kniewände behalten die Planlage (Außenseite = Z),
     // Treppenwände die Seite zur Treppe (lichter Abstand 1,60 m), Querwand und Trennwand ihre Mittellinie.
-    var TD = 0.125, QZ = 7.31, TWX = 8.235, TN = 8.09, TS = 9.69;
+    var TD = 0.125, QZ = 7.31, TWX = 8.235;
     var zi = { x0: Z.x0 + TD, x1: Z.x1 - TD, z0: Z.z0 + TD, z1: Z.z1 - TD }, q0 = QZ - TD / 2, q1 = QZ + TD / 2, t0 = TWX - TD / 2, t1 = TWX + TD / 2;
-    var zonePts = [[Z.x0, Z.z0], [Z.x1, Z.z0], [Z.x1, 8.70], [9.2, 8.70], [9.2, 9.69], [Z.x1, 9.69], [Z.x1, Z.z1], [Z.x0, Z.z1]];
+    var zonePts = [[Z.x0, Z.z0], [Z.x1, Z.z0], [Z.x1, HN], [9.2, HN], [9.2, TS], [Z.x1, TS], [Z.x1, Z.z1], [Z.x0, Z.z1]];
     var zoneMat = M(0xcdae82, 0.8, 0, { polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
     var zone = new THREE.Mesh(new THREE.ShapeGeometry(shapeOf(zonePts.map(function (p) { return P(p[0], p[1]); }))), zoneMat);
     zone.rotation.x = -Math.PI / 2; zone.position.y = yD + 0.008; zone.receiveShadow = true; gDeck.add(zone); pickables.push(zone);
@@ -396,7 +405,7 @@ function buildModel(THREE) {
       { id: 'pia', name: 'Pias Zimmer', poly: [[zi.x0, zi.z0], [zi.x1, zi.z0], [zi.x1, TN - TD], [t1, TN - TD], [t1, q0], [zi.x0, q0]] },
       { id: 'arbeit', name: 'Arbeitszimmer', poly: [[zi.x0, q1], [t0, q1], [t0, zi.z1], [zi.x0, zi.z1]] },
       { id: 'abstell', name: 'Abstellkammer', poly: [[t1, TS + TD], [zi.x1, TS + TD], [zi.x1, zi.z1], [t1, zi.z1]] },
-      { id: 'treppe', name: 'Treppe und Flur (DG)', poly: [[t1, TN - TD], [zi.x1, TN - TD], [zi.x1, 8.70], [9.2, 8.70], [9.2, TS], [zi.x1, TS], [zi.x1, TS + TD], [t1, TS + TD]] }
+      { id: 'treppe', name: 'Treppe und Flur (DG)', poly: [[t1, TN - TD], [zi.x1, TN - TD], [zi.x1, HN], [9.2, HN], [9.2, TS], [zi.x1, TS], [zi.x1, TS + TD], [t1, TS + TD]] }
     ];
     DGR.forEach(function (r) {
       var pts = r.poly.map(function (q) { return P(q[0], q[1]); });
@@ -404,7 +413,7 @@ function buildModel(THREE) {
       var rm = new THREE.Mesh(new THREE.ShapeGeometry(shapeOf(pts)), mm);
       rm.rotation.x = -Math.PI / 2; rm.position.y = yD + 0.01; rm.receiveShadow = true; gDeck.add(rm); pickables.push(rm);
       var c = centroid(pts), area = polyArea(pts);
-      roomsOut.push({ id: r.id, name: r.name, area: area, center: c, mesh: rm, base: 0xcdae82, level: 'dg' });
+      roomsOut.push({ id: r.id, name: r.name, area: area, center: c, mesh: rm, base: 0xcdae82, level: 'dg', poly: r.poly });
       tags.push({ kind: 'room', layer: 'rooms', level: 'dg', name: r.name, area: area, pos: [c[0], yD + 0.35, c[1]] });
     });
 
@@ -438,19 +447,19 @@ function buildModel(THREE) {
     dgWall(Z.x0, Z.x1, Z.z0, zi.z0, 1.0);                       // Nord
     dgWall(Z.x0, Z.x1, zi.z1, Z.z1, 1.0);                       // Süd
     dgWall(Z.x0, zi.x0, Z.z0, Z.z1, 1.0);                       // West
-    dgWall(zi.x1, Z.x1, Z.z0, 8.70, 1.0);                       // Ost, nördlich der Treppe (bis hinter das Geländer verlängert)
+    dgWall(zi.x1, Z.x1, Z.z0, HN, 1.0);                       // Ost, nördlich der Treppe (bis hinter das Geländer verlängert)
     dgWall(zi.x1, Z.x1, TS, Z.z1, 1.0);                         // Ost, südlich der Treppe
     dgWall(Z.x0, t1, q0, q1, undefined, true);                  // Querwand West (Schräge folgt dem Dach bis zur 1-m-Kniewand)
     dgWall(t0, t1, q0, 8.55);                                   // Trennwand Nord
     dgWall(t0, t1, 9.41, Z.z1);                                 // Trennwand Süd
-    dgWall(Z.x1, 12.54, 8.70 - TD, 8.70);                       // Schrägwand nördlich der Treppenöffnung, von der Kniewand bis zur Hauskante
+    dgWall(Z.x1, 12.54, HN - TD, HN);                       // Schrägwand nördlich der Treppenöffnung, von der Kniewand bis zur Hauskante
     dgWall(9.2, Z.x1, TN - TD, TN);                             // Treppenwand Nord (lichter Abstand zur Südwand 1,60 m)
     dgWall(9.2, 12.54, TS, TS + TD);                            // Treppenwand Süd
     // Treppe nach Treppenplanung (Wortmann): 15 Steigungen à 19,81 cm, Auftritt 25 cm, Laufbreite 1,0125 m,
     // Viertelwendelung (Stufen 1 bis 6) an der Ostwand, danach gerader Lauf nach Westen. (u, v) = Maße der Zeichnung ab Innenecke.
     (function stair() {
       var rise = (yD - (yF + 0.012)) / 15, TH = 0.044, W = 0.90, PV = [0.95, W];
-      function toP(u, v) { return P(12.565 - u, 9.69 - v); }
+      function toP(u, v) { return P(12.565 - u, ZS - v); }
       function top(n) { return yF + 0.012 + n * rise; }
       var UN = []; for (var i = 7; i <= 15; i++) UN[i] = 1.357 + (i - 7) * (2.008 / 8);
       var polys = {
@@ -502,7 +511,7 @@ function buildModel(THREE) {
     var XE = 12.565;
     // Kamin: Erdgeschoss bis über den First (Querschnitt 35 x 49 cm aus dem Plan, Höhe angenommen)
     (function () {
-      var top = Y(149.6), c = P(9.365, 10.425), h = top - yF;
+      var top = Y(149.6), c = P(9.355, ZS + 0.115 + 0.35 + 0.245), h = top - yF;
       boxAt(0.35, h, 0.49, mat.chimney, c[0], yF + h / 2, c[1], gHouse);
       boxAt(0.45, 0.07, 0.59, mat.concrete, c[0], top + 0.035, c[1], gHouse);
       boxAt(0.16, 0.02, 0.28, mat.steelDark, c[0], top + 0.075, c[1], gHouse);
@@ -515,7 +524,7 @@ function buildModel(THREE) {
       boxAt(0.14, 0.16, 9.27 - 6.78, mat.timber, pw[0], yE - 0.12, pw[1], gRaf);
       boxAt(3.72 - 0.26, 0.16, 0.14, mat.timber, ps[0], yE - 0.12, ps[1], gRaf);
     })();
-    (function () { var q = P(9.365, 10.425); tags.push({ kind: 'dim', layer: 'dims', text: 'Kamin', pos: [q[0], yC + 0.7, q[1]] }); })();
+    (function () { var q = P(9.355, ZS + 0.71); tags.push({ kind: 'dim', layer: 'dims', text: 'Kamin', pos: [q[0], yC + 0.7, q[1]] }); })();
   })();
 
   // Dachfenster (fünf Stück, aus dem Dachausbauplan)

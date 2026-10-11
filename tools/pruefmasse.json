@@ -1,0 +1,23 @@
+{
+  "hinweis": "Lichte Raummaße aus dem Aufmaß des Nutzers (rote Werte im bemaßten EG-Grundriss, eingaben/bilder/32710f5f-image.png), in cm. Das Aufmaß misst fertige Oberflächen (Putz, Fliesen, Belag), das Modell Rohbaumaße. Erwartet ist deshalb Modell − Aufmaß zwischen 'putz_cm'[0] und 'putz_cm'[1]. Geprüft wird die Länge der Linie durch den Raum: richtung x = waagerecht bei hz = bei, richtung z = senkrecht bei hx = bei (hausrelativ, Meter).",
+  "putz_cm": [-1, 4],
+  "masse": [
+    { "raum": "eltern", "richtung": "z", "bei": 2.0, "cm": 300, "was": "Eltern, Tiefe" },
+    { "raum": "har", "richtung": "x", "bei": 1.5, "cm": 300, "was": "HAR, Breite" },
+    { "raum": "har", "richtung": "z", "bei": 6.0, "cm": 295, "was": "HAR, Tiefe" },
+    { "raum": "kind2", "richtung": "x", "bei": 1.0, "cm": 464, "was": "Julians Zimmer, Breite" },
+    { "raum": "kind2", "richtung": "z", "bei": 12.0, "cm": 188, "was": "Julians Zimmer, Tiefe vor dem D-Bad" },
+    { "raum": "dbad", "richtung": "x", "bei": 3.0, "cm": 204, "was": "D-Bad, Breite" },
+    { "raum": "dbad", "richtung": "z", "bei": 11.5, "cm": 189, "was": "D-Bad, Tiefe" },
+    { "raum": "bad", "richtung": "x", "bei": 6.0, "cm": 339, "was": "Bad, Breite" },
+    { "raum": "bad", "richtung": "z", "bei": 1.0, "cm": 288, "was": "Bad, Tiefe" },
+    { "raum": "ankleide", "richtung": "x", "bei": 6.0, "cm": 374, "was": "Ankleide, Breite an der Südwand" },
+    { "raum": "flur", "richtung": "x", "bei": 5.95, "cm": 484, "was": "Flur / Diele, Breite Ankleide bis Ostwand" },
+    { "raum": "flur", "richtung": "z", "bei": 8.94, "cm": 195, "was": "Flur / Diele, Tiefe West" },
+    { "raum": "flur", "richtung": "z", "bei": 11.2, "cm": 196, "was": "Flur / Diele, Tiefe Ost" },
+    { "raum": "kind1", "richtung": "x", "bei": 9.0, "cm": 339, "was": "Nähzimmer, Breite" },
+    { "raum": "kind1", "richtung": "z", "bei": 9.6, "cm": 320, "was": "Nähzimmer, Tiefe" },
+    { "raum": "speis", "richtung": "z", "bei": 12.0, "cm": 125, "was": "Speisekammer, Tiefe" },
+    { "raum": "wohnen", "richtung": "z", "bei": 6.0, "cm": 776, "was": "Wohnen, Tiefe" }
+  ]
+}

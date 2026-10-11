@@ -46,6 +46,29 @@ check(Math.abs(m.roofH(3.05, 8) - 145.77) < 1e-6 && Math.abs(m.roofH(16.0, 8) - 
 check(Math.abs(m.levels.dg - m.levels.eg - 2.971) < 1e-9, 'Geschosshöhe nicht 2,971 m');
 const ids = new Set(); m.rooms.forEach(r => { check(!ids.has(r.id), 'Raum-ID doppelt: ' + r.id); ids.add(r.id); });
 
+/* Prüfmaße aus dem Aufmaß: nur Bericht, kein Fehler (bekannte Abweichungen stehen in docs/abgleich-eg-grundriss.md) */
+function span(poly, dir, at) {
+  const ts = [];
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i], b = poly[(i + 1) % poly.length];
+    const [ca, cb, ua, ub] = dir === 'x' ? [a[1], b[1], a[0], b[0]] : [a[0], b[0], a[1], b[1]];
+    if ((ca - at) * (cb - at) < 0 || (ca === at) !== (cb === at)) { if (ca !== cb) ts.push(ua + (ub - ua) * (at - ca) / (cb - ca)); }
+  }
+  ts.sort((p, q) => p - q);
+  let best = 0; for (let i = 0; i + 1 < ts.length; i += 2) best = Math.max(best, ts[i + 1] - ts[i]);
+  return best;
+}
+const PM = JSON.parse(fs.readFileSync(path.join(__dirname, 'pruefmasse.json'), 'utf8'));
+const byId = {}; m.rooms.forEach(r => { byId[r.id] = r; });
+console.log('\nPrüfmaße: Aufmaß (fertig) ↔ Modell (Rohbau) in cm, erwartet Modell − Aufmaß = ' + PM.putz_cm[0] + ' … +' + PM.putz_cm[1] + ' (Putz), ! = auffällig');
+PM.masse.forEach(p => {
+  const r = byId[p.raum];
+  if (!r || !r.poly) { fails.push('Prüfmaß ohne Raum: ' + p.raum); return; }
+  const mod = span(r.poly, p.richtung, p.bei) * 100, d = mod - p.cm;
+  const off = d < PM.putz_cm[0] || d > PM.putz_cm[1];
+  console.log('  ' + (off ? '!' : ' ') + ' ' + p.was.padEnd(42) + String(p.cm).padStart(5) + String(mod.toFixed(1)).padStart(8) + (d >= 0 ? '  +' : '  ') + d.toFixed(1));
+});
+
 /* Snapshot */
 if (process.env.UPDATE || !fs.existsSync(SNAP)) {
   fs.writeFileSync(SNAP, JSON.stringify(cur, null, 1) + '\n');

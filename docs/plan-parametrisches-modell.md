@@ -140,6 +140,8 @@ Gemessene Strecken werden getrennt von den Steuerwerten geführt:
 ```
 Das Modell zeigt die Abweichung an. Der Nutzer entscheidet, ob er das Modell anpasst. So wird jede Messung genutzt, ohne dass Messfehler unbemerkt ins Modell wandern.
 
+*Erster Stand umgesetzt:* `tools/pruefmasse.json` enthält die lichten Raummaße aus dem Aufmaß des EG. `npm test` berichtet die Abweichung je Maß. Erwartet ist Modell − Aufmaß zwischen −1 und +4 cm, weil das Aufmaß fertige Oberflächen misst. Der Abgleich steht in `docs/abgleich-eg-grundriss.md`.
+
 ### 3.10 Später: Ausstattung
 Möbel, Sanitär und Küche als Objekte, verankert an Raum oder Wand („an Wand X, 300 mm ab Ecke, Höhe 0“). Sie wandern mit, wenn die Wand sich verschiebt. Prüfungen: Kollision mit Wänden und Türaufschlägen, Bewegungsflächen, Kopfhöhe unter der Dachschräge und unter der Treppe. Ein naheliegendes erstes Objekt ist der Schreibtisch unter der Treppe im Nähzimmer.
 

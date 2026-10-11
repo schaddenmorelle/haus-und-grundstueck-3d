@@ -1,6 +1,6 @@
 {
- "meshes": 463,
- "tris": 162944,
+ "meshes": 469,
+ "tris": 163020,
  "tags": 46,
  "plotArea": 569.77,
  "footArea": 162.22,
@@ -17,57 +17,57 @@
   "eltern": {
    "name": "Eltern",
    "level": "eg",
-   "area": 12.44
+   "area": 16.3
   },
   "har": {
    "name": "HAR",
    "level": "eg",
-   "area": 8.95
+   "area": 8.88
   },
   "kind2": {
    "name": "Julians Zimmer",
    "level": "eg",
-   "area": 13.54
+   "area": 13.25
   },
   "dbad": {
    "name": "D-Bad",
    "level": "eg",
-   "area": 3.66
+   "area": 3.77
   },
   "bad": {
    "name": "Bad (Eltern)",
    "level": "eg",
-   "area": 8.97
+   "area": 8.92
   },
   "ankleide": {
    "name": "Ankleide",
    "level": "eg",
-   "area": 5.75
+   "area": 5.64
   },
   "flur": {
    "name": "Flur / Diele",
    "level": "eg",
-   "area": 15.17
+   "area": 11.92
   },
   "kind1": {
    "name": "Nähzimmer",
    "level": "eg",
-   "area": 10.81
+   "area": 10.82
   },
   "speis": {
    "name": "Speisekammer",
    "level": "eg",
-   "area": 4.25
+   "area": 4.27
   },
   "wohnen": {
    "name": "Wohnen / Essen",
    "level": "eg",
-   "area": 39.33
+   "area": 39.73
   },
   "kueche": {
    "name": "Küche",
    "level": "eg",
-   "area": 10.78
+   "area": 10.95
   },
   "terrasse": {
    "name": "Terrasse (überdacht)",
@@ -77,7 +77,7 @@
   "pia": {
    "name": "Pias Zimmer",
    "level": "dg",
-   "area": 33.24
+   "area": 33.12
   },
   "arbeit": {
    "name": "Arbeitszimmer",
@@ -87,7 +87,7 @@
   "abstell": {
    "name": "Abstellkammer",
    "level": "dg",
-   "area": 8.51
+   "area": 8.64
   },
   "treppe": {
    "name": "Treppe und Flur (DG)",
