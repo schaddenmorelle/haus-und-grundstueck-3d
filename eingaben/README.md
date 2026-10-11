@@ -17,6 +17,7 @@ Dateien so, wie sie in das Gespräch hochgeladen wurden (Namen mit Kennung vorne
 - `foto-ostseite-alt.webp` altes Foto der Ostseite (Haustür), vor dem Dachausbau; nur das Haus ist maßgeblich, Garten und Einfahrt sind veraltet
 - `foto-terrasse-pergola.webp` Terrasse mit Pergola von Südwesten, Westwand des Wohnzimmers mit den drei Fenstertüren
 - `foto-einfahrt-ostseite-haustuer`, `foto-einfahrt-von-strasse`, `foto-einfahrt-gartentor`, `foto-einfahrt-tuerbereich-sued`, `foto-einfahrt-beet-haustuer` Fotos der Einfahrt nach dem Pflastern (11.10.2026): Haustür auf Pflasterhöhe, Vorbeet mit Winkelsteinmauer, Randsteinreihe und Stufe zur Südseite, Gartentor. Die beiden Fotos vom Nebeneingang (zwei Stufen, Tür mit Glas oben, drei Tonnen) und vom Carport (Pfosten an der Hauswand) lagen nur im Gespräch vor und sind nicht abgelegt.
+- `luftbild-dach.webp` Luftbild des Dachs von oben (11.10.2026, leicht schräg aufgenommen, daher sind höhere Teile nach oben verschoben): Solarkollektoren auf dem Westwalm, Dachfenster, Kamin, zwei PV-Module und Satellitenschüssel auf dem Südwalm
 - übrige (`1556e9a9`, `7d13ea6f`, `8b1e373f`, `becebb03`, `fa34ee3e`) frühe Eingaben der ersten Runde, nicht einzeln beschriftet
 
 ## plaene-seiten/

@@ -371,6 +371,99 @@ const inPoly = (poly, x, z) => { let ins = false; for (let i = 0, j = poly.lengt
   }
 }
 
+/* Dachfenster und Dachaufbauten (Angaben des Nutzers vom 11.10.2026, Luftbild eingaben/bilder/luftbild-dach.webp).
+   Fenstergrößen = Blendrahmenaußenmaß laut Herstellerdatenblättern (Roto Designo R8: 07/14 = 740 × 1400 mm, 11/14 = 1140 × 1400 mm;
+   VELUX GGU CK04 = 55 × 98 cm). Fenstermitten aus dem Dachausbauplan (hausrelativ). Aufbauten: Maße und Lage nach dem Luftbild geschätzt.
+   Lokales System jedes Objekts: x quer zur Traufe, y Flächennormale, z die Dachschräge hinauf. */
+{
+  const HX = x => x - 3.05, HZ = z => z - 5.74, TRAUFE_S = 14.655 + 0.235; // Traufkante des Südwalms (hz)
+  const V3 = () => new THREE.Vector3();
+  const lokal = (g, art) => { // Hüllquader der Teile (mit userData.kind === art, sonst alle) im lokalen System der Gruppe
+    g.updateMatrixWorld(true);
+    const inv = new THREE.Matrix4().copy(g.matrixWorld).invert(), b = new THREE.Box3(), v = V3();
+    g.traverse(o => { if (o.isMesh && (!art || o.userData.kind === art)) { const p = o.geometry.attributes.position; for (let i = 0; i < p.count; i++) b.expandByPoint(v.fromBufferAttribute(p, i).applyMatrix4(o.matrixWorld).applyMatrix4(inv)); } });
+    return b;
+  };
+  const welt = (g, x, y, z) => V3().set(x, y, z).applyMatrix4(g.matrixWorld);
+  const ueberDach = p => p.y + m.datum - m.roofH(p.x, p.z); // Höhe über der Dachhaut
+  const aufDach = (g, b, name, lo, hi) => { // ganze Grundfläche des Teils liegt in einer Dachfläche, Abstand zur Haut zwischen lo und hi
+    let mi = 9, ma = -9;
+    for (let i = 0; i <= 4; i++) for (let j = 0; j <= 8; j++) {
+      const d = ueberDach(welt(g, b.min.x + (b.max.x - b.min.x) * i / 4, b.min.y, b.min.z + (b.max.z - b.min.z) * j / 8)); mi = Math.min(mi, d); ma = Math.max(ma, d);
+    }
+    check(mi >= lo && ma <= hi, name + ' liegt nicht ganz auf einer Dachfläche (Abstand zur Dachhaut ' + (mi * 100).toFixed(1) + ' bis ' + (ma * 100).toFixed(1) + ' cm, erwartet ' + (lo * 100) + ' bis ' + (hi * 100) + ' cm)');
+  };
+
+  // Fenster: Typ → Blendrahmenaußenmaß (Breite quer zur Traufe × Länge entlang der Schräge)
+  const SOLL = { 'Roto WDF 07/14 R89G K WD AL': [0.74, 1.40, 3], 'Roto WSA 11/14 R89 G K WD AL': [1.14, 1.40, 1], 'Velux GGU CK04': [0.55, 0.98, 1] };
+  const fenster = kinds('dachfenster');
+  check(fenster.length === 5, 'Dachfenster: ' + fenster.length + ' statt 5');
+  Object.keys(SOLL).forEach(typ => check(fenster.filter(f => f.userData.typ === typ).length === SOLL[typ][2], 'Dachfenster ' + typ + ': ' + fenster.filter(f => f.userData.typ === typ).length + ' statt ' + SOLL[typ][2]));
+  fenster.forEach(f => {
+    const soll = SOLL[f.userData.typ], b = lokal(f, 'blendrahmen'), s = b.getSize(V3()), c = welt(f, 0, 0, 0);
+    if (!soll) { fails.push('Dachfenster mit unbekanntem Typ: ' + f.userData.typ); return; }
+    check(Math.abs(s.x - soll[0]) <= 0.005 && Math.abs(s.z - soll[1]) <= 0.005, f.userData.typ + ' bei hx ' + HX(c.x).toFixed(2) + ' / hz ' + HZ(c.z).toFixed(2) + ' hat ' + (s.x * 100).toFixed(1) + ' × ' + (s.z * 100).toFixed(1) + ' cm statt ' + soll[0] * 100 + ' × ' + soll[1] * 100 + ' cm');
+    aufDach(f, b, f.userData.typ + ' bei hx ' + HX(c.x).toFixed(2), -0.005, 0.06);
+  });
+  // Fenstermitten aus dem Dachausbauplan (hx, hz): Pias Zimmer Nord und Ost, Arbeitszimmer West und Süd, Treppenhaus Ost
+  const MITTEN = [['Roto WSA 11/14 R89 G K WD AL', 8.245, 2.47], ['Roto WDF 07/14 R89G K WD AL', 10.54, 6.835], ['Roto WDF 07/14 R89G K WD AL', 5.96, 8.60], ['Roto WDF 07/14 R89G K WD AL', 7.725, 12.24], ['Velux GGU CK04', 10.76, 8.57]];
+  MITTEN.forEach(q => check(fenster.some(f => { const c = welt(f, 0, 0, 0); return f.userData.typ === q[0] && Math.hypot(HX(c.x) - q[1], HZ(c.z) - q[2]) <= 0.05; }), 'Kein ' + q[0] + ' bei hx ' + q[1] + ' / hz ' + q[2] + ' (Dachausbauplan)'));
+  const fSued = fenster.filter(f => { const c = welt(f, 0, 0, 0); return f.userData.typ === 'Roto WDF 07/14 R89G K WD AL' && HZ(c.z) > 11; })[0];
+
+  // Solarkollektoren auf dem Westwalm: zwei Flachkollektoren nebeneinander (weißer Rahmen, dunkelblaues Glas), mittig auf der Walmachse (hz 4,725),
+  // Luftbild: Abstand von der Traufe etwa 1,4 bis 3,7 m entlang der Schräge, zusammen etwa 2,4 m breit und 2,3 m lang
+  const kol = kinds('kollektor');
+  check(kol.length === 2, 'Solarkollektoren: ' + kol.length + ' statt 2');
+  if (kol.length === 2) {
+    const kb = kol.map(o => ({ o, b: lokal(o), w: box(o) })), s0 = kb[0].b.getSize(V3()), s1 = kb[1].b.getSize(V3());
+    kb.forEach(k => {
+      const s = k.b.getSize(V3());
+      check(s.x >= 1.1 && s.x <= 1.3 && s.z >= 2.1 && s.z <= 2.5, 'Solarkollektor ' + (s.x * 100).toFixed(0) + ' × ' + (s.z * 100).toFixed(0) + ' cm statt etwa 120 × 230 cm');
+      aufDach(k.o, k.b, 'Solarkollektor', 0, 0.16);
+    });
+    const u = new THREE.Box3().union(kb[0].w).union(kb[1].w), mid = u.getCenter(V3());
+    check(Math.abs(HZ(mid.z) - 4.725) <= 0.3, 'Solarkollektoren sitzen bei hz ' + HZ(mid.z).toFixed(2) + ' statt mittig auf dem Westwalm (4,73)');
+    check(HX(u.min.x) >= 0.7 && HX(u.min.x) <= 1.3 && HX(u.max.x) >= 2.5 && HX(u.max.x) <= 3.2, 'Solarkollektoren liegen bei hx ' + HX(u.min.x).toFixed(2) + ' bis ' + HX(u.max.x).toFixed(2) + ' statt etwa 0,9 bis 2,9 (Luftbild)');
+    check(Math.abs(s0.x - s1.x) <= 0.01 && Math.abs(s0.z - s1.z) <= 0.01, 'Solarkollektoren sind verschieden groß');
+    const gap = Math.max(kb[0].w.min.z, kb[1].w.min.z) - Math.min(kb[0].w.max.z, kb[1].w.max.z);
+    check(gap >= 0 && gap <= 0.12, 'Solarkollektoren liegen nicht nebeneinander (Abstand ' + (gap * 100).toFixed(0) + ' cm)');
+  }
+
+  // Photovoltaik: zwei Module hochkant nebeneinander auf dem Südwalm, mittig auf der Firstachse (hx 8,225), knapp über der Traufe, unter dem Fenster
+  const pv = kinds('pvmodul');
+  check(pv.length === 2, 'Photovoltaikmodule: ' + pv.length + ' statt 2');
+  let pvBox = null;
+  if (pv.length === 2) {
+    const pb = pv.map(o => ({ o, b: lokal(o), w: box(o) }));
+    pb.forEach(k => {
+      const s = k.b.getSize(V3());
+      check(s.x >= 1.0 && s.x <= 1.2 && s.z >= 1.6 && s.z <= 2.0, 'PV-Modul ' + (s.x * 100).toFixed(0) + ' × ' + (s.z * 100).toFixed(0) + ' cm statt etwa 113 × 175 cm');
+      aufDach(k.o, k.b, 'PV-Modul', 0, 0.16);
+    });
+    pvBox = new THREE.Box3().union(pb[0].w).union(pb[1].w);
+    const mid = pvBox.getCenter(V3()), gap = Math.max(pb[0].w.min.x, pb[1].w.min.x) - Math.min(pb[0].w.max.x, pb[1].w.max.x);
+    check(Math.abs(HX(mid.x) - 8.225) <= 0.3, 'PV-Module sitzen bei hx ' + HX(mid.x).toFixed(2) + ' statt mittig auf der Firstachse (8,23)');
+    check(gap >= 0 && gap <= 0.12, 'PV-Module liegen nicht nebeneinander (Abstand ' + (gap * 100).toFixed(0) + ' cm)');
+    const dTr = (TRAUFE_S - HZ(pvBox.max.z)) / Math.cos(35 * Math.PI / 180);
+    check(dTr >= 0.3 && dTr <= 0.7, 'PV-Module beginnen ' + dTr.toFixed(2) + ' m (entlang der Schräge) über der Traufe statt 0,3 bis 0,7 m');
+    check(fSued && pvBox.min.z >= box(fSued).max.z + 0.1, 'PV-Module stoßen an das Südfenster');
+  }
+
+  // Satellitenschüssel: 80 cm, auf einem Mast auf dem Südwalm, rechts neben dem Südfenster (größeres hx) und über den PV-Modulen (zur Firstseite hin)
+  const sat = kinds('satellitenschuessel');
+  check(sat.length === 1, 'Satellitenschüssel: ' + sat.length + ' statt 1');
+  if (sat.length === 1) {
+    const sb = box(sat[0]), c = welt(sat[0], 0, 0, 0), rim = [];
+    sat[0].traverse(o => { if (o.isMesh && o.userData.kind === 'schuessel') rim.push(box(o).getSize(V3())); });
+    check(rim.length === 1 && Math.max(rim[0].x, rim[0].y, rim[0].z) >= 0.75 && Math.max(rim[0].x, rim[0].y, rim[0].z) <= 0.9, 'Satellitenschüssel hat nicht 80 cm Durchmesser');
+    check(Math.abs(ueberDach(c)) <= 0.12, 'Satellitenschüssel steht nicht auf der Dachhaut (Mastfuß ' + (ueberDach(c) * 100).toFixed(0) + ' cm darüber)');
+    check(sb.max.y - (c.y) >= 0.5 && sb.max.y - c.y <= 1.4, 'Satellitenschüssel ragt ' + (sb.max.y - c.y).toFixed(2) + ' m über den Mastfuß statt 0,5 bis 1,4 m');
+    check(fSued && box(fSued).max.x + 0.1 <= c.x, 'Satellitenschüssel steht nicht rechts neben dem Südfenster');
+    check(pvBox && c.x >= pvBox.min.x && c.x <= pvBox.max.x && c.z < pvBox.min.z, 'Satellitenschüssel steht nicht direkt über den PV-Modulen');
+    check(fSued && sb.min.x >= box(fSued).max.x, 'Satellitenschüssel überlappt das Südfenster');
+  }
+}
+
 /* Prüfmaße aus dem Aufmaß: nur Bericht, kein Fehler (bekannte Abweichungen stehen in docs/abgleich-eg-grundriss.md) */
 function span(poly, dir, at) {
   const ts = [];

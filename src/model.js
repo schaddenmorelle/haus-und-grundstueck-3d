@@ -711,20 +711,94 @@ function buildModel(THREE) {
     (function () { var q = P(9.355, ZS + 0.71); tags.push({ kind: 'dim', layer: 'dims', text: 'Kamin', pos: [q[0], yC + 0.7, q[1]] }); })();
   })();
 
-  // Dachfenster (fünf Stück, aus dem Dachausbauplan)
-  (function roofWindows() {
-    var WL = [[7.69, 8.80, 1.79, 3.15], [9.86, 11.22, 6.47, 7.20], [5.28, 6.64, 8.24, 8.96], [10.29, 11.23, 8.39, 8.75], [7.34, 8.11, 11.54, 12.94]];
-    WL.forEach(function (w) {
-      var c = [[w[0], w[2]], [w[1], w[2]], [w[1], w[3]], [w[0], w[3]]].map(function (p) { var q = P(p[0], p[1]); return [q[0], Y(roofH(q[0], q[1])) + 0.05, q[1]]; });
-      var pos = new Float32Array(c.reduce(function (a, v) { return a.concat(v); }, []));
-      var g = new THREE.BufferGeometry();
-      g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-      g.setIndex([0, 2, 1, 0, 3, 2]); g.computeVertexNormals();
-      var m = new THREE.Mesh(g, mat.glass); gRoof.add(m);
-      var lg = new THREE.BufferGeometry(); lg.setAttribute('position', new THREE.BufferAttribute(pos, 3));
-      lg.setIndex([0, 1, 1, 2, 2, 3, 3, 0]);
-      gRoof.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: 0x2f333a })));
+  /* ---------- Dachfenster und Dachaufbauten (Angaben des Nutzers vom 11.10.2026, Luftbild) ----------
+     Fenster: Größe = Blendrahmenaußenmaß laut Herstellerdatenblatt (Roto Designo R8: 07/14 = 740 × 1400 mm, 11/14 = 1140 × 1400 mm;
+     VELUX GGU CK04 = 55 × 98 cm), Mitte aus dem Dachausbauplan. Dämmblock Roto: 800/1460 zu 740/1400, also 3 cm rundum.
+     Aufbauten (Maße und Lage nach dem Luftbild geschätzt): zwei Solarkollektoren auf dem Westwalm, zwei PV-Module und die Satellitenschüssel
+     auf dem Südwalm. Lokales System jedes Objekts: x quer zur Traufe, y Flächennormale, z die Dachschräge hinauf. */
+  (function roofFixtures() {
+    var AL = Math.atan(TAN), S35 = Math.sin(AL), C35 = Math.cos(AL);
+    // Objekt in der Mitte (hx, hz) auf die Dachfläche setzen; o = Richtung der Dachfläche nach außen (x, z)
+    function onRoof(o, hx, hz, kind, data) {
+      var x = F.x0 + hx, z = F.z0 + hz, N = new THREE.Vector3(o[0] * S35, C35, o[1] * S35), ds = new THREE.Vector3(-o[0] * C35, S35, -o[1] * C35);
+      var g = new THREE.Group(); g.userData = Object.assign({ kind: kind }, data || {});
+      g.position.set(x, Y(roofH(x, z)), z);
+      g.quaternion.setFromRotationMatrix(new THREE.Matrix4().makeBasis(new THREE.Vector3().crossVectors(N, ds), N, ds));
+      gRoof.add(g); return g;
+    }
+    function part(g, kind, w, h, l, x, y, z, m) { // Quader (Breite quer, Höhe senkrecht zur Fläche, Länge entlang der Schräge), y = Unterkante
+      var b = mesh(new THREE.BoxGeometry(w, h, l), m, true, g, false); b.position.set(x, y + h / 2, z); if (kind) b.userData = { kind: kind }; return b;
+    }
+    function frame(g, kind, w, l, fb, h, y, m) { // Rahmen aus vier Leisten, Außenmaß w × l, Leistenbreite fb
+      part(g, kind, w, h, fb, 0, y, -(l - fb) / 2, m); part(g, kind, w, h, fb, 0, y, (l - fb) / 2, m);
+      part(g, kind, fb, h, l - 2 * fb, -(w - fb) / 2, y, 0, m); part(g, kind, fb, h, l - 2 * fb, (w - fb) / 2, y, 0, m);
+    }
+    mat.kolGlas = M(0x17337a, 0.25, 0.2); mat.kolRahmen = M(0xf2f1ed, 0.6); mat.pvRahmen = M(0x24272b, 0.5, 0.4); mat.dish = M(0x2b2e33, 0.5, 0.3, { side: THREE.DoubleSide });
+    mat.pvZelle = M(0x161d33, 0.3, 0.25);
+    if (typeof document !== 'undefined') { // Zellraster des PV-Moduls: 6 × 10 Zellen
+      var pc = document.createElement('canvas'); pc.width = 192; pc.height = 320;
+      var pg = pc.getContext('2d'); pg.fillStyle = '#161d33'; pg.fillRect(0, 0, 192, 320); pg.strokeStyle = '#3b4668'; pg.lineWidth = 2; pg.beginPath();
+      for (var pi = 0; pi <= 6; pi++) { pg.moveTo(pi * 32, 0); pg.lineTo(pi * 32, 320); }
+      for (var pj = 0; pj <= 10; pj++) { pg.moveTo(0, pj * 32); pg.lineTo(192, pj * 32); }
+      pg.stroke(); mat.pvZelle.map = new THREE.CanvasTexture(pc); mat.pvZelle.color.set(0xffffff);
+    }
+
+    // Fenster: [Typ, hx, hz der Mitte, Richtung nach außen, Breite, Länge, Dämmblock rundum]
+    var WIN = [
+      ['Roto WSA 11/14 R89 G K WD AL', 8.245, 2.47, [0, -1], 1.14, 1.40, 0.03],   // Pias Zimmer, Nord
+      ['Roto WDF 07/14 R89G K WD AL', 10.54, 6.835, [1, 0], 0.74, 1.40, 0.03],    // Pias Zimmer, Ost
+      ['Roto WDF 07/14 R89G K WD AL', 5.96, 8.60, [-1, 0], 0.74, 1.40, 0.03],     // Arbeitszimmer, West
+      ['Roto WDF 07/14 R89G K WD AL', 7.725, 12.24, [0, 1], 0.74, 1.40, 0.03],    // Arbeitszimmer, Süd
+      ['Velux GGU CK04', 10.76, 8.57, [1, 0], 0.55, 0.98, 0]                      // Treppenhaus, Ost
+    ];
+    WIN.forEach(function (d) {
+      var g = onRoof(d[3], d[1], d[2], 'dachfenster', { typ: d[0] }), w = d[4], l = d[5], fb = 0.045, y0 = 0.02;
+      frame(g, 'blendrahmen', w, l, fb, 0.07, y0, mat.frame);                     // Blendrahmen, Leiste 4,5 cm (Lichtmaß 650/1310 bei 07/14)
+      part(g, 'glas', w - 2 * fb, 0.012, l - 2 * fb, 0, y0 + 0.045, 0, mat.glass);
+      if (d[6] > 0) frame(g, 'eindeckrahmen', w + 2 * d[6], l + 2 * d[6], d[6], 0.03, y0 - 0.01, mat.zinc); // Dämmblock mit Eindeckrahmen
     });
+
+    // Solarkollektoren auf dem Westwalm: zwei Flachkollektoren nebeneinander, mittig auf der Walmachse (hz 4,725),
+    // von 1,4 bis 3,7 m Abstand zur Traufe entlang der Schräge (Luftbild), je 1,18 × 2,30 m, 5 cm Fuge
+    (function () {
+      var KW = 1.18, KL = 2.30, GAP = 0.05, s = 1.4 + KL / 2, hxm = AR.x0 - F.x0 + s * C35;
+      [-1, 1].forEach(function (k) {
+        var g = onRoof([-1, 0], hxm, 4.725 + k * (KW + GAP) / 2, 'kollektor', { b: KW, l: KL });
+        frame(g, null, KW, KL, 0.045, 0.07, 0.03, mat.kolRahmen);
+        part(g, null, KW - 0.09, 0.012, KL - 0.09, 0, 0.03 + 0.05, 0, mat.kolGlas);
+      });
+    })();
+
+    // Photovoltaik auf dem Südwalm: zwei Module hochkant nebeneinander, mittig auf der Firstachse (hx 8,225),
+    // von 0,45 bis 2,20 m Abstand zur Traufe entlang der Schräge, je 1,13 × 1,75 m, 2 cm Fuge, parallel zur Dachfläche aufgeständert
+    (function () {
+      var PW = 1.13, PL = 1.75, GAP = 0.02, s = 0.45 + PL / 2, hzm = (14.655 + OVER) - s * C35;
+      [-1, 1].forEach(function (k) {
+        var g = onRoof([0, 1], 8.225 + k * (PW + GAP) / 2, hzm, 'pvmodul', { b: PW, l: PL });
+        [-0.3, 0.3].forEach(function (f) { part(g, null, PW + 0.0, 0.03, 0.04, 0, 0.02, f * PL, mat.zinc); });  // Montageschienen
+        frame(g, null, PW, PL, 0.035, 0.035, 0.05, mat.pvRahmen);
+        var cell = new THREE.Mesh(new THREE.BoxGeometry(PW - 0.07, 0.012, PL - 0.07), [mat.pvRahmen, mat.pvRahmen, mat.pvZelle, mat.pvRahmen, mat.pvRahmen, mat.pvRahmen]);
+        cell.position.set(0, 0.05 + 0.0175, 0); cell.castShadow = true; cell.receiveShadow = true; g.add(cell);
+      });
+    })();
+
+    // Satellitenschüssel, 80 cm, rechts neben dem Südfenster und über den PV-Modulen, auf einem Mast mit Fußplatte.
+    // Ausrichtung (angenommen): Azimut 163° (Astra 19,2° Ost), Schüsselfläche 40° aufwärts geneigt
+    (function () {
+      var x = F.x0 + 8.95, z = F.z0 + (14.655 + OVER) - 3.6 * C35, r = 0.4, hd = 0.09, R = (r * r + hd * hd) / (2 * hd);
+      var g = new THREE.Group(); g.userData = { kind: 'satellitenschuessel' }; g.position.set(x, Y(roofH(x, z)), z); gRoof.add(g);
+      var plate = mesh(new THREE.BoxGeometry(0.22, 0.012, 0.22), mat.zinc, true, g, false); plate.position.y = 0.006;
+      var mast = mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.5, 12), mat.zinc, true, g, false); mast.position.y = 0.25;
+      var d = new THREE.Group(); d.position.y = 0.5; g.add(d);
+      var a = (NORTH + 163) * Math.PI / 180, e = 40 * Math.PI / 180, D = new THREE.Vector3(Math.sin(a) * Math.cos(e), Math.sin(e), -Math.cos(a) * Math.cos(e));
+      d.quaternion.setFromRotationMatrix(new THREE.Matrix4().lookAt(new THREE.Vector3(0, 0, 0), D.clone().negate(), new THREE.Vector3(0, 1, 0)));
+      var cg = new THREE.SphereGeometry(R, 32, 6, 0, 2 * Math.PI, 0, Math.asin(r / R)); cg.rotateX(-Math.PI / 2); cg.translate(0, 0, R); // Kugelkappe, hohle Seite nach +z
+      var sc = mesh(cg, mat.dish, true, d, false); sc.userData = { kind: 'schuessel' };
+      var arm = mesh(new THREE.CylinderGeometry(0.01, 0.01, 0.66, 8), mat.zinc, true, d, false);
+      arm.position.set(0, -0.29, 0.30); arm.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), new THREE.Vector3(0, 0.22, 0.41).normalize());
+      var lnb = mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.1, 10), mat.zinc, true, d, false); lnb.position.set(0, -0.18, 0.5); lnb.rotation.x = Math.PI / 2;
+      var back = mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.25, 8), mat.zinc, true, d, false); back.position.set(0, -0.06, -0.1); back.rotation.x = Math.PI / 2 - 0.3;
+    })();
   })();
 
   // Dachstuhl: Sparren, Grate, First
