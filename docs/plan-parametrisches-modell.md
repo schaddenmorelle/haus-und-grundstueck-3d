@@ -289,6 +289,8 @@ Geklärt mit dem Nutzer am 11.10.2026:
 | Kniewände | Lage aus dem Plan, die Höhe wird geprüft. |
 | Ändern über die Oberfläche | Gewünscht (11.10.2026): Maße in der Seite ändern, Prüfung ansehen, Änderungsliste exportieren und im Repository validiert als neue Sollwerte einspielen. Die Seite speichert weiterhin nichts, sie exportiert nur. Das ist der Probiermodus aus Phase 4. |
 
+Außengelände (11.10.2026): Das Pflaster der Einfahrt ist ein Dreiecksnetz aus Höhenpunkten (`HP`/`HT` in `src/model.js`) und überschreibt das Gelände innerhalb des Hofumrisses. So bleiben Gelände, Texturen und Höhenabfragen (`groundY`) an einer Stelle und stimmen miteinander überein. Das Vorbeet ist im Gelände um 30 cm angehoben, die Winkelsteinmauer ist ein eigener Körper. Die Pflasterhöhen sind teils Annahmen (siehe `AGENTS.md`, „Annahmen“) und werden mit Aufmaßwerten des Nutzers ersetzt.
+
 Noch offen: Format der exportierten Änderungsliste und Ablauf des Einspielens (Abschnitt 9, „Ändern über die Oberfläche“).
 
 Noch offen: Werden Maße in cm oder m angegeben, und Öffnungen in Plannotation (88,5/219)? Bis zur Klärung verlangt `tools/aendern.js` die Einheit ausdrücklich (`1,30m`, `12,5cm`, `885mm`). Ohne Einheit bricht es ab, damit „12,5“ nicht als Meter gelesen wird.
