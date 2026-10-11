@@ -1,0 +1,59 @@
+{
+  // Codex nutzt unter Linux bubblewrap. Das Profil erweitert das Docker-Standardprofil nur um
+  // die Namespaces und Mount-Aufrufe, die bubblewrap innerhalb des Containers braucht.
+  "runArgs": ["--security-opt=seccomp=${localWorkspaceFolder}/.devcontainer/seccomp-bubblewrap.json"],
+  "name": "haus-und-grundstueck-3d",
+  "build": {
+    "dockerfile": "Dockerfile",
+    "context": "."
+  },
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": true,
+      "configureZshAsDefaultShell": false,
+      "installOhMyZsh": false,
+      "upgradePackages": false
+    },
+    // Node steht bewusst vor Claude Code: So nutzt auch das Claude-Feature die aktuelle LTS-Version
+    // im gruppenschreibbaren nvm-Präfix. Codex wird darüber in post-create.sh installiert.
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "lts"
+    },
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {},
+    // Python 3 für build.py. Node bleibt "lts" (three@0.128.0 und Playwright laufen darauf).
+    "ghcr.io/devcontainers/features/python:1": { "version": "3.12", "installTools": false }
+  },
+  "mounts": [
+    "source=haus-und-grundstueck-3d-claude,target=/home/vscode/.claude,type=volume",
+    "source=haus-und-grundstueck-3d-gh,target=/home/vscode/.config/gh,type=volume",
+    "source=haus-und-grundstueck-3d-codex,target=/home/vscode/.codex,type=volume"
+    // Namensraum je Projekt eigen halten (Präfix <projektname>), sonst teilen sich zwei
+    // Projekte dieselbe Anmeldung und ein Rebuild des einen wirkt sich auf das andere aus.
+  ],
+  "containerUser": "vscode",
+  "remoteUser": "vscode",
+  // UID-Abgleich: Unter Windows (WSL) macht das updateRemoteUserUID. Auf dem Mac greift es nicht
+  // (laut Spezifikation nur auf Linux-Hosts) — dort gibt .devcontainer/podman-wrapper.sh die
+  // Host-UID als Build-Arg mit. Bewusst nichts Podman-Eigenes hier: kein runArgs, kein --userns.
+  "updateRemoteUserUID": true,
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  // postCreate läuft nur beim Anlegen des Containers. Was bei jedem Start stimmen muss — vor allem
+  // die Schreibrechte in den Agenten-Volumes und in der GitHub-CLI-Anmeldung, sonst kann die Anmeldung
+  // ihr Token nicht erneuern —, gehört deshalb hierher.
+  "postStartCommand": "bash .devcontainer/post-start.sh",
+  "customizations": {
+    "vscode": {
+      "extensions": [],
+      "settings": {
+        "[markdown]": {
+          "editor.formatOnSave": false,
+          "editor.formatOnPaste": false,
+          "editor.formatOnType": false,
+          "editor.codeActionsOnSave": {},
+          "files.trimTrailingWhitespace": false
+        }
+      }
+    }
+  }
+}

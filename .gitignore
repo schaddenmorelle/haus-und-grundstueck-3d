@@ -2,3 +2,4 @@ node_modules/
 dist/test_page.html
 shots/
 *.log
+.tmp/
