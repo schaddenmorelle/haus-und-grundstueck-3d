@@ -34,7 +34,7 @@ Gesprächssprache: **Deutsch**, Antworten kurz. Dieses Repository ist privat und
 - **DG-Wanddicken:** alle Trockenbauwände einheitlich 12,5 cm (nicht gemessen, genaue Maße reicht der Nutzer nach). Kniewände bleiben an der Planlage (Außenseite), Treppenwände behalten die Seite zur Treppe (1,60 m licht), Querwand und Trennwand behalten ihre Mittellinie.
 
 ## Annahmen (nicht aus Plänen belegt)
-Geländehöhen im Grundstück (±15 cm), Raumhöhe 2,525 m, Kaminhöhe, DG-Wanddicken 12,5 cm, Position des Terrassenpfostens, Fensterhöhen außer den bemaßten, Pool, Carport und Gartenelemente nach Luftbild. DG-Flächen sind Grundflächen zwischen den Kniewänden, keine Wohnfläche.
+Geländehöhen im Grundstück (±15 cm), Raumhöhe 2,525 m, Kaminhöhe, DG-Wanddicken 12,5 cm, Aufteilung der Haustür (1,16 + 0,60 m Seitenteil, nach Foto), Position des Terrassenpfostens, Fensterhöhen außer den bemaßten, Pool, Carport und Gartenelemente nach Luftbild. DG-Flächen sind Grundflächen zwischen den Kniewänden, keine Wohnfläche.
 
 ## Stil
 Kurze, sachliche Antworten auf Deutsch. Änderungen am Modell immer mit Screenshot prüfen, bevor veröffentlicht wird.

@@ -58,14 +58,24 @@ function span(poly, dir, at) {
   let best = 0; for (let i = 0; i + 1 < ts.length; i += 2) best = Math.max(best, ts[i + 1] - ts[i]);
   return best;
 }
+function edgeLen(poly, q) {
+  let best = 1e9, len = 0;
+  for (let i = 0; i < poly.length; i++) {
+    const a = poly[i], b = poly[(i + 1) % poly.length], vx = b[0] - a[0], vz = b[1] - a[1], L2 = vx * vx + vz * vz;
+    const t = Math.max(0, Math.min(1, ((q[0] - a[0]) * vx + (q[1] - a[1]) * vz) / L2));
+    const dd = Math.hypot(q[0] - a[0] - t * vx, q[1] - a[1] - t * vz);
+    if (dd < best) { best = dd; len = Math.sqrt(L2); }
+  }
+  return len;
+}
 const PM = JSON.parse(fs.readFileSync(path.join(__dirname, 'pruefmasse.json'), 'utf8'));
 const byId = {}; m.rooms.forEach(r => { byId[r.id] = r; });
 console.log('\nPrüfmaße: Aufmaß (fertig) ↔ Modell (Rohbau) in cm, erwartet Modell − Aufmaß = ' + PM.putz_cm[0] + ' … +' + PM.putz_cm[1] + ' (Putz), ! = auffällig');
 PM.masse.forEach(p => {
   const r = byId[p.raum];
   if (!r || !r.poly) { fails.push('Prüfmaß ohne Raum: ' + p.raum); return; }
-  const mod = span(r.poly, p.richtung, p.bei) * 100, d = mod - p.cm;
-  const off = d < PM.putz_cm[0] || d > PM.putz_cm[1];
+  const mod = (p.kante_bei ? edgeLen(r.poly, p.kante_bei) : span(r.poly, p.richtung, p.bei)) * 100, d = mod - p.cm;
+  const off = p.kante_bei ? Math.abs(d) > PM.kante_cm : d < PM.putz_cm[0] || d > PM.putz_cm[1];
   console.log('  ' + (off ? '!' : ' ') + ' ' + p.was.padEnd(42) + String(p.cm).padStart(5) + String(mod.toFixed(1)).padStart(8) + (d >= 0 ? '  +' : '  ') + d.toFixed(1));
 });
 

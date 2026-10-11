@@ -40,19 +40,39 @@ Stand 11.10.2026. Referenz ist `eingaben/bilder/32710f5f-image.png`, der genaues
 | Westwand Wohnen, Pfeiler zwischen den Fenstertüren | 75 / 111,5 / 86,5 | 53 / 111 / 108 | Die Summe passt zu 7,76 m. Fenstertür 1 liegt jetzt bei 7,04–9,05, Tür 2 bei 10,16–12,17. Beide sind gut 20 cm nach Norden gerückt, Tür 3 bleibt. |
 | Südwand Julians Zimmer und D-Bad, Wandstücke neben den Türen | gezeichnet rund 63 / 135 | 47 / 150 | Die Summe passt bis zur Ostwand. Tür Julians Zimmer liegt jetzt bei 9,275–10,16, rund 16 cm weiter westlich. D-Bad-Tür 76 bei 11,66–12,42. |
 
-## Auffällige Prüfmaße (bitte nachmessen)
+## Nachgemessen (geklärt)
 
-| Maß | Aufmaß | Modell (Rohbau) | Bemerkung |
-|---|---|---|---|
-| Flur / Diele, Breite von der Ankleide bis zur Ostwand | 484 | 474,5 | Aufmaß größer als Rohbau. Bad + Ankleide + Flur wären zusammen 8 cm länger als das Haus. Vermutlich 474. |
-| D-Bad, Breite | 204 | 200 | Aufmaß größer als Rohbau, Fliesen müssten es eher kleiner machen. |
-| Eltern, Wand zum HAR „287 ???“ | 287 | 312,5 bis zum Vorraum | Unklar, was gemessen wurde. |
+| Maß | erst notiert | nachgemessen | Modell (Rohbau) | Bemerkung |
+|---|---|---|---|---|
+| Flur / Diele, Breite von der Ankleide bis zur Ostwand | 484 | 471 | 474,5 | 484 war bis zur Scheibe neben der Haustür gemessen. |
+| D-Bad, Breite | 204 | 200 | 200 | passt |
+| Eltern, Wand zum HAR | 287 ??? | 314 | 312,5 | Wandlänge bis zur Ecke am Vorraum, passt |
+
+Damit liegen alle Prüfmaße im erwarteten Bereich.
 
 ## Bestätigt (Abweichung höchstens 2 cm, bzw. bis 4 cm kleiner durch Putz)
 
 Raummaße: Eltern 300, HAR 300 / 295, Julians Zimmer 464 / 188, D-Bad Tiefe 189, Bad 339 / 288, Ankleide 374, Flur Tiefen 195 / 196, Nähzimmer 339 / 320, Speisekammer 125, Wohnen 776.
 
 Wandstücke: Westwand 50 / 50 / 87 / 124, Nordwand 81 / 118 / 112 / 200, Ostwand 63 / 188 / 49 / 63 / 49 / 55 / 114 / 69 / 88, Südwand 566, HAR 198 / 168, Vorraum 85, Ankleide 125 / 144 / 163 / 408, Bad 157 / 213, Julians Zimmer 290 / 200, Nähzimmer 103 / 173 / 175 / 468, Küche 188 / 205.
+
+## Abgleich mit dem Foto der Ostseite
+
+`eingaben/bilder/foto-ostseite-alt.webp`, ein altes Foto noch vor dem Dachausbau. Betrachtet wird nur das Haus.
+
+- **Bestätigt:**
+  - Fensterteilung (Küche und Nähzimmer zweiflügelig, D-Bad und Julians Zimmer einflügelig).
+  - Fenster und Haustür enden oben auf gleicher Höhe. Das Verhältnis Fenster- zu Türhöhe auf dem Foto beträgt 0,52, das Modell hat 1,25 / 2,375 = 0,53.
+  - Kamin auf der Südseite am Firstende, Walmdach mit kurzem First, Stufe vor der Haustür.
+- **Angepasst:**
+  - Fensterrahmen und Türen weiß.
+  - Haustür: weißes Türblatt mit senkrechtem Glasstreifen, südlich daneben ein Seitenteil aus Satinato-Glas. Aufteilung 1,16 + 0,60 m, nach Foto geschätzt.
+  - Kamin über Dach dunkel verkleidet, mit Edelstahl-Abgasrohr und Haube.
+  - Dachziegel dunkelbraun, Sockel dunkel.
+  - Dachrinnen ringsum und Fallrohre DN 100. Die Fallrohre liegen an der NW-, NO- und SO-Ecke wie im Plan („RR100“); das Foto zeigt die beiden an der Ostseite.
+- **Nicht übertragen:**
+  - Die fehlenden Dachfenster: Das Foto ist älter als der Dachausbau.
+  - Satellitenschüssel, Lampe, Briefkasten und Hausnummer.
 
 ## Nicht übernommen
 

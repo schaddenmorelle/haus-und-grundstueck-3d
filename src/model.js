@@ -27,14 +27,14 @@ function buildModel(THREE) {
   }
   var mat = {
     plaster: M(0xece8df, 0.95), plasterIn: M(0xf5f3ee, 0.95), slab: M(0xaaa8a1, 0.95),
-    roof: M(0x3a3f48, 0.8, 0, { side: THREE.DoubleSide, flatShading: true }),
+    roof: M(0x3d3734, 0.8, 0, { side: THREE.DoubleSide, flatShading: true }), // Ziegel dunkelbraun (Foto)
     glass: M(0x9ec7dc, 0.1, 0, { transparent: true, opacity: 0.36, side: THREE.DoubleSide, depthWrite: false }),
-    door: M(0x2b2e34, 0.6), frame: M(0x2f333a, 0.5), concrete: M(0xc3c2bc, 0.95),
+    door: M(0xf3f3f0, 0.5), frame: M(0xeeeeea, 0.5), concrete: M(0xc3c2bc, 0.95), // Türen und Rahmen weiß (Foto)
     carportRoof: M(0x93a09d, 0.7, 0.2), carportWall: M(0xd9d6cc, 0.95), wood: M(0xb48a5c, 0.8),
     metal: M(0x6b7178, 0.5, 0.5), hedge: M(0x2f5a33, 1), trunk: M(0x6b4a2f, 1), crown: M(0x4f7d3a, 1),
     crown2: M(0x6a9547, 1), water: M(0x4fc3d8, 0.1, 0, { transparent: true, opacity: 0.8 }), poolwall: M(0x7fa7cf, 0.6, 0, { side: THREE.DoubleSide }),
     bin1: M(0x2a2c30, 0.8), bin2: M(0xe0b52b, 0.8), stone: M(0xf2f0ea, 0.9), stoneTop: M(0xc8321e, 0.8),
-    retain: M(0xb4b3ad, 0.95), step: M(0x9c9a94, 0.95), timber: M(0xc9a27a, 0.8), steelDark: M(0x2b2e33, 0.5, 0.6), chimney: M(0xd8d3c8, 0.95), board: M(0xf0eee8, 0.95), oak: M(0xc89b64, 0.6), steel: M(0xb7bcc2, 0.35, 0.8)
+    retain: M(0xb4b3ad, 0.95), step: M(0x9c9a94, 0.95), timber: M(0xc9a27a, 0.8), steelDark: M(0x2b2e33, 0.5, 0.6), chimney: M(0xd8d3c8, 0.95), chimneyOut: M(0x35383c, 0.85), sockel: M(0x46484b, 0.95), zinc: M(0xbfc3c6, 0.5, 0.4), glassDark: M(0x56616b, 0.2, 0.1), board: M(0xf0eee8, 0.95), oak: M(0xc89b64, 0.6), steel: M(0xb7bcc2, 0.35, 0.8)
   };
   mat.insul = M(0xcfd0cb, 0.95, 0, { polygonOffset: true, polygonOffsetFactor: -1, polygonOffsetUnits: -1 });
   if (typeof document !== 'undefined') {
@@ -100,6 +100,10 @@ function buildModel(THREE) {
       } else if (o.type === 'door') {
         var d = mesh(new THREE.BoxGeometry(w, hh, 0.06), mat.door, true, parent, true);
         d.position.set(cx, cy, cz); d.rotation.y = ang;
+        if (o.strip) { // senkrechter Glasstreifen im Türblatt
+          var gs = mesh(new THREE.BoxGeometry(0.1, hh - 0.6, 0.07), mat.glassDark, false, parent, false);
+          gs.position.set(cx + ux * o.strip * w, cy + 0.05, cz + uz * o.strip * w); gs.rotation.y = ang;
+        }
       }
       cur = ob;
     });
@@ -224,7 +228,7 @@ function buildModel(THREE) {
   }
   (function slab() {
     var g = new THREE.ExtrudeGeometry(shapeOf(footPts), { depth: yF - 0.0, bevelEnabled: false });
-    var o = mesh(g, mat.slab, true, gHouse, true);
+    var o = mesh(g, mat.sockel, true, gHouse, true);
     o.rotation.x = -Math.PI / 2; o.position.y = 0.0;
   })();
 
@@ -242,7 +246,7 @@ function buildModel(THREE) {
   function gdoor(a, b) { return { a: a, b: b, sill: 0, head: 2.375, type: 'glass' }; }
   // Außenwände 38,5 cm. Öffnungen aus den Maßketten des bemaßten EG-Grundrisses, Westwand Wohnen nach Aufmaß (Pfeiler 53 / 111 / 108 cm)
   xw([0, hw], [HW, hw], [{ a: 5.555, b: 6.565, sill: 0, head: 2.375, type: 'door' }, win(9.055, 10.565)], [0, -1]);
-  xw([HW - hw, 0], [HW - hw, HD], [win(1.01, 1.77), win(3.01, 3.77), { a: 4.51, b: 6.27, sill: 0, head: 2.375, type: 'door' }, win(7.01, 8.52), win(11.885, 13.395)], [1, 0]);
+  xw([HW - hw, 0], [HW - hw, HD], [win(1.01, 1.77), win(3.01, 3.77), { a: 4.51, b: 5.67, sill: 0, head: 2.375, type: 'door', strip: 0.12 }, { a: 5.67, b: 6.27, sill: 0, head: 2.375, type: 'glass', parts: 1 }, win(7.01, 8.52), win(11.885, 13.395)], [1, 0]);
   xw([HW, HD - hw], [XL, HD - hw], [gdoor(HW - 6.895, HW - 3.885)], [0, 1]);
   xw([XL + hw, HD], [XL + hw, ZU - TW], [gdoor(HD - 14.27, HD - 13.26), gdoor(HD - 12.17, HD - 10.16), gdoor(HD - 9.05, HD - 7.04)], [-1, 0]);
   xw([XL, ZU - hw], [0, ZU - hw], [{ a: XL - 3.27, b: XL - 1.76, sill: 1.5, head: 2.375, type: 'glass' }], [0, 1]);
@@ -367,6 +371,28 @@ function buildModel(THREE) {
     g.computeVertexNormals();
     var o = mesh(g, mat.roof, true, gRoof, true);
     o.name = 'roof';
+  })();
+
+  /* Dachrinnen an der Traufkante, Fallrohre DN 100 nach Plan („RR100“ an der NW-, NO- und SO-Ecke) */
+  (function gutters() {
+    var ye = Y(H.EAVE - OVER * TAN), gw = 0.12, gh = 0.1;
+    var E = [[AR.x0, AR.z0], [BR.x1, AR.z0], [BR.x1, BR.z1], [BR.x0, BR.z1], [BR.x0, AR.z1], [AR.x0, AR.z1]];
+    for (var i = 0; i < E.length; i++) {
+      var a = E[i], b = E[(i + 1) % E.length], dx = b[0] - a[0], dz = b[1] - a[1], L = Math.hypot(dx, dz);
+      var nx = dz / L, nz = -dx / L; // nach außen (Umlauf im Uhrzeigersinn, z nach unten)
+      boxAt(L + gw, gh, gw, mat.zinc, (a[0] + b[0]) / 2 + nx * gw / 2, ye - gh / 2 + 0.02, (a[1] + b[1]) / 2 + nz * gw / 2, gRoof, -Math.atan2(dz, dx));
+    }
+    var up = new THREE.Vector3(0, 1, 0);
+    function rod(A, B, r) {
+      var d = B.clone().sub(A), o = mesh(new THREE.CylinderGeometry(r, r, d.length(), 12), mat.zinc, true, gHouse, false);
+      o.position.copy(A).add(B).multiplyScalar(0.5); o.quaternion.setFromUnitVectors(up, d.normalize());
+    }
+    // [hx, hz, Richtung nach außen in x]; Rohrachse 11 cm vor der Außenwand
+    [[-0.11, 0.31, -1], [HW + 0.11, 0.31, 1], [HW + 0.11, 14.39, 1]].forEach(function (q) {
+      var p = P(q[0], q[1]), gx = q[2] < 0 ? AR.x0 - gw / 2 : BR.x1 + gw / 2, yt = ye - 0.35;
+      rod(new THREE.Vector3(p[0], groundY(p[0], p[1]) - 0.05, p[1]), new THREE.Vector3(p[0], yt, p[1]), 0.05);
+      rod(new THREE.Vector3(p[0], yt, p[1]), new THREE.Vector3(gx, ye - 0.06, p[1]), 0.05);
+    });
   })();
 
   /* ---------- Dachausbau (DG) und Dachstuhl ---------- */
@@ -512,9 +538,12 @@ function buildModel(THREE) {
     // Kamin: Erdgeschoss bis über den First (Querschnitt 35 x 49 cm aus dem Plan, Höhe angenommen)
     (function () {
       var top = Y(149.6), c = P(9.355, ZS + 0.115 + 0.35 + 0.245), h = top - yF;
-      boxAt(0.35, h, 0.49, mat.chimney, c[0], yF + h / 2, c[1], gHouse);
-      boxAt(0.45, 0.07, 0.59, mat.concrete, c[0], top + 0.035, c[1], gHouse);
-      boxAt(0.16, 0.02, 0.28, mat.steelDark, c[0], top + 0.075, c[1], gHouse);
+      var yr = Math.min.apply(null, [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(function (k) { return Y(roofH(c[0] + k[0] * 0.175, c[1] + k[1] * 0.245)); })) - 0.1;
+      boxAt(0.35, yr - yF, 0.49, mat.chimney, c[0], (yF + yr) / 2, c[1], gHouse);
+      boxAt(0.37, top - yr, 0.51, mat.chimneyOut, c[0], (yr + top) / 2, c[1], gHouse);
+      boxAt(0.39, 0.04, 0.53, mat.steelDark, c[0], top + 0.02, c[1], gHouse);
+      var fl = mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.32, 16), mat.steel, true, gHouse, false); fl.position.set(c[0], top + 0.2, c[1]);
+      var hood = mesh(new THREE.ConeGeometry(0.15, 0.1, 16), mat.steel, true, gHouse, false); hood.position.set(c[0], top + 0.42, c[1]);
     })();
     // Terrasse: Stützpfosten unter der Dachüberstandsecke mit Schwellenkranz
     (function () {
