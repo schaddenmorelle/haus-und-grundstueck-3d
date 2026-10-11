@@ -1,15 +1,25 @@
 /* Modell: baut Grundstück, Gelände, Haus, Räume, Dach und Außenanlagen.
    Koordinaten: x = Plan nach rechts, z = Plan nach unten (Meter), y = Höhe über 142,00 m ü. NN.
-   Ursprung: nordwestliche Grundstücksecke des Lageplans. */
-function buildModel(THREE) {
-  var DATUM = 142.0, NORTH = 26;
+   Ursprung: nordwestliche Grundstücksecke des Lageplans.
+   Rohbau-Maße (Achsen, Außenmaße, Wandtypen, Wände, Öffnungen, Räume, Dach) kommen aus src/data/haus.json (Parameter haus),
+   aufgelöst mit werteAufloesen() aus src/werte.js. Außenanlagen, Gelände und Ausstattung stehen noch als Zahlen in diesem Code. */
+if (typeof require !== 'undefined') var werteAufloesen = require('./werte.js').werteAufloesen;
+function buildModel(THREE, haus) {
+  if (!haus) throw new Error('buildModel: Hausdaten (src/data/haus.json) fehlen');
+  var WV = werteAufloesen(haus);
+  function axM(n) { return WV.m(n); }                       // Achse oder Ausdruck in Metern, hausrelativ
+  var LAGE = { x: haus.lage.x / 1000, z: haus.lage.z / 1000 };
+  function stX(n) { return (haus.lage.x + WV.mm(n)) / 1000; } // Standortkoordinate x einer Achse
+  function stZ(n) { return (haus.lage.z + WV.mm(n)) / 1000; }
+  var DATUM = haus.bezug.nnDatum / 1000, NORTH = 26;
   var BOUNDS = { x0: -10, x1: 36, z0: -11, z1: 39 };
-  var H = { FFB: 142.80, EAVE: 145.77, RIDGE: 149.08 };
+  var H = { FFB: haus.bezug.okffEG / 1000, EAVE: (haus.bezug.okffEG + haus.dach.traufe) / 1000, RIDGE: haus.pruefwerte.firstNN / 1000 };
   var PLOT = [[0, 0], [3.85, -0.25], [25.77, 2.975], [19.38, 23.805], [15.57, 26.795], [0, 26.795]];
   var EDGE_TXT = ['3,85', '22,25', '21,78', '4,84', '15,57', '26,80'];
-  var F = { x0: 3.05, x1: 16.0, xn: 6.55, z0: 5.74, zn: 12.52, z1: 20.395 };
-  var TE = 0.365, TI = 0.24, TL = 0.12, CEIL = 2.525, OVER = 0.235, RUN = 4.725;
-  var TAN = Math.tan(35 * Math.PI / 180); // Dachneigung 35° laut Binderplan
+  var F = { x0: stX('x.W'), x1: stX('x.O'), xn: stX('x.V'), z0: stZ('z.N'), zn: stZ('z.U'), z1: stZ('z.S') }; // Außenkanten des Hauses im Grundstückssystem
+  var CEIL = haus.geschosse.EG.lichteHoehe / 1000, OVER = haus.dach.ueberstand / 1000;
+  var RUN = (WV.mm(haus.dach.fluegelA.z[1]) - WV.mm(haus.dach.fluegelA.z[0])) / 2000; // halbe Tiefe Flügel A = Lage des Ost-West-Firsts
+  var TAN = Math.tan(haus.dach.neigung * Math.PI / 180); // Dachneigung 35° laut Binderplan
 
   function Y(e) { return e - DATUM; }
   /* Pixel des Lageplan-Bildes -> Meter */
@@ -325,8 +335,9 @@ function buildModel(THREE) {
 
   /* ---------- Haus: Erdgeschoss nach dem Original-Bauplan ----------
      Hausmaße relativ zur nordwestlichen Außenkante des oberen Baukörpers (hx nach Osten, hz nach Süden). */
-  var yF = Y(H.FFB), yE = Y(H.EAVE), yC = yF + CEIL, yD = yF + 2.971; // Geschosshöhe OKFF–OKFF 2,971 m, Decke 44,6 cm (Treppenplanung)
-  var footPts = [[F.x0, F.z0], [F.x1, F.z0], [F.x1, F.z1], [F.xn, F.z1], [F.xn, F.zn], [F.x0, F.zn]];
+  var yF = Y(H.FFB), yE = Y(H.EAVE), yC = yF + CEIL, yD = yF + haus.geschosse.DG.okff / 1000; // Geschosshöhe OKFF–OKFF 2,971 m, Decke 44,6 cm (Treppenplanung)
+  function polyAx(pts) { return pts.map(function (q) { return [axM(q[0]), axM(q[1])]; }); } // Polygon aus Achsen, hausrelativ in Metern
+  var footPts = polyAx(haus.huelle.aussen).map(function (q) { return [LAGE.x + q[0], LAGE.z + q[1]]; });
   function shapeOf(pts) {
     var s = new THREE.Shape();
     pts.forEach(function (p, i) { if (i) s.lineTo(p[0], -p[1]); else s.moveTo(p[0], -p[1]); });
@@ -339,77 +350,58 @@ function buildModel(THREE) {
     o.rotation.x = -Math.PI / 2; o.position.y = 0.0;
   })();
 
-  var HW = 12.95, HD = 14.655, XL = 3.5, ZU = 6.78, TW = 0.385, hw = TW / 2;
+  var HW = axM('x.O') - axM('x.W'), HD = axM('z.S') - axM('z.N'), XL = axM('x.V') - axM('x.W'), ZU = axM('z.U') - axM('z.N');
   function P(x, z) { return [F.x0 + x, F.z0 + z]; }
-  // Außenwand: 18,5 cm Poroton innen plus 20 cm Dämmung außen; n = Richtung nach außen
-  function xw(a, b, opens, n) {
-    var gaps = opens.map(function (o) { return { a: o.a, b: o.b, sill: o.sill, head: o.head, type: 'gap' }; });
-    function sh(p, d) { var q = P(p[0], p[1]); return [q[0] + n[0] * d, q[1] + n[1] * d]; }
-    wall(sh(a, 0.0925), sh(b, 0.0925), 0.20, yF, yE, gaps, gHouse, 0, mat.plaster);
-    wall(sh(a, -0.1), sh(b, -0.1), 0.185, yF, yE, opens, gHouse, 0, mat.plasterIn);
-  }
-  // Fenster: Brüstung 1,125, sichtbare Höhe 1,25 (Rohbauöffnung 1,50 inkl. Rollladenkasten), Oberkante wie Türen 2,375
-  function win(a, b) { return { a: a, b: b, sill: 1.125, head: 2.375, type: 'glass' }; }
-  function gdoor(a, b) { return { a: a, b: b, sill: 0, head: 2.375, type: 'glass' }; }
-  // Außenwände 38,5 cm. Öffnungen aus den Maßketten des bemaßten EG-Grundrisses, Westwand Wohnen nach Aufmaß (Pfeiler 53 / 111 / 108 cm)
-  xw([0, hw], [HW, hw], [{ a: 5.555, b: 6.565, sill: 0, head: 2.375, type: 'door', look: 'glas-oben' }, win(9.055, 10.565)], [0, -1]);
-  xw([HW - hw, 0], [HW - hw, HD], [win(1.01, 1.77), win(3.01, 3.77), { a: 4.51, b: 5.67, sill: 0, head: 2.375, type: 'door', strip: 0.12 }, { a: 5.67, b: 6.27, sill: 0, head: 2.375, type: 'glass', parts: 1 }, win(7.01, 8.52), win(11.885, 13.395)], [1, 0]);
-  xw([HW, HD - hw], [XL, HD - hw], [gdoor(HW - 6.895, HW - 3.885)], [0, 1]);
-  xw([XL + hw, HD], [XL + hw, ZU - TW], [gdoor(HD - 14.27, HD - 13.26), gdoor(HD - 12.17, HD - 10.16), gdoor(HD - 9.05, HD - 7.04)], [-1, 0]);
-  xw([XL, ZU - hw], [0, ZU - hw], [{ a: XL - 3.27, b: XL - 1.76, sill: 1.5, head: 2.375, type: 'glass' }], [0, 1]);
-  xw([hw, ZU], [hw, 0], [gdoor(ZU - 2.895, ZU - 0.885), gdoor(ZU - 5.145, ZU - 4.385)], [-1, 0]);
+  var ZS = axM('z.ZS');                                 // Nordseite Wand Nähzimmer / Speisekammer (Anker der Treppe)
 
-  // Innenwände (rechteckig: x0,x1,z0,z1 und Öffnungen als [von,bis] in hx bzw. hz), Maße aus dem bemaßten EG-Grundriss
-  function rw(x0, x1, z0, z1, opens) {
-    var horiz = (x1 - x0) >= (z1 - z0), t = horiz ? z1 - z0 : x1 - x0;
-    var a = horiz ? P(x0, (z0 + z1) / 2) : P((x0 + x1) / 2, z0), b = horiz ? P(x1, (z0 + z1) / 2) : P((x0 + x1) / 2, z1);
-    var o0 = horiz ? x0 : z0;
-    var os = (opens || []).map(function (o) { return { a: o[0] - o0, b: o[1] - o0, sill: 0, head: 2.19, type: 'gap' }; });
-    wall(a, b, t, yF, yC, os, gInner, 0, mat.plasterIn);
+  /* Wände aus haus.json. Mittellinie aus von/bis, Flucht und Dicke (in mm, hausrelativ); n zeigt von der Mittellinie zur Flucht-Seite
+     (bei Außenwänden nach außen). */
+  function wandLinie(w) {
+    var tm = w.dicke != null ? w.dicke : WV.dicke(w.typ), d = tm / 2, n = [0, 0], sg;
+    var a = [WV.mm(w.von[0]), WV.mm(w.von[1])], b = [WV.mm(w.bis[0]), WV.mm(w.bis[1])];
+    var horiz = a[1] === b[1], vert = a[0] === b[0];
+    if (w.flucht === 'mitte') n = [0, 0];
+    else if (horiz && (w.flucht === 'oben' || w.flucht === 'unten')) { sg = w.flucht === 'oben' ? 1 : -1; a[1] += sg * d; b[1] += sg * d; n = [0, -sg]; }
+    else if (vert && (w.flucht === 'links' || w.flucht === 'rechts')) { sg = w.flucht === 'links' ? 1 : -1; a[0] += sg * d; b[0] += sg * d; n = [-sg, 0]; }
+    else throw new Error('Wand ' + w.id + ': Flucht "' + w.flucht + '" passt nicht zur Richtung der Wand');
+    return { a: a, b: b, t: tm, n: n };
   }
-  // schräge Wand: Mittellinie p–q, Dicke t, Öffnungen als [von,bis] in Metern ab p
-  function dw(p, q, t, opens) {
-    var os = (opens || []).map(function (o) { return { a: o[0], b: o[1], sill: 0, head: 2.19, type: 'gap' }; });
-    wall(P(p[0], p[1]), P(q[0], q[1]), t, yF, yC, os, gInner, 0.05, mat.plasterIn);
+  var OEFFNUNG_ART = { fenster: 'glass', fenstertuer: 'glass', tuer: 'door', durchgang: 'gap' };
+  function wandOeffnungen(w, ln) { // Öffnungen in Metern ab Wandanfang; ab als Zahl = mm ab Wandanfang, als Achse = Lage auf der Achse
+    var along = Math.abs(ln.b[0] - ln.a[0]) >= Math.abs(ln.b[1] - ln.a[1]) ? 0 : 1, dir = ln.b[along] >= ln.a[along] ? 1 : -1;
+    return (w.oeffnungen || []).map(function (o) {
+      var ab = typeof o.ab === 'number' ? o.ab : (WV.mm(o.ab) - ln.a[along]) * dir, sill = o.bruestung || 0;
+      var r = { a: ab / 1000, b: (ab + o.breite) / 1000, sill: sill / 1000, head: (sill + o.hoehe) / 1000, type: OEFFNUNG_ART[o.art] };
+      if (o.felder) r.parts = o.felder;
+      if (o.aussehen) r.look = o.aussehen;
+      if (o.streifen) r.strip = o.streifen;
+      return r;
+    });
   }
-  var ZS = 9.645;                                       // Nordseite Wand Nähzimmer / Speisekammer (Anker der Treppe)
-  rw(4.57, 4.745, 0.385, 3.51);                         // Eltern / HAR
-  rw(4.57, 7.93, 3.335, 3.51, [[6.725, 7.61]]);         // HAR Süd mit Tür (HAR 2,95 tief)
-  rw(6.26, 6.435, 3.51, 4.645, [[3.64, 4.525]]);        // Querwand mit Elterntür (Vorraum Eltern / Flur)
-  rw(7.755, 7.93, 0.385, 3.51);                         // HAR / Julians Zimmer
-  dw([7.992, 3.448], [8.867, 4.323], 0.175);            // schräge Wand Julians Zimmer / Flur (17,5 cm, Flurseite 1,2375 m)
-  rw(8.80, 12.565, 4.27, 4.385, [[9.275, 10.16], [11.66, 12.42]]); // Julians Zimmer und D-Bad Süd (Türen nach Aufmaß 47 / 150 cm)
-  rw(10.44, 10.565, 2.27, 4.27);                        // D-Bad West (12,5 cm)
-  rw(10.44, 12.565, 2.27, 2.385);                       // D-Bad Nord
-  rw(0.385, 2.52, 3.395, 3.51);                         // Wand Eltern / Bad (Eltern 3,01 tief)
-  rw(1.285, 1.40, 3.51, 4.635);                         // WC-Wand im Bad
-  dw([2.479, 3.436], [3.729, 4.686], 0.115, [[0.633, 1.518]]); // schräge Wand Vorraum / Bad mit Badtür
-  rw(3.885, 6.70, 4.645, 4.76, [[4.615, 5.375]]);       // Ankleide Nord mit Tür
-  dw([6.67, 4.701], [7.733, 5.764], 0.133);             // schräge Wand Ankleide / Flur (Flurseite 1,5725 m)
-  rw(7.645, 7.82, 5.70, 6.51);                          // Ankleide Ost
-  rw(3.77, 3.885, 4.645, 6.395);                        // Bad / Ankleide (11,5 cm)
-  rw(3.885, 7.645, 6.395, 6.51);                        // Ankleide / Wohnen (11,5 cm)
-  rw(7.82, 9.005, 6.335, 6.51, [[7.995, 8.88]]);        // Flur / Wohnen mit Tür
-  rw(9.18, 12.565, 6.335, 6.45, [[9.93, 10.815]]);      // Nähzimmer Nord mit Tür
-  rw(9.005, 9.18, 6.335, 11.195);                       // Nähzimmer und Speisekammer West
-  rw(9.18, 12.565, ZS, ZS + 0.115);                     // Nähzimmer / Speisekammer
-  rw(9.005, 12.565, 11.02, 11.195, [[11.06, 11.82]]);   // Speisekammer / Küche mit Tür
+  // Fenster: Brüstung 1,125, sichtbare Höhe 1,25 (Rohbauöffnung 1,50 inkl. Rollladenkasten), Oberkante wie Türen 2,375 (Daten: bruestung + hoehe)
+  haus.waende.forEach(function (w) {
+    if (w.geschoss !== 'EG') return;
+    var ln = wandLinie(w), os = wandOeffnungen(w, ln), typ = haus.wandtypen[w.typ], y1 = w.hoehe === 'traufe' ? yE : yC;
+    var a = P(ln.a[0] / 1000, ln.a[1] / 1000), b = P(ln.b[0] / 1000, ln.b[1] / 1000);
+    if (typ.schichten) { // Außenwand: Schichten von außen (Flucht-Seite) nach innen, nur die innerste trägt Fenster und Türen
+      var off = ln.t / 2;
+      typ.schichten.forEach(function (sc, i) {
+        var dk = sc[1], c = (off - dk / 2) / 1000, innen = i === typ.schichten.length - 1;
+        var sa = [a[0] + ln.n[0] * c, a[1] + ln.n[1] * c], sb = [b[0] + ln.n[0] * c, b[1] + ln.n[1] * c];
+        var lo = innen ? os : os.map(function (o) { return { a: o.a, b: o.b, sill: o.sill, head: o.head, type: 'gap' }; });
+        wall(sa, sb, dk / 1000, yF, y1, lo, gHouse, 0, i === 0 ? mat.plaster : mat.plasterIn);
+        off -= dk;
+      });
+    } else {
+      wall(a, b, ln.t / 1000, yF, y1, os, gInner, (w.verlaengerung || 0) / 1000, mat.plasterIn);
+    }
+  });
 
   /* Räume (Polygone in hx/hz, Innenkanten). Der Vorraum mit Bad- und Ankleidetür gehört zum Elternschlafzimmer. */
-  var WOOD = 0xb99466, TILE = 0xc9ced1, TILE2 = 0xd8d4cb, CONC = 0xbab8b1;
-  var ROOMS = [
-    { id: 'eltern', name: 'Eltern', col: WOOD, poly: [[0.385, 0.385], [4.57, 0.385], [4.57, 3.51], [6.26, 3.51], [6.26, 4.645], [3.77, 4.645], [2.52, 3.395], [0.385, 3.395]] },
-    { id: 'har', name: 'HAR', col: CONC, poly: [[4.745, 0.385], [7.755, 0.385], [7.755, 3.335], [4.745, 3.335]] },
-    { id: 'kind2', name: 'Julians Zimmer', col: WOOD, poly: [[7.93, 0.385], [12.565, 0.385], [12.565, 2.27], [10.44, 2.27], [10.44, 4.27], [8.9375, 4.27], [7.93, 3.2625]] },
-    { id: 'dbad', name: 'D-Bad', col: TILE, poly: [[10.565, 2.385], [12.565, 2.385], [12.565, 4.27], [10.565, 4.27]] },
-    { id: 'bad', name: 'Bad (Eltern)', col: TILE, poly: [[0.385, 3.51], [2.4724, 3.51], [3.77, 4.8076], [3.77, 6.395], [0.385, 6.395]] },
-    { id: 'ankleide', name: 'Ankleide', col: WOOD, poly: [[3.885, 4.76], [6.635, 4.76], [7.645, 5.77], [7.645, 6.395], [3.885, 6.395]] },
-    { id: 'flur', name: 'Flur / Diele', col: TILE2, poly: [[6.435, 3.51], [7.93, 3.51], [8.805, 4.385], [12.565, 4.385], [12.565, 6.335], [7.82, 6.335], [7.82, 5.757], [6.708, 4.645], [6.435, 4.645]] },
-    { id: 'kind1', name: 'Nähzimmer', col: WOOD, poly: [[9.18, 6.45], [12.565, 6.45], [12.565, ZS], [9.18, ZS]] },
-    { id: 'speis', name: 'Speisekammer', col: TILE, poly: [[9.18, ZS + 0.115], [12.565, ZS + 0.115], [12.565, 11.02], [9.18, 11.02]] },
-    { id: 'wohnen', name: 'Wohnen / Essen', col: WOOD, poly: [[3.885, 6.51], [9.005, 6.51], [9.005, 14.27], [3.885, 14.27]] },
-    { id: 'kueche', name: 'Küche', col: TILE, poly: [[9.005, 11.195], [12.565, 11.195], [12.565, 14.27], [9.005, 14.27]] }
-  ];
+  var BODEN = { holz: 0xb99466, fliese: 0xc9ced1, 'fliese-hell': 0xd8d4cb, beton: 0xbab8b1, dg: 0xcdae82 };
+  var ROOMS = haus.raeume.filter(function (r) { return r.geschoss === 'EG'; }).map(function (r) {
+    return { id: r.id, name: r.name, col: BODEN[r.boden], poly: polyAx(r.polygon) };
+  });
   function polyArea(p) { var s = 0; for (var i = 0; i < p.length; i++) { var a = p[i], b = p[(i + 1) % p.length]; s += a[0] * b[1] - b[0] * a[1]; } return Math.abs(s) / 2; }
   function centroid(p) {
     var A = 0, cx = 0, cz = 0;
@@ -552,10 +544,9 @@ function buildModel(THREE) {
 
   /* ---------- Dachausbau (DG) und Dachstuhl ---------- */
   (function dgLayer() {
-    var inset = [[0.385, 0.385], [HW - 0.385, 0.385], [HW - 0.385, HD - 0.385], [XL + 0.385, HD - 0.385], [XL + 0.385, ZU - 0.385], [0.385, ZU - 0.385]];
+    var inset = polyAx(haus.huelle.innen);
     // Treppenöffnung 99 cm vor der Wand Nähzimmer / Speisekammer, lichter Abstand der Treppenwände 1,60 m
-    var TS = ZS, TN = TS - 1.60, HN = TS - 0.99;
-    var stairHole = [[9.2, HN], [12.54, HN], [12.54, TS], [9.2, TS]];
+    var stairHole = polyAx(haus.dg.treppenoeffnung);
     function holeOf(pts) {
       var h = new THREE.Path();
       pts.forEach(function (p, i) { var q = P(p[0], p[1]); if (i) h.lineTo(q[0], -q[1]); else h.moveTo(q[0], -q[1]); });
@@ -572,22 +563,16 @@ function buildModel(THREE) {
     var ins = new THREE.Mesh(new THREE.ShapeGeometry(sh2), mat.insul);
     ins.rotation.x = -Math.PI / 2; ins.position.y = yD + 0.004; ins.receiveShadow = true; gDeck.add(ins); pickables.push(ins);
     // ausgebauter Bereich (weiß im Plan)
-    var Z = { x0: 5.20, x1: 11.24, z0: 1.73, z1: 12.96 };
-    // Trockenbauwände im DG einheitlich 12,5 cm (Annahme, genaue Maße folgen). Kniewände behalten die Planlage (Außenseite = Z),
-    // Treppenwände die Seite zur Treppe (lichter Abstand 1,60 m), Querwand und Trennwand ihre Mittellinie.
-    var TD = 0.125, QZ = 7.31, TWX = 8.235;
-    var zi = { x0: Z.x0 + TD, x1: Z.x1 - TD, z0: Z.z0 + TD, z1: Z.z1 - TD }, q0 = QZ - TD / 2, q1 = QZ + TD / 2, t0 = TWX - TD / 2, t1 = TWX + TD / 2;
-    var zonePts = [[Z.x0, Z.z0], [Z.x1, Z.z0], [Z.x1, HN], [9.2, HN], [9.2, TS], [Z.x1, TS], [Z.x1, Z.z1], [Z.x0, Z.z1]];
+    // Trockenbauwände im DG einheitlich 12,5 cm (Annahme, genaue Maße folgen). Kniewände behalten die Planlage (Außenseite),
+    // Treppenwände die Seite zur Treppe (lichter Abstand 1,60 m), Querwand und Trennwand ihre Mittellinie (Daten: Flucht der Wand).
+    var zonePts = polyAx(haus.dg.ausbauflaeche);
     var zoneMat = M(0xcdae82, 0.8, 0, { polygonOffset: true, polygonOffsetFactor: -3, polygonOffsetUnits: -3 });
     var zone = new THREE.Mesh(new THREE.ShapeGeometry(shapeOf(zonePts.map(function (p) { return P(p[0], p[1]); }))), zoneMat);
     zone.rotation.x = -Math.PI / 2; zone.position.y = yD + 0.008; zone.receiveShadow = true; gDeck.add(zone); pickables.push(zone);
     // Räume im Dachausbau (Innenmaße in hx/hz)
-    var DGR = [
-      { id: 'pia', name: 'Pias Zimmer', poly: [[zi.x0, zi.z0], [zi.x1, zi.z0], [zi.x1, TN - TD], [t1, TN - TD], [t1, q0], [zi.x0, q0]] },
-      { id: 'arbeit', name: 'Arbeitszimmer', poly: [[zi.x0, q1], [t0, q1], [t0, zi.z1], [zi.x0, zi.z1]] },
-      { id: 'abstell', name: 'Abstellkammer', poly: [[t1, TS + TD], [zi.x1, TS + TD], [zi.x1, zi.z1], [t1, zi.z1]] },
-      { id: 'treppe', name: 'Treppe und Flur (DG)', poly: [[t1, TN - TD], [zi.x1, TN - TD], [zi.x1, HN], [9.2, HN], [9.2, TS], [zi.x1, TS], [zi.x1, TS + TD], [t1, TS + TD]] }
-    ];
+    var DGR = haus.raeume.filter(function (r) { return r.geschoss === 'DG'; }).map(function (r) {
+      return { id: r.id, name: r.name, poly: polyAx(r.polygon) };
+    });
     DGR.forEach(function (r) {
       var pts = r.poly.map(function (q) { return P(q[0], q[1]); });
       var mm = M(0xcdae82, 0.8, 0, { polygonOffset: true, polygonOffsetFactor: -5, polygonOffsetUnits: -5 });
@@ -624,23 +609,32 @@ function buildModel(THREE) {
       var m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ color: 0xf5f3ee, roughness: 0.95, side: THREE.DoubleSide }));
       m.castShadow = true; m.receiveShadow = true; gDG.add(m); pickables.push(m);
     }
-    // Kniewände (ca. 1 m hoch) zwischen ausgebautem Raum und nicht ausgebautem Dachraum
-    dgWall(Z.x0, Z.x1, Z.z0, zi.z0, 1.0);                       // Nord
-    dgWall(Z.x0, Z.x1, zi.z1, Z.z1, 1.0);                       // Süd
-    dgWall(Z.x0, zi.x0, Z.z0, Z.z1, 1.0);                       // West
-    dgWall(zi.x1, Z.x1, Z.z0, HN, 1.0);                       // Ost, nördlich der Treppe (bis hinter das Geländer verlängert)
-    dgWall(zi.x1, Z.x1, TS, Z.z1, 1.0);                         // Ost, südlich der Treppe
-    dgWall(Z.x0, t1, q0, q1, undefined, true);                  // Querwand West (Schräge folgt dem Dach bis zur 1-m-Kniewand)
-    dgWall(t0, t1, q0, 8.55);                                   // Trennwand Nord
-    dgWall(t0, t1, 9.41, Z.z1);                                 // Trennwand Süd
-    dgWall(Z.x1, 12.54, HN - TD, HN);                       // Schrägwand nördlich der Treppenöffnung, von der Kniewand bis zur Hauskante
-    dgWall(9.2, Z.x1, TN - TD, TN);                             // Treppenwand Nord (lichter Abstand zur Südwand 1,60 m)
-    dgWall(9.2, 12.54, TS, TS + TD);                            // Treppenwand Süd
+    // Wände des Dachausbaus aus haus.json: Kniewände (max. 1 m), Quer-, Trenn- und Treppenwände. Öffnungen mit hoehe "voll" reichen bis zur
+    // Oberkante; die Wand wird dort in zwei Stücke geteilt.
+    haus.waende.forEach(function (w) {
+      if (w.geschoss !== 'DG') return;
+      var ln = wandLinie(w), hm = w.hoehe && w.hoehe.max ? w.hoehe.max / 1000 : undefined, bOnly = w.dach === 'B';
+      var horiz = ln.a[1] === ln.b[1], half = ln.t / 2;
+      var s0 = horiz ? Math.min(ln.a[0], ln.b[0]) : Math.min(ln.a[1], ln.b[1]), s1 = horiz ? Math.max(ln.a[0], ln.b[0]) : Math.max(ln.a[1], ln.b[1]);
+      var c = horiz ? ln.a[1] : ln.a[0], dir = (horiz ? ln.b[0] - ln.a[0] : ln.b[1] - ln.a[1]) >= 0 ? 1 : -1;
+      var cuts = (w.oeffnungen || []).map(function (o) { // Beginn der Öffnung in Laufrichtung, dann als Bereich von–bis
+        var p0 = typeof o.ab === 'number' ? (dir > 0 ? s0 + o.ab : s1 - o.ab) : WV.mm(o.ab);
+        return dir > 0 ? [p0, p0 + o.breite] : [p0 - o.breite, p0];
+      }).sort(function (p, q) { return p[0] - q[0]; });
+      var from = s0, segs = [];
+      cuts.forEach(function (k) { segs.push([from, k[0]]); from = k[1]; });
+      segs.push([from, s1]);
+      segs.forEach(function (sg) {
+        if (sg[1] - sg[0] < 1e-6) return;
+        if (horiz) dgWall(sg[0] / 1000, sg[1] / 1000, (c - half) / 1000, (c + half) / 1000, hm, bOnly);
+        else dgWall((c - half) / 1000, (c + half) / 1000, sg[0] / 1000, sg[1] / 1000, hm, bOnly);
+      });
+    });
     // Treppe nach Treppenplanung (Wortmann): 15 Steigungen à 19,81 cm, Auftritt 25 cm, Laufbreite 1,0125 m,
     // Viertelwendelung (Stufen 1 bis 6) an der Ostwand, danach gerader Lauf nach Westen. (u, v) = Maße der Zeichnung ab Innenecke.
     (function stair() {
       var rise = (yD - (yF + 0.012)) / 15, TH = 0.044, W = 0.90, PV = [0.95, W];
-      function toP(u, v) { return P(12.565 - u, ZS - v); }
+      function toP(u, v) { return P(axM('x.Oi') - u, ZS - v); }
       function top(n) { return yF + 0.012 + n * rise; }
       var UN = []; for (var i = 7; i <= 15; i++) UN[i] = 1.357 + (i - 7) * (2.008 / 8);
       var polys = {
@@ -659,7 +653,7 @@ function buildModel(THREE) {
       });
       // Geländer: Handlauf Eiche, Stäbe Edelstahl 16 mm
       // Geländer: von unten hoch, oben zweimal 90 Grad (15 cm) und zurück bis zur Dachschräge; Nische (54 cm) daneben
-      var RB = 0.15, UE = 12.565 - zi.x1, YT = top(15) + 0.9;
+      var RB = 0.15, UE = axM('x.Oi') - axM('x.dgOi'), YT = top(15) + 0.9;
       var rp = [[0.95, 1.4, top(1) + 0.9], [0.95, W, top(4) + 0.9], [1.357, W, top(7) + 0.9], [3.365, W, YT], [3.365, W + RB, YT], [UE, W + RB, YT]];
       function pt(p) { var q = toP(p[0], p[1]); return new THREE.Vector3(q[0], p[2], q[1]); }
       var up = new THREE.Vector3(0, 1, 0), lens = [];
@@ -689,10 +683,9 @@ function buildModel(THREE) {
 
   /* ---------- Kamin und Stützpfosten ---------- */
   (function structure() {
-    var XE = 12.565;
     // Kamin: Erdgeschoss bis über den First (Querschnitt 35 x 49 cm aus dem Plan, Höhe angenommen)
     (function () {
-      var top = Y(149.6), c = P(9.355, ZS + 0.115 + 0.35 + 0.245), h = top - yF;
+      var top = Y(149.6), c = P(axM('x.naehW') + 0.175, axM('z.ZSa') + 0.35 + 0.245), h = top - yF; // Westseite bündig mit der Westwand der Speisekammer (x.naehW), 35 cm südlich der Wand Nähzimmer / Speisekammer
       var yr = Math.min.apply(null, [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(function (k) { return Y(roofH(c[0] + k[0] * 0.175, c[1] + k[1] * 0.245)); })) - 0.1;
       boxAt(0.35, yr - yF, 0.49, mat.chimney, c[0], (yF + yr) / 2, c[1], gHouse);
       boxAt(0.37, top - yr, 0.51, mat.chimneyOut, c[0], (yr + top) / 2, c[1], gHouse);
@@ -704,11 +697,11 @@ function buildModel(THREE) {
     (function () {
       var ptop = yE - 0.2, pb = TERR, c = P(0.33, 9.20), white = M(0xf2f1ed, 0.8); // weiß gestrichen (Angabe Nutzer)
       boxAt(0.14, ptop - pb, 0.14, white, c[0], (ptop + pb) / 2, c[1], gHouse);
-      var pw = P(0.33, (6.78 + 9.27) / 2), ps = P((0.26 + 3.72) / 2, 9.20);
-      boxAt(0.14, 0.16, 9.27 - 6.78, white, pw[0], yE - 0.12, pw[1], gRaf);
+      var pw = P(0.33, (ZU + 9.27) / 2), ps = P((0.26 + 3.72) / 2, 9.20);
+      boxAt(0.14, 0.16, 9.27 - ZU, white, pw[0], yE - 0.12, pw[1], gRaf);
       boxAt(3.72 - 0.26, 0.16, 0.14, white, ps[0], yE - 0.12, ps[1], gRaf);
     })();
-    (function () { var q = P(9.355, ZS + 0.71); tags.push({ kind: 'dim', layer: 'dims', text: 'Kamin', pos: [q[0], yC + 0.7, q[1]] }); })();
+    (function () { var q = P(axM('x.naehW') + 0.175, ZS + 0.71); tags.push({ kind: 'dim', layer: 'dims', text: 'Kamin', pos: [q[0], yC + 0.7, q[1]] }); })();
   })();
 
   /* ---------- Dachfenster und Dachaufbauten (Angaben des Nutzers vom 11.10.2026, Luftbild) ----------
@@ -772,7 +765,7 @@ function buildModel(THREE) {
     // Photovoltaik auf dem Südwalm: zwei Module hochkant nebeneinander, mittig auf der Firstachse (hx 8,225),
     // von 0,45 bis 2,20 m Abstand zur Traufe entlang der Schräge, je 1,13 × 1,75 m, 2 cm Fuge, parallel zur Dachfläche aufgeständert
     (function () {
-      var PW = 1.13, PL = 1.75, GAP = 0.02, s = 0.45 + PL / 2, hzm = (14.655 + OVER) - s * C35;
+      var PW = 1.13, PL = 1.75, GAP = 0.02, s = 0.45 + PL / 2, hzm = (HD + OVER) - s * C35;
       [-1, 1].forEach(function (k) {
         var g = onRoof([0, 1], 8.225 + k * (PW + GAP) / 2, hzm, 'pvmodul', { b: PW, l: PL });
         [-0.3, 0.3].forEach(function (f) { part(g, null, PW + 0.0, 0.03, 0.04, 0, 0.02, f * PL, mat.zinc); });  // Montageschienen
@@ -785,7 +778,7 @@ function buildModel(THREE) {
     // Satellitenschüssel, 80 cm, rechts neben dem Südfenster und über den PV-Modulen, auf einem Mast mit Fußplatte.
     // Ausrichtung (angenommen): Azimut 163° (Astra 19,2° Ost), Schüsselfläche 40° aufwärts geneigt
     (function () {
-      var x = F.x0 + 8.95, z = F.z0 + (14.655 + OVER) - 3.6 * C35, r = 0.4, hd = 0.09, R = (r * r + hd * hd) / (2 * hd);
+      var x = F.x0 + 8.95, z = F.z0 + (HD + OVER) - 3.6 * C35, r = 0.4, hd = 0.09, R = (r * r + hd * hd) / (2 * hd);
       var g = new THREE.Group(); g.userData = { kind: 'satellitenschuessel' }; g.position.set(x, Y(roofH(x, z)), z); gRoof.add(g);
       var plate = mesh(new THREE.BoxGeometry(0.22, 0.012, 0.22), mat.zinc, true, g, false); plate.position.y = 0.006;
       var mast = mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.5, 12), mat.zinc, true, g, false); mast.position.y = 0.25;

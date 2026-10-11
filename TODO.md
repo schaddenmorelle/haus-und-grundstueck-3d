@@ -19,7 +19,6 @@ Die Arbeitsliste dieses Projekts, **von Anfang an** geführt und nicht nachträg
 
 <!-- Beschlossen und begründet, aber noch nicht angefangen. -->
 
-- [ ] Phase 1 des Umbauplans (`docs/plan-parametrisches-modell.md`, Abschnitt 8): Daten aus `model.js` in `haus.json` herauslösen (Achsen, gesperrte Außenmaße, Wandtypen, Wände, Öffnungen). Fertig, wenn `model.js` die Daten liest und `npm test` ohne Abweichung vom Snapshot grün bleibt.
 - [ ] Ändern über die Oberfläche (Probiermodus, Plan Abschnitt 4, 8 und 9): Maße in der Seite ändern, Prüfung und Auswirkungen anzeigen, den Export als Änderungsliste erzeugen und mit einem Werkzeug im Repository validiert als neue Sollwerte einspielen. Baut auf Phase 1 und `tools/aendern.js` (Phase 4) auf. Fertig, wenn ein in der Seite geänderter Wert exportiert, vom Werkzeug geprüft und eingespielt wird, `npm test` danach grün ist und ein ungültiger Export abgelehnt wird.
 
 ## Irgendwann

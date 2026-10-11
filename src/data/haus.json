@@ -1,0 +1,235 @@
+{
+  "version": 1,
+  "einheit": "mm",
+  "hinweis": "Einzige Quelle für Rohbau-Maße (Plan docs/plan-parametrisches-modell.md). Alle Maße in ganzen Millimetern, hausrelativ (hx nach Osten, hz nach Süden, Ursprung NW-Außenecke des oberen Gebäudeblocks). Ausdrücke: Zahl = mm, Achsenname, oder { ref, plus, minus } mit Zahl in mm oder Wandtyp (\"IW175/2\" = halbe Dicke). quelle: plan | aufmass | annahme | nutzer.",
+
+  "lage": { "x": 3050, "z": 5740, "quelle": "plan", "notiz": "NW-Außenecke des oberen Gebäudeblocks im Grundstückssystem (Standortkoordinaten = Lage + hausrelativ)" },
+  "bezug": { "nnDatum": 142000, "okffEG": 142800, "quelle": "plan", "notiz": "Höhen y = Höhe ü. NN − 142,0; OKFF EG 142,80 m ü. NN" },
+  "geschosse": {
+    "EG": { "okff": 0, "lichteHoehe": 2525, "quelle": "annahme", "notiz": "Raumhöhe 2,525 m angenommen" },
+    "DG": { "okff": 2971, "quelle": "plan", "fest": true, "notiz": "Treppenplanung: Geschosshöhe OKFF–OKFF 2,971 m, Decke 44,6 cm" }
+  },
+
+  "aussenmasse": {
+    "x.W": { "wert": 0, "fest": true, "quelle": "plan", "notiz": "Westkante des oberen Gebäudeblocks (Ursprung)" },
+    "x.O": { "wert": 12950, "fest": true, "quelle": "plan", "notiz": "Ostkante, Breite 12,95 m" },
+    "x.V": { "wert": 3500, "fest": true, "quelle": "plan", "notiz": "Westkante des Südbaukörpers (Versprung 3,50 m)" },
+    "z.N": { "wert": 0, "fest": true, "quelle": "plan", "notiz": "Nordkante (Ursprung)" },
+    "z.U": { "wert": 6780, "fest": true, "quelle": "plan", "notiz": "Südkante des Westbaukörpers (Versprung 6,78 m)" },
+    "z.S": { "wert": 14655, "fest": true, "quelle": "plan", "notiz": "Südkante, Tiefe 14,655 m" }
+  },
+
+  "wandtypen": {
+    "AW": { "dicke": 385, "schichten": [["EPS", 200], ["Poroton", 185]], "quelle": "nutzer", "notiz": "Außenwand: 20 cm EPS außen, 18,5 cm Poroton innen. Die erste Schicht liegt auf der Flucht-Seite der Wand (Außenseite)." },
+    "IW175": { "dicke": 175, "quelle": "plan" },
+    "IW125": { "dicke": 125, "quelle": "plan" },
+    "IW115": { "dicke": 115, "quelle": "plan" },
+    "TB-DG": { "dicke": 125, "quelle": "annahme", "notiz": "Trockenbauwände im DG einheitlich 12,5 cm, nicht gemessen (Maße reicht der Nutzer nach)" }
+  },
+
+  "achsen": {
+    "x.Wi": { "ref": "x.W", "plus": "AW", "notiz": "Innenseite Westwand" },
+    "x.Oi": { "ref": "x.O", "minus": "AW", "notiz": "Innenseite Ostwand; Anker der Treppe" },
+    "x.Vi": { "ref": "x.V", "plus": "AW", "notiz": "Innenseite Westwand Wohnzimmer" },
+
+    "x.eltO": { "wert": 4570, "quelle": "plan", "notiz": "Eltern, Ostseite (Westseite der HAR-Wand)" },
+    "x.harW": { "ref": "x.eltO", "plus": "IW175" },
+    "x.harO": { "ref": "x.harW", "plus": 3010, "quelle": "plan", "notiz": "HAR 3,01 m breit (Aufmaß 3,00 m fertig)" },
+    "x.julW": { "ref": "x.harO", "plus": "IW175", "notiz": "Julians Zimmer, Westseite" },
+    "x.elt2": { "wert": 6260, "quelle": "plan", "notiz": "Querwand mit Elterntür, Westseite (Kette 5,875 + 17,5)" },
+    "x.elt2a": { "ref": "x.elt2", "plus": "IW175" },
+    "x.dbW": { "wert": 10440, "quelle": "plan", "notiz": "D-Bad, Westwand außen" },
+    "x.dbWi": { "ref": "x.dbW", "plus": "IW125", "notiz": "D-Bad, Innenseite West" },
+    "x.badO": { "ref": "x.Wi", "plus": 3385, "quelle": "plan", "notiz": "Bad 3,385 m breit (Kette oben), Westseite der Wand Bad / Ankleide" },
+    "x.badOa": { "ref": "x.badO", "plus": "IW115", "notiz": "Ostseite der Wand Bad / Ankleide; liegt bündig mit x.Vi, die Ketten laufen getrennt" },
+    "x.ankO": { "wert": 7645, "quelle": "plan", "notiz": "Ankleide, Ostseite" },
+    "x.flurW": { "ref": "x.ankO", "plus": "IW175", "notiz": "Flur, Westseite" },
+    "x.wohnO": { "wert": 9005, "quelle": "plan", "notiz": "Wohnen / Essen, Ostseite (Küche, Westseite)" },
+    "x.naehW": { "ref": "x.wohnO", "plus": "IW175", "notiz": "Nähzimmer und Speisekammer, Westseite" },
+
+    "z.Ni": { "ref": "z.N", "plus": "AW", "notiz": "Innenseite Nordwand" },
+    "z.Ui": { "ref": "z.U", "minus": "AW", "notiz": "Innenseite Südwand des Westbaukörpers (Bad)" },
+    "z.Si": { "ref": "z.S", "minus": "AW", "notiz": "Innenseite Südwand" },
+
+    "z.harSi": { "ref": "z.Ni", "plus": 2950, "quelle": "aufmass", "notiz": "HAR 2,95 m tief (Aufmaß)" },
+    "z.harSa": { "ref": "z.harSi", "plus": "IW175", "notiz": "HAR-Südwand, Südseite" },
+    "z.eltS": { "ref": "z.Ni", "plus": 3010, "quelle": "plan", "notiz": "Eltern 3,01 m tief (Kette links), Nordseite der Wand Eltern / Bad" },
+    "z.eltSa": { "ref": "z.eltS", "plus": "IW115", "notiz": "Südseite der Wand Eltern / Bad; liegt bündig mit z.harSa, die Ketten laufen getrennt" },
+    "z.ankS": { "wert": 6395, "quelle": "plan", "notiz": "Nordseite der Wand Ankleide / Wohnen; liegt bündig mit z.Ui (Innenseite Südwand Bad), die Ketten laufen getrennt" },
+    "z.ankN": { "wert": 4645, "quelle": "plan", "notiz": "Ankleide Nordwand, Nordseite" },
+    "z.ankNi": { "ref": "z.ankN", "plus": "IW115" },
+    "z.julS": { "wert": 4270, "quelle": "plan", "notiz": "Südwand Julians Zimmer und D-Bad, Nordseite" },
+    "z.julSa": { "ref": "z.julS", "plus": "IW115" },
+    "z.dbN": { "wert": 2270, "quelle": "plan", "notiz": "D-Bad, Nordwand außen" },
+    "z.dbNi": { "ref": "z.dbN", "plus": "IW115", "notiz": "D-Bad, Innenseite Nord" },
+    "z.wohnN": { "ref": "z.ankS", "plus": "IW115", "notiz": "Wohnen / Essen, Nordseite (Wand Ankleide / Wohnen); liegt bündig mit z.flurS + IW175" },
+    "z.flurS": { "wert": 6335, "quelle": "plan", "notiz": "Flur, Südseite" },
+    "z.naehN": { "ref": "z.flurS", "plus": "IW115", "notiz": "Nähzimmer, Nordseite" },
+    "z.ZS": { "wert": 9645, "quelle": "plan", "notiz": "Nordseite der Wand Nähzimmer / Speisekammer; Anker von Treppe und Treppenöffnung" },
+    "z.ZSa": { "ref": "z.ZS", "plus": "IW115", "notiz": "Speisekammer, Nordseite" },
+    "z.speisS": { "wert": 11020, "quelle": "plan", "notiz": "Wand Speisekammer / Küche, Nordseite" },
+    "z.kuecheN": { "ref": "z.speisS", "plus": "IW175", "notiz": "Küche, Nordseite" },
+    "z.A": { "wert": 9450, "quelle": "plan", "notiz": "Südkante des Dachflügels A (Ost-West-First bei hz 4,725)" },
+
+    "x.dgW": { "wert": 5200, "quelle": "plan", "notiz": "DG: Außenseite der West-Kniewand (Planlage)" },
+    "x.dgO": { "wert": 11240, "quelle": "plan", "notiz": "DG: Außenseite der Ost-Kniewand (Planlage)" },
+    "x.dgWi": { "ref": "x.dgW", "plus": "TB-DG" },
+    "x.dgOi": { "ref": "x.dgO", "minus": "TB-DG" },
+    "x.tw": { "wert": 8235, "quelle": "plan", "notiz": "DG: Mittellinie der Trennwand Arbeitszimmer / Abstellkammer" },
+    "x.twW": { "ref": "x.tw", "minus": "TB-DG/2" },
+    "x.twO": { "ref": "x.tw", "plus": "TB-DG/2" },
+    "x.treppeW": { "wert": 9200, "notiz": "DG: Westende von Treppenöffnung und Treppenwänden (AGENTS.md: hx 9,2–12,54)" },
+    "x.treppeO": { "wert": 12540, "notiz": "DG: Ostende der Treppenöffnung an der Hauskante (AGENTS.md: hx 9,2–12,54)" },
+
+    "z.dgN": { "wert": 1730, "quelle": "plan", "notiz": "DG: Außenseite der Nord-Kniewand (Planlage)" },
+    "z.dgS": { "wert": 12960, "quelle": "plan", "notiz": "DG: Außenseite der Süd-Kniewand (Planlage)" },
+    "z.dgNi": { "ref": "z.dgN", "plus": "TB-DG" },
+    "z.dgSi": { "ref": "z.dgS", "minus": "TB-DG" },
+    "z.QZ": { "wert": 7310, "quelle": "plan", "notiz": "DG: Mittellinie der Querwand Pias Zimmer / Arbeitszimmer" },
+    "z.qN": { "ref": "z.QZ", "minus": "TB-DG/2" },
+    "z.qS": { "ref": "z.QZ", "plus": "TB-DG/2" },
+    "z.tN": { "ref": "z.ZS", "minus": 1600, "quelle": "nutzer", "notiz": "DG: Südseite der Treppenwand Nord, 1,60 m lichter Abstand zur Treppenwand Süd" },
+    "z.tNa": { "ref": "z.tN", "minus": "TB-DG" },
+    "z.tSa": { "ref": "z.ZS", "plus": "TB-DG", "notiz": "DG: Südseite der Treppenwand Süd" },
+    "z.HN": { "ref": "z.ZS", "minus": 990, "quelle": "nutzer", "notiz": "DG: Nordkante der Treppenöffnung, 99 cm tief" },
+    "z.tuerN": { "wert": 8550, "quelle": "plan", "notiz": "DG: Tür Arbeitszimmer, Nordseite (hz 8,55–9,41)" }
+  },
+
+  "huelle": {
+    "aussen": [["x.W", "z.N"], ["x.O", "z.N"], ["x.O", "z.S"], ["x.V", "z.S"], ["x.V", "z.U"], ["x.W", "z.U"]],
+    "innen": [["x.Wi", "z.Ni"], ["x.Oi", "z.Ni"], ["x.Oi", "z.Si"], ["x.Vi", "z.Si"], ["x.Vi", "z.Ui"], ["x.Wi", "z.Ui"]]
+  },
+
+  "dach": {
+    "neigung": 35, "fest": true, "quelle": "plan", "notiz": "Binderplan, Ansichten, Lageplan; vom Nutzer bestätigt",
+    "ueberstand": 235,
+    "traufe": 2970, "traufeNotiz": "Traufe 145,77 m ü. NN, hier ab OKFF EG",
+    "fluegelA": { "x": ["x.W", "x.O"], "z": ["z.N", "z.A"], "notiz": "Ost-West-First" },
+    "fluegelB": { "x": ["x.V", "x.O"], "z": ["z.N", "z.S"], "notiz": "Nord-Süd-First bei hx 8,225" }
+  },
+  "pruefwerte": { "firstNN": 149080, "quelle": "plan", "notiz": "First 149,08 m ü. NN laut Plan; das Modell berechnet ihn aus Traufe und Neigung" },
+
+  "dg": {
+    "ausbauflaeche": [["x.dgW", "z.dgN"], ["x.dgO", "z.dgN"], ["x.dgO", "z.HN"], ["x.treppeW", "z.HN"], ["x.treppeW", "z.ZS"], ["x.dgO", "z.ZS"], ["x.dgO", "z.dgS"], ["x.dgW", "z.dgS"]],
+    "treppenoeffnung": [["x.treppeW", "z.HN"], ["x.treppeO", "z.HN"], ["x.treppeO", "z.ZS"], ["x.treppeW", "z.ZS"]]
+  },
+
+  "waende": [
+    { "id": "eg.aw.nord", "geschoss": "EG", "typ": "AW", "von": ["x.W", "z.N"], "bis": ["x.O", "z.N"], "flucht": "oben", "hoehe": "traufe",
+      "oeffnungen": [
+        { "art": "tuer", "ab": 5555, "breite": 1010, "hoehe": 2375, "aussehen": "glas-oben", "notiz": "Nebeneingang (Foto): oben dunkles Glas, unten weiße Füllung" },
+        { "art": "fenster", "ab": 9055, "breite": 1510, "bruestung": 1125, "hoehe": 1250 }
+      ] },
+    { "id": "eg.aw.ost", "geschoss": "EG", "typ": "AW", "von": ["x.O", "z.N"], "bis": ["x.O", "z.S"], "flucht": "rechts", "hoehe": "traufe",
+      "oeffnungen": [
+        { "art": "fenster", "ab": 1010, "breite": 760, "bruestung": 1125, "hoehe": 1250 },
+        { "art": "fenster", "ab": 3010, "breite": 760, "bruestung": 1125, "hoehe": 1250 },
+        { "art": "tuer", "ab": 4510, "breite": 1160, "hoehe": 2375, "streifen": 0.12, "notiz": "Haustür: Türblatt mit senkrechtem Glasstreifen (Anteil der Breite), Aufteilung 1,16 + 0,60 m nach Foto geschätzt" },
+        { "art": "fenstertuer", "ab": 5670, "breite": 600, "hoehe": 2375, "felder": 1, "notiz": "Seitenteil der Haustür" },
+        { "art": "fenster", "ab": 7010, "breite": 1510, "bruestung": 1125, "hoehe": 1250 },
+        { "art": "fenster", "ab": 11885, "breite": 1510, "bruestung": 1125, "hoehe": 1250 }
+      ] },
+    { "id": "eg.aw.sued", "geschoss": "EG", "typ": "AW", "von": ["x.O", "z.S"], "bis": ["x.V", "z.S"], "flucht": "unten", "hoehe": "traufe",
+      "oeffnungen": [
+        { "art": "fenstertuer", "ab": 6055, "breite": 3010, "hoehe": 2375, "notiz": "Terrassentür Wohnzimmer, ab Ostecke gemessen" }
+      ] },
+    { "id": "eg.aw.west-wohnen", "geschoss": "EG", "typ": "AW", "von": ["x.V", "z.S"], "bis": ["x.V", "z.Ui"], "flucht": "links", "hoehe": "traufe",
+      "notiz": "Endet bei z.Ui: die Außenwandecke zwischen Wohnzimmer, Ankleide und Bad ist geschlossen (Westwand beginnt bei ZU − TW)",
+      "oeffnungen": [
+        { "art": "fenstertuer", "ab": 385, "breite": 1010, "hoehe": 2375, "quelle": "plan" },
+        { "art": "fenstertuer", "ab": 2485, "breite": 2010, "hoehe": 2375, "quelle": "aufmass", "notiz": "Pfeiler 53 / 111 / 108 cm nach Aufmaß" },
+        { "art": "fenstertuer", "ab": 5605, "breite": 2010, "hoehe": 2375, "quelle": "aufmass" }
+      ] },
+    { "id": "eg.aw.sued-west", "geschoss": "EG", "typ": "AW", "von": ["x.V", "z.U"], "bis": ["x.W", "z.U"], "flucht": "unten", "hoehe": "traufe",
+      "oeffnungen": [
+        { "art": "fenster", "ab": 230, "breite": 1510, "bruestung": 1500, "hoehe": 875, "notiz": "Badfenster" }
+      ] },
+    { "id": "eg.aw.west", "geschoss": "EG", "typ": "AW", "von": ["x.W", "z.U"], "bis": ["x.W", "z.N"], "flucht": "links", "hoehe": "traufe",
+      "oeffnungen": [
+        { "art": "fenstertuer", "ab": 1635, "breite": 760, "hoehe": 2375 },
+        { "art": "fenstertuer", "ab": 3885, "breite": 2010, "hoehe": 2375 }
+      ] },
+
+    { "id": "eg.eltern-har", "geschoss": "EG", "typ": "IW175", "von": ["x.eltO", "z.Ni"], "bis": ["x.eltO", "z.harSa"], "flucht": "links", "hoehe": "decke" },
+    { "id": "eg.har-sued", "geschoss": "EG", "typ": "IW175", "von": ["x.eltO", "z.harSi"], "bis": ["x.julW", "z.harSi"], "flucht": "oben", "hoehe": "decke",
+      "oeffnungen": [{ "art": "durchgang", "ab": 2155, "breite": 885, "hoehe": 2190, "quelle": "aufmass", "notiz": "Tür HAR 88,5/219" }] },
+    { "id": "eg.querwand-elterntuer", "geschoss": "EG", "typ": "IW175", "von": ["x.elt2", "z.harSa"], "bis": ["x.elt2", "z.ankN"], "flucht": "links", "hoehe": "decke",
+      "oeffnungen": [{ "art": "durchgang", "ab": 130, "breite": 885, "hoehe": 2190, "notiz": "Elterntür 88,5/219, Lage und Breite angenommen" }] },
+    { "id": "eg.har-julian", "geschoss": "EG", "typ": "IW175", "von": ["x.harO", "z.Ni"], "bis": ["x.harO", "z.harSa"], "flucht": "links", "hoehe": "decke" },
+    { "id": "eg.julian-flur-schraeg", "geschoss": "EG", "typ": "IW175", "von": [7992, 3448], "bis": [8867, 4323], "flucht": "mitte", "verlaengerung": 50, "hoehe": "decke",
+      "notiz": "Schrägwand 45° (Planänderung 1), Flurseite 1,2375 m; Mittellinie, 5 cm Verlängerung an beiden Enden" },
+    { "id": "eg.julian-dbad-sued", "geschoss": "EG", "typ": "IW115", "von": [8800, "z.julS"], "bis": ["x.Oi", "z.julS"], "flucht": "oben", "hoehe": "decke",
+      "oeffnungen": [
+        { "art": "durchgang", "ab": 475, "breite": 885, "hoehe": 2190, "quelle": "aufmass", "notiz": "Tür Julians Zimmer nach Aufmaß 47 / 150 cm" },
+        { "art": "durchgang", "ab": 2860, "breite": 760, "hoehe": 2190, "quelle": "aufmass", "notiz": "Tür D-Bad 76" }
+      ] },
+    { "id": "eg.dbad-west", "geschoss": "EG", "typ": "IW125", "von": ["x.dbW", "z.dbN"], "bis": ["x.dbW", "z.julS"], "flucht": "links", "hoehe": "decke" },
+    { "id": "eg.dbad-nord", "geschoss": "EG", "typ": "IW115", "von": ["x.dbW", "z.dbN"], "bis": ["x.Oi", "z.dbN"], "flucht": "oben", "hoehe": "decke" },
+    { "id": "eg.eltern-bad", "geschoss": "EG", "typ": "IW115", "von": ["x.Wi", "z.eltS"], "bis": [2520, "z.eltS"], "flucht": "oben", "hoehe": "decke", "notiz": "Wand Eltern / Bad, Eltern 3,01 m tief (Kette links)" },
+    { "id": "eg.wc", "geschoss": "EG", "typ": "IW115", "von": [1285, "z.eltSa"], "bis": [1285, 4635], "flucht": "links", "hoehe": "decke", "notiz": "WC-Wand, WC 90 cm breit" },
+    { "id": "eg.vorraum-bad-schraeg", "geschoss": "EG", "typ": "IW115", "von": [2479, 3436], "bis": [3729, 4686], "flucht": "mitte", "verlaengerung": 50, "hoehe": "decke",
+      "notiz": "Schrägwand 45° Vorraum / Bad, Mittellinie",
+      "oeffnungen": [{ "art": "durchgang", "ab": 633, "breite": 885, "hoehe": 2190, "notiz": "Badtür 88,5" }] },
+    { "id": "eg.ankleide-nord", "geschoss": "EG", "typ": "IW115", "von": ["x.badOa", "z.ankN"], "bis": [6700, "z.ankN"], "flucht": "oben", "hoehe": "decke",
+      "oeffnungen": [{ "art": "durchgang", "ab": 730, "breite": 760, "hoehe": 2190, "notiz": "Tür Ankleide 76" }] },
+    { "id": "eg.ankleide-flur-schraeg", "geschoss": "EG", "typ": "IW115", "dicke": 133, "von": [6670, 4701], "bis": [7733, 5764], "flucht": "mitte", "verlaengerung": 50, "hoehe": "decke",
+      "notiz": "Schrägwand Ankleide / Flur, rund 13 cm (Plan), Flurseite 1,5725 m" },
+    { "id": "eg.ankleide-ost", "geschoss": "EG", "typ": "IW175", "von": ["x.ankO", 5700], "bis": ["x.ankO", "z.wohnN"], "flucht": "links", "hoehe": "decke" },
+    { "id": "eg.bad-ankleide", "geschoss": "EG", "typ": "IW115", "von": ["x.badO", "z.ankN"], "bis": ["x.badO", "z.ankS"], "flucht": "links", "hoehe": "decke" },
+    { "id": "eg.ankleide-wohnen", "geschoss": "EG", "typ": "IW115", "von": ["x.badOa", "z.ankS"], "bis": ["x.ankO", "z.ankS"], "flucht": "oben", "hoehe": "decke" },
+    { "id": "eg.flur-wohnen", "geschoss": "EG", "typ": "IW175", "von": ["x.flurW", "z.flurS"], "bis": ["x.wohnO", "z.flurS"], "flucht": "oben", "hoehe": "decke",
+      "oeffnungen": [{ "art": "durchgang", "ab": 175, "breite": 885, "hoehe": 2190, "notiz": "Durchgang Flur / Wohnen" }] },
+    { "id": "eg.flur-naehzimmer", "geschoss": "EG", "typ": "IW115", "von": ["x.naehW", "z.flurS"], "bis": ["x.Oi", "z.flurS"], "flucht": "oben", "hoehe": "decke",
+      "oeffnungen": [{ "art": "durchgang", "ab": 750, "breite": 885, "hoehe": 2190, "notiz": "Tür Nähzimmer" }] },
+    { "id": "eg.wohnen-naehzimmer-west", "geschoss": "EG", "typ": "IW175", "von": ["x.wohnO", "z.flurS"], "bis": ["x.wohnO", "z.kuecheN"], "flucht": "links", "hoehe": "decke", "notiz": "Wand zwischen Wohnen / Küche und Nähzimmer / Speisekammer" },
+    { "id": "eg.naehzimmer-speis", "geschoss": "EG", "typ": "IW115", "von": ["x.naehW", "z.ZS"], "bis": ["x.Oi", "z.ZS"], "flucht": "oben", "hoehe": "decke", "notiz": "Anker von Treppe und Treppenöffnung (Nordseite)" },
+    { "id": "eg.speis-kueche", "geschoss": "EG", "typ": "IW175", "von": ["x.wohnO", "z.speisS"], "bis": ["x.Oi", "z.speisS"], "flucht": "oben", "hoehe": "decke",
+      "oeffnungen": [{ "art": "durchgang", "ab": 2055, "breite": 760, "hoehe": 2190, "notiz": "Tür Speisekammer" }] },
+
+    { "id": "dg.kniewand-nord", "geschoss": "DG", "typ": "TB-DG", "von": ["x.dgW", "z.dgN"], "bis": ["x.dgO", "z.dgN"], "flucht": "oben", "hoehe": { "max": 1000 } },
+    { "id": "dg.kniewand-sued", "geschoss": "DG", "typ": "TB-DG", "von": ["x.dgW", "z.dgS"], "bis": ["x.dgO", "z.dgS"], "flucht": "unten", "hoehe": { "max": 1000 } },
+    { "id": "dg.kniewand-west", "geschoss": "DG", "typ": "TB-DG", "von": ["x.dgW", "z.dgN"], "bis": ["x.dgW", "z.dgS"], "flucht": "links", "hoehe": { "max": 1000 } },
+    { "id": "dg.kniewand-ost-nord", "geschoss": "DG", "typ": "TB-DG", "von": ["x.dgO", "z.dgN"], "bis": ["x.dgO", "z.HN"], "flucht": "rechts", "hoehe": { "max": 1000 }, "notiz": "bis hinter das Treppengeländer verlängert" },
+    { "id": "dg.kniewand-ost-sued", "geschoss": "DG", "typ": "TB-DG", "von": ["x.dgO", "z.ZS"], "bis": ["x.dgO", "z.dgS"], "flucht": "rechts", "hoehe": { "max": 1000 } },
+    { "id": "dg.querwand", "geschoss": "DG", "typ": "TB-DG", "von": ["x.dgW", "z.QZ"], "bis": ["x.twO", "z.QZ"], "flucht": "mitte", "dach": "B", "notiz": "Pias Zimmer / Arbeitszimmer; die Oberkante folgt der B-Dachschräge bis zur 1-m-Kniewand" },
+    { "id": "dg.trennwand", "geschoss": "DG", "typ": "TB-DG", "von": ["x.tw", "z.qN"], "bis": ["x.tw", "z.dgS"], "flucht": "mitte", "notiz": "Arbeitszimmer / Abstellkammer",
+      "oeffnungen": [{ "art": "durchgang", "ab": "z.tuerN", "breite": 860, "hoehe": "voll", "notiz": "Tür zum Arbeitszimmer hz 8,55–9,41; im Modell ohne Sturz und ohne Türblatt (Öffnung bis zur Dachschräge)" }] },
+    { "id": "dg.schraegwand-treppe", "geschoss": "DG", "typ": "TB-DG", "von": ["x.dgO", "z.HN"], "bis": ["x.treppeO", "z.HN"], "flucht": "unten", "notiz": "nördlich der Treppenöffnung, von der Kniewand bis zur Hauskante" },
+    { "id": "dg.treppenwand-nord", "geschoss": "DG", "typ": "TB-DG", "von": ["x.treppeW", "z.tN"], "bis": ["x.dgO", "z.tN"], "flucht": "unten", "notiz": "behält die Seite zur Treppe (1,60 m lichter Abstand)" },
+    { "id": "dg.treppenwand-sued", "geschoss": "DG", "typ": "TB-DG", "von": ["x.treppeW", "z.ZS"], "bis": ["x.treppeO", "z.ZS"], "flucht": "oben" }
+  ],
+
+  "raeume": [
+    { "id": "eltern", "name": "Eltern", "geschoss": "EG", "boden": "holz", "notiz": "mit Vorraum (Bad- und Ankleidetür)",
+      "polygon": [["x.Wi", "z.Ni"], ["x.eltO", "z.Ni"], ["x.eltO", "z.harSa"], ["x.elt2", "z.harSa"], ["x.elt2", "z.ankN"], ["x.badO", "z.ankN"], [2520, "z.eltS"], ["x.Wi", "z.eltS"]] },
+    { "id": "har", "name": "HAR", "geschoss": "EG", "boden": "beton",
+      "polygon": [["x.harW", "z.Ni"], ["x.harO", "z.Ni"], ["x.harO", "z.harSi"], ["x.harW", "z.harSi"]] },
+    { "id": "kind2", "name": "Julians Zimmer", "geschoss": "EG", "boden": "holz",
+      "polygon": [["x.julW", "z.Ni"], ["x.Oi", "z.Ni"], ["x.Oi", "z.dbN"], ["x.dbW", "z.dbN"], ["x.dbW", "z.julS"], [8937.5, "z.julS"], ["x.julW", 3262.5]] },
+    { "id": "dbad", "name": "D-Bad", "geschoss": "EG", "boden": "fliese",
+      "polygon": [["x.dbWi", "z.dbNi"], ["x.Oi", "z.dbNi"], ["x.Oi", "z.julS"], ["x.dbWi", "z.julS"]] },
+    { "id": "bad", "name": "Bad (Eltern)", "geschoss": "EG", "boden": "fliese",
+      "polygon": [["x.Wi", "z.eltSa"], [2472.4, "z.eltSa"], ["x.badO", 4807.6], ["x.badO", "z.Ui"], ["x.Wi", "z.Ui"]] },
+    { "id": "ankleide", "name": "Ankleide", "geschoss": "EG", "boden": "holz",
+      "polygon": [["x.badOa", "z.ankNi"], [6635, "z.ankNi"], ["x.ankO", 5770], ["x.ankO", "z.ankS"], ["x.badOa", "z.ankS"]] },
+    { "id": "flur", "name": "Flur / Diele", "geschoss": "EG", "boden": "fliese-hell",
+      "polygon": [["x.elt2a", "z.harSa"], ["x.julW", "z.harSa"], [8805, "z.julSa"], ["x.Oi", "z.julSa"], ["x.Oi", "z.flurS"], ["x.flurW", "z.flurS"], ["x.flurW", 5757], [6708, "z.ankN"], ["x.elt2a", "z.ankN"]] },
+    { "id": "kind1", "name": "Nähzimmer", "geschoss": "EG", "boden": "holz", "notiz": "mit offener Treppe; die Treppenfläche zählt zum Nähzimmer",
+      "polygon": [["x.naehW", "z.naehN"], ["x.Oi", "z.naehN"], ["x.Oi", "z.ZS"], ["x.naehW", "z.ZS"]] },
+    { "id": "speis", "name": "Speisekammer", "geschoss": "EG", "boden": "fliese",
+      "polygon": [["x.naehW", "z.ZSa"], ["x.Oi", "z.ZSa"], ["x.Oi", "z.speisS"], ["x.naehW", "z.speisS"]] },
+    { "id": "wohnen", "name": "Wohnen / Essen", "geschoss": "EG", "boden": "holz",
+      "polygon": [["x.Vi", "z.wohnN"], ["x.wohnO", "z.wohnN"], ["x.wohnO", "z.Si"], ["x.Vi", "z.Si"]] },
+    { "id": "kueche", "name": "Küche", "geschoss": "EG", "boden": "fliese",
+      "polygon": [["x.wohnO", "z.kuecheN"], ["x.Oi", "z.kuecheN"], ["x.Oi", "z.Si"], ["x.wohnO", "z.Si"]] },
+
+    { "id": "pia", "name": "Pias Zimmer", "geschoss": "DG", "boden": "dg",
+      "polygon": [["x.dgWi", "z.dgNi"], ["x.dgOi", "z.dgNi"], ["x.dgOi", "z.tNa"], ["x.twO", "z.tNa"], ["x.twO", "z.qN"], ["x.dgWi", "z.qN"]] },
+    { "id": "arbeit", "name": "Arbeitszimmer", "geschoss": "DG", "boden": "dg",
+      "polygon": [["x.dgWi", "z.qS"], ["x.twW", "z.qS"], ["x.twW", "z.dgSi"], ["x.dgWi", "z.dgSi"]] },
+    { "id": "abstell", "name": "Abstellkammer", "geschoss": "DG", "boden": "dg",
+      "polygon": [["x.twO", "z.tSa"], ["x.dgOi", "z.tSa"], ["x.dgOi", "z.dgSi"], ["x.twO", "z.dgSi"]] },
+    { "id": "treppe", "name": "Treppe und Flur (DG)", "geschoss": "DG", "boden": "dg",
+      "polygon": [["x.twO", "z.tNa"], ["x.dgOi", "z.tNa"], ["x.dgOi", "z.HN"], ["x.treppeW", "z.HN"], ["x.treppeW", "z.ZS"], ["x.dgOi", "z.ZS"], ["x.dgOi", "z.tSa"], ["x.twO", "z.tSa"]] }
+  ]
+}
