@@ -15,6 +15,7 @@ Dateien so, wie sie in das Gespräch hochgeladen wurden (Namen mit Kennung vorne
 - `01655253`, `0f98993c` Screenshots des Modells mit Hinweisen des Nutzers (Wände, Außenwandecke)
 - `32710f5f` bemaßter EG-Grundriss mit roten Handmaßen des Nutzers (fertige Innenmaße), Referenz für das EG
 - `foto-ostseite-alt.webp` altes Foto der Ostseite (Haustür), vor dem Dachausbau; nur das Haus ist maßgeblich, Garten und Einfahrt sind veraltet
+- `foto-terrasse-pergola.webp` Terrasse mit Pergola von Südwesten, Westwand des Wohnzimmers mit den drei Fenstertüren
 - übrige (`1556e9a9`, `7d13ea6f`, `8b1e373f`, `becebb03`, `fa34ee3e`) frühe Eingaben der ersten Runde, nicht einzeln beschriftet
 
 ## plaene-seiten/

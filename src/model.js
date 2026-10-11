@@ -321,12 +321,34 @@ function buildModel(THREE) {
     roomsOut.push({ id: r.id, name: r.name, area: area, center: c, mesh: o, base: r.col, level: 'eg', poly: r.poly });
     tags.push({ kind: 'room', layer: 'rooms', level: 'eg', name: r.name, area: area, pos: [c[0], yF + 0.25, c[1]] });
   });
-  // überdachte Terrasse und Terrassenplatten
+  // überdachte Terrasse und Terrassenplatten: Oberkante auf Höhe des Fußbodens innen (Angabe Nutzer)
+  var TERR = yF;
   (function terrace() {
-    var t = boxAt(3.4, 0.2, F.z1 - F.zn, M(0x6e7176, 0.9), (F.x0 + F.xn) / 2 + 0.0, Y(142.5), (F.zn + F.z1) / 2, gGarden);
+    var t = boxAt(3.4, 0.3, F.z1 - F.zn, M(0x6e7176, 0.9), (F.x0 + F.xn) / 2 + 0.0, TERR - 0.15, (F.zn + F.z1) / 2, gGarden);
     var area = 3.4 * (15.74 - F.zn);
-    tags.push({ kind: 'room', layer: 'rooms', name: 'Terrasse (überdacht)', area: area, pos: [(F.x0 + F.xn) / 2, Y(142.62) + 0.25, (F.zn + 15.74) / 2] });
+    tags.push({ kind: 'room', layer: 'rooms', name: 'Terrasse (überdacht)', area: area, pos: [(F.x0 + F.xn) / 2, TERR + 0.25, (F.zn + 15.74) / 2] });
     roomsOut.push({ id: 'terrasse', name: 'Terrasse (überdacht)', area: area, center: [(F.x0 + F.xn) / 2, (F.zn + 15.74) / 2], mesh: t, base: 0x6e7176, level: 'out' });
+  })();
+  // Pergola (Aluminium anthrazit, Lamellendach weiß) auf dem nicht überdachten Teil der Terrasse: außen 3 × 5 m, 2,525 m hoch.
+  // Hinten bis knapp unter den Dachüberstand (Traufe hz 9,685), vorn bündig mit der Hauskante, 5 cm vor der Westwand des Wohnzimmers (Lage nach Foto)
+  (function pergola() {
+    var x0 = 0.45, x1 = 3.45, z1 = HD, z0 = HD - 5.0, H2 = 2.525, PW = 0.15, BH = 0.22;
+    var alu = M(0x3a3d41, 0.6, 0.3), slat = M(0xe9e9e6, 0.6);
+    var cx = P((x0 + x1) / 2, 0)[0], cz = P(0, (z0 + z1) / 2)[1], yb = TERR + H2 - BH / 2;
+    [[x0, z0], [x1 - PW, z0], [x0, z1 - PW], [x1 - PW, z1 - PW]].forEach(function (q) {
+      var c = P(q[0] + PW / 2, q[1] + PW / 2); boxAt(PW, H2, PW, alu, c[0], TERR + H2 / 2, c[1], gGarden);
+    });
+    boxAt(x1 - x0, BH, PW, alu, cx, yb, P(0, z0 + PW / 2)[1], gGarden);
+    boxAt(x1 - x0, BH, PW, alu, cx, yb, P(0, z1 - PW / 2)[1], gGarden);
+    boxAt(PW, BH, z1 - z0 - 2 * PW, alu, P(x0 + PW / 2, 0)[0], yb, cz, gGarden);
+    boxAt(PW, BH, z1 - z0 - 2 * PW, alu, P(x1 - PW / 2, 0)[0], yb, cz, gGarden);
+    var first = null;
+    for (var z = z0 + PW + 0.1; z < z1 - PW - 0.05; z += 0.2) {
+      var o = boxAt(x1 - x0 - 2 * PW, 0.03, 0.17, slat, cx, TERR + H2 - 0.1, P(0, z)[1], gGarden); first = first || o;
+    }
+    var c = P((x0 + x1) / 2, (z0 + z1) / 2), area = (x1 - x0) * (z1 - z0);
+    tags.push({ kind: 'room', layer: 'rooms', name: 'Pergola', area: area, pos: [c[0], TERR + 0.25, c[1]] });
+    roomsOut.push({ id: 'pergola', name: 'Pergola', area: area, center: c, mesh: first, base: 0xe9e9e6, level: 'out' });
   })();
   // Eingangspodest Ost
   (function podest() {
@@ -547,11 +569,11 @@ function buildModel(THREE) {
     })();
     // Terrasse: Stützpfosten unter der Dachüberstandsecke mit Schwellenkranz
     (function () {
-      var ptop = yE - 0.2, pb = Y(142.6), c = P(0.33, 9.20);
-      boxAt(0.14, ptop - pb, 0.14, mat.timber, c[0], (ptop + pb) / 2, c[1], gHouse);
+      var ptop = yE - 0.2, pb = TERR, c = P(0.33, 9.20), white = M(0xf2f1ed, 0.8); // weiß gestrichen (Angabe Nutzer)
+      boxAt(0.14, ptop - pb, 0.14, white, c[0], (ptop + pb) / 2, c[1], gHouse);
       var pw = P(0.33, (6.78 + 9.27) / 2), ps = P((0.26 + 3.72) / 2, 9.20);
-      boxAt(0.14, 0.16, 9.27 - 6.78, mat.timber, pw[0], yE - 0.12, pw[1], gRaf);
-      boxAt(3.72 - 0.26, 0.16, 0.14, mat.timber, ps[0], yE - 0.12, ps[1], gRaf);
+      boxAt(0.14, 0.16, 9.27 - 6.78, white, pw[0], yE - 0.12, pw[1], gRaf);
+      boxAt(3.72 - 0.26, 0.16, 0.14, white, ps[0], yE - 0.12, ps[1], gRaf);
     })();
     (function () { var q = P(9.355, ZS + 0.71); tags.push({ kind: 'dim', layer: 'dims', text: 'Kamin', pos: [q[0], yC + 0.7, q[1]] }); })();
   })();

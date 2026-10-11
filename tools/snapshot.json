@@ -1,7 +1,7 @@
 {
- "meshes": 491,
- "tris": 163588,
- "tags": 46,
+ "meshes": 522,
+ "tris": 163960,
+ "tags": 47,
  "plotArea": 569.77,
  "footArea": 162.22,
  "ridge": 149.078,
@@ -73,6 +73,11 @@
    "name": "Terrasse (überdacht)",
    "level": "out",
    "area": 10.95
+  },
+  "pergola": {
+   "name": "Pergola",
+   "level": "out",
+   "area": 15
   },
   "pia": {
    "name": "Pias Zimmer",
