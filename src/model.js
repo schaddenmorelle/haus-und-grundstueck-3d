@@ -201,7 +201,10 @@ function buildModel(THREE) {
     return ins;
   }
   var STEP_Z = F.z0 + 6.27 + 0.30, STEP_H = 0.11; // Stufe: 30 cm südlich der Haustüröffnung (hz 6,27), 11 cm tief
-  function pflasterE(x, z) { return pflasterOben(x, z) - (z > STEP_Z && !inBed(x, z) ? STEP_H : 0); }
+  function pflasterE(x, z) { // südlich der Stufe 11 cm tiefer, aber nie unter der Straße am Bordstein
+    var h = pflasterOben(x, z);
+    return z > STEP_Z && !inBed(x, z) ? Math.max(h - STEP_H, strasseE(x, z) + CURB) : h;
+  }
   /* Vorbeet: Mauer aus Winkelsteinen steht BED_WALL über dem Pflaster heraus (Annahme 30 cm, Fotos), Erde liegt darin */
   var BED = { c: pl(1355, 780), w: 3.5, h: 5.8, rot: 18 }, BED_R = 0.7, BED_WALL = 0.30;
   function bedLocal(x, z) {
@@ -212,7 +215,7 @@ function buildModel(THREE) {
     var q = bedLocal(x, z), ex = Math.max(Math.abs(q[0]) - (BED.w / 2 - BED_R), 0), ez = Math.max(Math.abs(q[1]) - (BED.h / 2 - BED_R), 0);
     return ex * ex + ez * ez <= BED_R * BED_R;
   }
-  var BLEND = [0.3, 0.3, 2.5, 2.5, 1.5, 0.3];
+  var BLEND = [0.3, 0.3, 0.3, 0.3, 0.3, 0.3]; // Übergang Grundstück – Umgebung: schmal, an den Straßen setzt der Bordstein die Kante
   function sm(t) { return t * t * (3 - 2 * t); }
   function groundE(x, z) {
     if (inPoly(HOF_POLY, x, z)) return inBed(x, z) ? pflasterOben(x, z) + BED_WALL : pflasterE(x, z);

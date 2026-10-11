@@ -66,6 +66,7 @@ check(Math.abs(gE(9.1, 5.3) - (FFB - 0.30)) <= 0.03, 'Pflaster vor dem Nebeneing
 /* Szenenprüfung über benannte Objekte (userData.kind) und deren Hüllquader */
 const kinds = k => { const a = []; m.root.traverse(o => { if (o.userData && o.userData.kind === k) a.push(o); }); return a; };
 const box = o => new THREE.Box3().setFromObject(o);
+const inPoly = (poly, x, z) => { let ins = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const a = poly[j], b = poly[i]; if ((b[1] > z) !== (a[1] > z) && x < (a[0] - b[0]) * (z - b[1]) / (a[1] - b[1]) + b[0]) ins = !ins; } return ins; };
 /* Straße (Angaben des Nutzers vom 11.10.2026): glatt ohne Wellen und 15 cm über den Höhen des Lageplans von 2014 (Baustraße).
    Straßenfläche = grau texturiert, östlich und südlich des Grundstücks. Höhen der Baustraße aus dem Lageplan. */
 {
@@ -77,6 +78,26 @@ const box = o => new THREE.Box3().setFromObject(o);
   };
   ebene([27, 33], [8, 22], 'Ost');
   ebene([2, 14], [30, 37], 'Süd');
+  { // eine einzige Ebene für die ganze Straße, auch direkt am Bordstein: Raster 1 m, mindestens 0,6 m vom Grundstück entfernt, ohne Nachbargrundstücke
+    const q0 = [30, 10], bx = (gE(34, 10) - gE(30, 10)) / 4, bz = (gE(30, 24) - gE(30, 10)) / 14, h0 = gE(30, 10);
+    const draussen = (x, z) => !inPoly(m.zones.plot, x, z) && !inPoly(m.zones.neighbor, x, z) && [0, 1, 2, 3, 4, 5, 6, 7].every(k => !inPoly(m.zones.plot, x + 0.6 * Math.cos(k * Math.PI / 4), z + 0.6 * Math.sin(k * Math.PI / 4)));
+    let worst = 0, wo = '', n = 0;
+    for (let x = -9; x <= 35; x += 1) for (let z = 4; z <= 38; z += 1) {
+      if (!draussen(x, z)) continue;
+      n++; const d = Math.abs(gE(x, z) - (h0 + bx * (x - q0[0]) + bz * (z - q0[1])));
+      if (d > worst) { worst = d; wo = x + ' / ' + z; }
+    }
+    check(n > 200 && worst <= 0.01, 'Straße ist an ' + wo + ' um ' + (worst * 100).toFixed(1) + ' cm von der Ebene entfernt (' + n + ' Punkte)');
+  }
+  { // Pflaster endet am Bordstein 2–3 cm über der Straße (Rinne liegt auf Straßenhöhe), entlang der ganzen Kante
+    const a = [25.9, 3.04], b = [22.06, 15.72], L = Math.hypot(b[0] - a[0], b[1] - a[1]), nx = (b[1] - a[1]) / L, nz = -(b[0] - a[0]) / L;
+    let lo = 9, hi = -9, wo = '';
+    for (let f = 0.04; f <= 0.96; f += 0.04) {
+      const x = a[0] + (b[0] - a[0]) * f, z = a[1] + (b[1] - a[1]) * f, d = gE(x - nx * 0.08, z - nz * 0.08) - gE(x + nx * 0.45, z + nz * 0.45);
+      if (d < lo) lo = d; if (d > hi) { hi = d; wo = z.toFixed(1); }
+    }
+    check(lo >= 0.015 && hi <= 0.045, 'Pflaster liegt am Bordstein ' + (lo * 100).toFixed(1) + ' bis ' + (hi * 100).toFixed(1) + ' cm über der Straße statt 2–3 cm (größter Wert bei z ' + wo + ')');
+  }
   const lp = [[28, 6, 141.85], [27, 14, 142.0], [24.5, 20, 142.3], [22, 26, 142.35], [0, 28.5, 142.2], [8, 28.8, 142.25], [16, 28.5, 142.33], [26, 28, 142.35]];
   const mittel = lp.reduce((s, q) => s + gE(q[0], q[1]) - q[2], 0) / lp.length;
   check(Math.abs(mittel - 0.15) <= 0.01, 'Straße liegt im Mittel ' + (mittel * 100).toFixed(1) + ' cm über dem Lageplan statt 15 cm');
@@ -92,7 +113,6 @@ const box = o => new THREE.Box3().setFromObject(o);
 
 /* Carport: Pfosten direkt an der Hauswand (Nordwand, z 5,74), keiner außerhalb des Grundstücks (Angabe des Nutzers vom 11.10.2026) */
 {
-  const inPoly = (poly, x, z) => { let ins = false; for (let i = 0, j = poly.length - 1; i < poly.length; j = i++) { const a = poly[j], b = poly[i]; if ((b[1] > z) !== (a[1] > z) && x < (a[0] - b[0]) * (z - b[1]) / (a[1] - b[1]) + b[0]) ins = !ins; } return ins; };
   const pf = [];
   m.root.traverse(o => { if (o.userData && o.userData.kind === 'carportpfosten') pf.push(box(o)); });
   check(pf.length === 6, 'Carport: ' + pf.length + ' Pfosten statt 6');
