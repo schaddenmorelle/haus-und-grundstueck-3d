@@ -109,7 +109,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
     </section>
     <section><h2>Grundlagen und Annahmen</h2>
       <p class="note"><b>Aus den Plänen und Angaben:</b> Grundstücksgrenzen, Hausmaße, alle Wände, Türen und Fenster des Erdgeschosses nach dem bemaßten Grundriss und Ihrem Aufmaß (Außenwand 18,5 cm Poroton plus 20 cm Dämmung; mittlere Fenster zweigeteilt, das breite im Wohnzimmer dreigeteilt), First- und Traufhöhe, Dachfenster, nicht ausgebaute Randzonen im Dach, kein Keller, Geschosshöhe 2,971 m und die Treppe (15 Steigungen, Wendelung an der Ostwand) nach der Treppenplanung und Ihren Aufmaßen (Wandabstand im Dachgeschoss 1,60 m, Treppenlauf 90 cm, Geländer 15 cm, Nische 54 cm), außerdem aus dem Binderplan Dachneigung 35°, Dachüberstand 23,5 cm und die Sparrenachsen, aus dem Plan der Balkenlage der Kamin und der Stützpfosten an der Terrassenecke, nach Ihren Angaben die Terrasse auf Fußbodenhöhe und die Pergola (3 × 5 m, 2,525 m hoch).</p>
-      <p class="note"><b>Angenommen:</b> Geländehöhen im Grundstück (±15 cm), Raumhöhe 2,525 m, Kaminhöhe (bis 149,60 m ü. NN), Fensterhöhen außer den bemaßten, Wanddicken im Dachausbau einheitlich 12,5 cm, Pool, Carport und Gartenelemente nach Luftbild. Die Flächen im Dachausbau sind Grundflächen zwischen den Kniewänden, keine Wohnfläche. Die Wand von Pias Zimmer zur Treppe ist gegenüber dem Dachausbauplan um etwa 14 cm in den Raum gerückt, damit Treppe (90 cm), Geländer (15 cm) und Nische (54 cm) zwischen die Wände passen.</p>
+      <p class="note"><b>Angenommen:</b> Geländehöhen im Grundstück (±15 cm), Raumhöhe 2,525 m, Kaminhöhe (bis 149,60 m ü. NN), Fensterhöhen außer den bemaßten, Wanddicken im Dachausbau einheitlich 12,5 cm, Lage von Pool, Carport und Gartenelementen nach Luftbild. Die Flächen im Dachausbau sind Grundflächen zwischen den Kniewänden, keine Wohnfläche. Die Wand von Pias Zimmer zur Treppe ist gegenüber dem Dachausbauplan um etwa 14 cm in den Raum gerückt, damit Treppe (90 cm), Geländer (15 cm) und Nische (54 cm) zwischen die Wände passen.</p>
     </section>
   </div>
   <div id="fallback" hidden><p>Der Browser kann das 3D-Modell nicht darstellen (WebGL fehlt).</p></div>
@@ -900,14 +900,16 @@ function buildModel(THREE) {
 
   /* ---------- Garten: Pool, Beet, Spielgeräte, Hecke ---------- */
   (function garden() {
-    var pc = pl(935, 1470), r = 1.83, py = Y(142.62);
+    var pc = pl(935, 1470), r = 3.66 / 2, PH = 0.76, py = Y(142.62); // Pool: Durchmesser 3,66 m, Höhe 76 cm (Angabe Nutzer 11.10.2026), Höhe ab Oberkante der Unterlage
     boxAt(4.0, 0.06, 4.0, M(0x3f6b3a, 1), pc[0], py + 0.03, pc[1], gGarden);
-    var wall1 = mesh(new THREE.CylinderGeometry(r, r, 1.2, 56, 1, true), mat.poolwall, true, gGarden, true);
-    wall1.position.set(pc[0], py + 0.6 + 0.06, pc[1]);
-    var wat = mesh(new THREE.CircleGeometry(r - 0.03, 56), mat.water, false, gGarden, false);
-    wat.rotation.x = -Math.PI / 2; wat.position.set(pc[0], py + 1.06, pc[1]);
-    var rim = mesh(new THREE.TorusGeometry(r, 0.04, 8, 56), mat.metal, true, gGarden, false);
-    rim.rotation.x = Math.PI / 2; rim.position.set(pc[0], py + 1.26, pc[1]);
+    var pool = new THREE.Group(); pool.userData = { kind: 'pool', d: 2 * r, h: PH };
+    gGarden.add(pool);
+    var wall1 = mesh(new THREE.CylinderGeometry(r, r, PH, 56, 1, true), mat.poolwall, true, pool, true);
+    wall1.position.set(pc[0], py + 0.06 + PH / 2, pc[1]);
+    var wat = mesh(new THREE.CircleGeometry(r - 0.03, 56), mat.water, false, pool, false);
+    wat.rotation.x = -Math.PI / 2; wat.position.set(pc[0], py + 0.06 + PH - 0.08, pc[1]);
+    var rim = mesh(new THREE.TorusGeometry(r - 0.04, 0.04, 8, 56), mat.metal, true, pool, false);
+    rim.rotation.x = Math.PI / 2; rim.position.set(pc[0], py + 0.06 + PH - 0.04, pc[1]);
     // Beet mit Baum und Sträuchern
     var bc = BED.c;
     var tx = bc[0], tz = bc[1] + 0.2, ty = groundY(tx, tz);
@@ -921,9 +923,10 @@ function buildModel(THREE) {
       s.userData = { kind: 'busch', r: 0.55 };
     });
     var sc = pl(1190, 1480);
-    [[0, 0, 1.0], [-0.9, 0.7, 0.8], [0.8, 0.9, 0.7]].forEach(function (o) {
+    [[0, 0, 1.0], [-0.9, 0.7, 0.8]].forEach(function (o) { // dritter Strauch (bei +0,8 / +0,9) stand auf der Straße und ist entfernt (Angabe Nutzer 11.10.2026)
       var s = mesh(new THREE.SphereGeometry(o[2], 14, 10), mat.crown, true, gGarden, false);
       s.position.set(sc[0] + o[0], groundY(sc[0] + o[0], sc[1] + o[1]) + o[2] * 0.8, sc[1] + o[1]); s.scale.set(1, 0.85, 1);
+      s.userData = { kind: 'busch-suedost', r: o[2] };
     });
     // Hecke an der Südgrenze
     var hz = PLOT[4][1] - 0.4;

@@ -156,6 +156,23 @@ const inPoly = (poly, x, z) => { let ins = false; for (let i = 0, j = poly.lengt
   }
 }
 
+/* Außengrundstück (Angaben des Nutzers vom 11.10.2026):
+   - Der Strauch, der auf der Straße saß, ist entfernt: jeder Strauch hat seinen Mittelpunkt im Grundstück.
+   - Pool: Durchmesser 3,66 m, Höhe 76 cm. */
+{
+  const buesche = kinds('busch').concat(kinds('busch-suedost'));
+  buesche.forEach(b => { const c = box(b).getCenter(new THREE.Vector3()); check(inPoly(m.zones.plot, c.x, c.z), 'Strauch steht außerhalb des Grundstücks (auf der Straße) bei ' + c.x.toFixed(1) + ' / ' + c.z.toFixed(1)); });
+  check(kinds('busch-suedost').length === 2, 'Südostecke: ' + kinds('busch-suedost').length + ' Sträucher statt 2 (einer von dreien stand auf der Straße)');
+
+  const pool = kinds('pool');
+  check(pool.length === 1, 'Pool: ' + pool.length + ' statt 1');
+  if (pool.length === 1) {
+    const s = box(pool[0]).getSize(new THREE.Vector3());
+    check(Math.abs(s.x - 3.66) <= 0.01 && Math.abs(s.z - 3.66) <= 0.01, 'Pool-Durchmesser ' + s.x.toFixed(2) + ' × ' + s.z.toFixed(2) + ' m statt 3,66 m');
+    check(Math.abs(s.y - 0.76) <= 0.01, 'Pool-Höhe ' + s.y.toFixed(2) + ' m statt 0,76 m');
+  }
+}
+
 /* Prüfmaße aus dem Aufmaß: nur Bericht, kein Fehler (bekannte Abweichungen stehen in docs/abgleich-eg-grundriss.md) */
 function span(poly, dir, at) {
   const ts = [];

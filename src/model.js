@@ -781,14 +781,16 @@ function buildModel(THREE) {
 
   /* ---------- Garten: Pool, Beet, Spielgeräte, Hecke ---------- */
   (function garden() {
-    var pc = pl(935, 1470), r = 1.83, py = Y(142.62);
+    var pc = pl(935, 1470), r = 3.66 / 2, PH = 0.76, py = Y(142.62); // Pool: Durchmesser 3,66 m, Höhe 76 cm (Angabe Nutzer 11.10.2026), Höhe ab Oberkante der Unterlage
     boxAt(4.0, 0.06, 4.0, M(0x3f6b3a, 1), pc[0], py + 0.03, pc[1], gGarden);
-    var wall1 = mesh(new THREE.CylinderGeometry(r, r, 1.2, 56, 1, true), mat.poolwall, true, gGarden, true);
-    wall1.position.set(pc[0], py + 0.6 + 0.06, pc[1]);
-    var wat = mesh(new THREE.CircleGeometry(r - 0.03, 56), mat.water, false, gGarden, false);
-    wat.rotation.x = -Math.PI / 2; wat.position.set(pc[0], py + 1.06, pc[1]);
-    var rim = mesh(new THREE.TorusGeometry(r, 0.04, 8, 56), mat.metal, true, gGarden, false);
-    rim.rotation.x = Math.PI / 2; rim.position.set(pc[0], py + 1.26, pc[1]);
+    var pool = new THREE.Group(); pool.userData = { kind: 'pool', d: 2 * r, h: PH };
+    gGarden.add(pool);
+    var wall1 = mesh(new THREE.CylinderGeometry(r, r, PH, 56, 1, true), mat.poolwall, true, pool, true);
+    wall1.position.set(pc[0], py + 0.06 + PH / 2, pc[1]);
+    var wat = mesh(new THREE.CircleGeometry(r - 0.03, 56), mat.water, false, pool, false);
+    wat.rotation.x = -Math.PI / 2; wat.position.set(pc[0], py + 0.06 + PH - 0.08, pc[1]);
+    var rim = mesh(new THREE.TorusGeometry(r - 0.04, 0.04, 8, 56), mat.metal, true, pool, false);
+    rim.rotation.x = Math.PI / 2; rim.position.set(pc[0], py + 0.06 + PH - 0.04, pc[1]);
     // Beet mit Baum und Sträuchern
     var bc = BED.c;
     var tx = bc[0], tz = bc[1] + 0.2, ty = groundY(tx, tz);
@@ -802,9 +804,10 @@ function buildModel(THREE) {
       s.userData = { kind: 'busch', r: 0.55 };
     });
     var sc = pl(1190, 1480);
-    [[0, 0, 1.0], [-0.9, 0.7, 0.8], [0.8, 0.9, 0.7]].forEach(function (o) {
+    [[0, 0, 1.0], [-0.9, 0.7, 0.8]].forEach(function (o) { // dritter Strauch (bei +0,8 / +0,9) stand auf der Straße und ist entfernt (Angabe Nutzer 11.10.2026)
       var s = mesh(new THREE.SphereGeometry(o[2], 14, 10), mat.crown, true, gGarden, false);
       s.position.set(sc[0] + o[0], groundY(sc[0] + o[0], sc[1] + o[1]) + o[2] * 0.8, sc[1] + o[1]); s.scale.set(1, 0.85, 1);
+      s.userData = { kind: 'busch-suedost', r: o[2] };
     });
     // Hecke an der Südgrenze
     var hz = PLOT[4][1] - 0.4;
