@@ -1,9 +1,9 @@
 <title>Haus und Grundstück 3D</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap">
 <style>
-:root{--paper:#f3f1ea;--panel:#fbfaf6;--ink:#1f2328;--muted:#6a6f76;--rule:#d9d6cb;--blue:#1f4fb5;--red:#c8321e;--scene:#dfe6ea;--dark:0;--shadow:0 6px 24px rgba(31,35,40,.16);--on:#1f4fb5;--onfg:#fff;--chip:#ecebe3}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#15181c;--panel:#1d2126;--ink:#e8e6df;--muted:#9aa0a8;--rule:#323840;--blue:#7da3ff;--red:#ff7a63;--scene:#20262c;--dark:1;--shadow:0 6px 24px rgba(0,0,0,.5);--on:#7da3ff;--onfg:#10151c;--chip:#272c33;color-scheme:dark}}
-:root[data-theme="dark"]{--paper:#15181c;--panel:#1d2126;--ink:#e8e6df;--muted:#9aa0a8;--rule:#323840;--blue:#7da3ff;--red:#ff7a63;--scene:#20262c;--dark:1;--shadow:0 6px 24px rgba(0,0,0,.5);--on:#7da3ff;--onfg:#10151c;--chip:#272c33;color-scheme:dark}
+:root{--paper:#f3f1ea;--panel:#fbfaf6;--ink:#1f2328;--muted:#6a6f76;--rule:#d9d6cb;--blue:#1f4fb5;--red:#c8321e;--scene:#dfe6ea;--dark:0;--shadow:0 6px 24px rgba(31,35,40,.16);--on:#1f4fb5;--onfg:#fff;--chip:#ecebe3;--plan-wand:#2b2f35;--plan-raum:#eef0f2;--q-plan:#1f4fb5;--q-aufmass:#2f7d3a;--q-nutzer:#8a3fb5;--q-annahme:#c76a00;--q-ohne:#7b8088}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#15181c;--panel:#1d2126;--ink:#e8e6df;--muted:#9aa0a8;--rule:#323840;--blue:#7da3ff;--red:#ff7a63;--scene:#20262c;--dark:1;--shadow:0 6px 24px rgba(0,0,0,.5);--on:#7da3ff;--onfg:#10151c;--chip:#272c33;--plan-wand:#cfcdc6;--plan-raum:#262b31;--q-plan:#7da3ff;--q-aufmass:#6fcf7f;--q-nutzer:#c39bff;--q-annahme:#ffb25c;--q-ohne:#9aa0a8;color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#15181c;--panel:#1d2126;--ink:#e8e6df;--muted:#9aa0a8;--rule:#323840;--blue:#7da3ff;--red:#ff7a63;--scene:#20262c;--dark:1;--shadow:0 6px 24px rgba(0,0,0,.5);--on:#7da3ff;--onfg:#10151c;--chip:#272c33;--plan-wand:#cfcdc6;--plan-raum:#262b31;--q-plan:#7da3ff;--q-aufmass:#6fcf7f;--q-nutzer:#c39bff;--q-annahme:#ffb25c;--q-ohne:#9aa0a8;color-scheme:dark}
 html,body{height:100%}
 body{background:var(--paper);color:var(--ink);font:14px/1.45 Barlow,system-ui,sans-serif;overflow:hidden;margin:0}
 *{box-sizing:border-box}
@@ -39,6 +39,14 @@ section{padding-top:14px;margin-top:14px;border-top:1px solid var(--rule)}
 #rooms button:hover{background:var(--chip)}
 #rooms button.on{background:var(--on);color:var(--onfg)}
 .num{font-variant-numeric:tabular-nums;white-space:nowrap}
+#befunde{list-style:none;margin:0 0 8px;padding:0;display:grid;gap:2px}
+#befunde button{width:100%;display:grid;gap:2px;border:0;border-left:3px solid var(--muted);background:transparent;color:var(--ink);padding:6px 8px;border-radius:0 4px 4px 0;font:inherit;font-size:13px;text-align:left;cursor:pointer}
+#befunde button:disabled{cursor:default}
+#befunde button:not(:disabled):hover{background:var(--chip)}
+#befunde button b{font:600 11px/1.2 'Barlow Condensed',Barlow,sans-serif;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+#befunde .fehler{border-left-color:var(--red)}#befunde .fehler b{color:var(--red)}
+#befunde .warnung{border-left-color:#c08a1c}#befunde .warnung b{color:#c08a1c}
+#befunde button:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
 dl{margin:0;display:grid;grid-template-columns:1fr auto;gap:5px 12px;font-variant-numeric:tabular-nums}
 dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
 .note{font-size:12.5px;color:var(--muted)}
@@ -48,17 +56,37 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
 #hud svg{width:60px;height:60px;background:color-mix(in srgb,var(--panel) 80%,transparent);border:1px solid var(--rule);border-radius:50%}
 #fallback[hidden]{display:none}
 #fallback{position:absolute;inset:0;display:grid;place-items:center;padding:24px;text-align:center;background:var(--scene);z-index:6}
+#plan2d{position:absolute;inset:0;background:var(--paper);overflow:hidden;touch-action:none;cursor:grab}
+#plan2d[hidden]{display:none}
+#plan2d.zieht{cursor:grabbing}
+#plan2d svg.plan{width:100%;height:100%;display:block;user-select:none;-webkit-user-select:none}
+#planTools{position:absolute;right:12px;top:12px;z-index:3;display:flex;gap:6px}
+#planTools .btn{width:40px;height:40px;font-size:18px;padding:0;background:var(--panel);box-shadow:var(--shadow)}
+#planInfo{position:absolute;left:0;right:0;bottom:0;z-index:3;margin:0;padding:8px 14px;min-height:38px;background:color-mix(in srgb,var(--panel) 92%,transparent);border-top:1px solid var(--rule);font-size:13px;font-variant-numeric:tabular-nums;pointer-events:none}
+.modus2d #fallback{display:none}
+.modus2d #gl,.modus2d #tags,.modus2d #hud,.modus2d #measTag{display:none}
+.nur2d{display:none}.modus2d .nur2d{display:block}.modus2d .nur3d{display:none}
+.leg{display:grid;gap:5px;font-size:13px}.leg span{display:flex;align-items:center;gap:8px}
+.leg i{display:inline-block;width:26px;height:0;border-top:3px solid currentColor}.leg i.s{border-top-style:dashed}.leg i.p{border-top-style:dotted}
+.q-plan{color:var(--q-plan)}.q-aufmass{color:var(--q-aufmass)}.q-nutzer{color:var(--q-nutzer)}.q-annahme{color:var(--q-annahme)}.q-ohne{color:var(--q-ohne)}
 @media (max-width:760px){
  #panel{left:8px;right:8px;width:auto;top:auto;bottom:8px;max-height:62%}
  #panel.closed{transform:translateY(110%)}
  #togglePanel{left:8px;top:8px}
  #hud{right:8px;top:8px}
+ #planTools{right:8px;top:8px}
+ #planInfo{bottom:auto;top:0;padding:8px 120px 8px 100px;min-height:56px}
 }
 </style>
 <div id="shell">
   <div id="app">
     <canvas id="gl" aria-label="Interaktives 3D-Modell von Grundstück und Haus" tabindex="0"></canvas>
     <div id="tags"></div><div id="measTag"></div>
+    <div id="plan2d" hidden>
+      <div id="planSvg"></div>
+      <div id="planTools"><button id="planPlus" class="btn" type="button" aria-label="Vergrößern">+</button><button id="planMinus" class="btn" type="button" aria-label="Verkleinern">−</button><button id="planFit" class="btn" type="button" aria-label="Ganzer Plan">⤢</button></div>
+      <p id="planInfo" aria-live="polite"></p>
+    </div>
     <div id="hud">
       <svg viewBox="0 0 60 60" role="img" aria-label="Kompass"><circle cx="30" cy="30" r="26" fill="none" stroke="currentColor" stroke-opacity=".25"/><g id="needle"><polygon points="30,7 35,31 25,31" fill="#c8321e"/><polygon points="30,53 35,31 25,31" fill="#8a8f96"/></g><text x="30" y="19" font-size="9" text-anchor="middle" fill="currentColor" style="display:none">N</text></svg>
     </div>
@@ -67,7 +95,31 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
   <div id="panel">
     <h1>Haus und Grundstück 3D</h1>
     <p class="sub">Maßstabsgetreu nach Lageplan, Absteckung und Bauplänen. Ziehen dreht, Mausrad oder zwei Finger zoomen.</p>
-    <section><h2>Ansicht</h2>
+    <section><h2>Darstellung</h2>
+      <div class="btns" id="modusBtns">
+        <button class="btn on" type="button" data-modus="3d" aria-pressed="true">3D-Modell</button>
+        <button class="btn" type="button" data-modus="EG" aria-pressed="false">Grundriss EG</button>
+        <button class="btn" type="button" data-modus="DG" aria-pressed="false">Grundriss DG</button>
+      </div>
+    </section>
+    <section class="nur2d"><h2>Im Grundriss</h2>
+      <label class="chk"><input id="p-mass" type="checkbox" checked>Maßketten</label>
+      <label class="chk"><input id="p-raeume" type="checkbox" checked>Raumstempel mit Fläche</label>
+      <label class="chk"><input id="p-oeff" type="checkbox" checked>Maße der Öffnungen</label>
+      <label class="chk"><input id="p-marken" type="checkbox" checked>Befunde der Prüfung</label>
+      <p class="note">Ziehen verschiebt, Mausrad oder zwei Finger zoomen. Ein Maß anklicken zeigt Name, Wert und Herkunft.</p>
+    </section>
+    <section class="nur2d"><h2>Herkunft der Maße</h2>
+      <div class="leg">
+        <span class="q-plan"><i></i><b style="color:var(--ink);font-weight:500">Plan</b></span>
+        <span class="q-aufmass"><i></i><b style="color:var(--ink);font-weight:500">Aufmaß</b></span>
+        <span class="q-nutzer"><i></i><b style="color:var(--ink);font-weight:500">Angabe des Nutzers</b></span>
+        <span class="q-annahme"><i class="s"></i><b style="color:var(--ink);font-weight:500">Annahme (gestrichelt)</b></span>
+        <span class="q-ohne"><i class="p"></i><b style="color:var(--ink);font-weight:500">ohne Herkunftsangabe oder schräg gemessen (gepunktet)</b></span>
+      </div>
+      <p class="note">Das Schloss kennzeichnet gesperrte Außenmaße. Die Herkunft eines Maßes ist die schlechteste der Werte, von denen es abhängt.</p>
+    </section>
+    <section class="nur3d"><h2>Ansicht</h2>
       <div class="btns">
         <button class="btn" type="button" data-view="sw" aria-pressed="false">Südwest</button>
         <button class="btn" type="button" data-view="ne" aria-pressed="false">Nordost</button>
@@ -77,7 +129,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
         <button class="btn" type="button" data-view="frame" aria-pressed="false">Dachstuhl</button>
       </div>
     </section>
-    <section><h2>Ebenen</h2>
+    <section class="nur3d"><h2>Ebenen</h2>
       <label class="chk"><input id="t-roof" type="checkbox" checked>Dach</label>
       <label class="chk"><input id="t-rafters" type="checkbox">Dachbalken (Sparren)</label>
       <label class="chk"><input id="t-dg" type="checkbox">Dachausbau (DG)</label>
@@ -86,11 +138,11 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
       <label class="chk"><input id="t-dims" type="checkbox">Maße</label>
       <label class="chk"><input id="t-garden" type="checkbox" checked>Außenanlagen</label>
     </section>
-    <section><h2>Sonne</h2>
+    <section class="nur3d"><h2>Sonne</h2>
       <div class="row"><label for="sun">Himmelsrichtung</label><span id="sunOut" class="num"></span></div>
       <input id="sun" type="range" min="0" max="359" step="1" value="200">
     </section>
-    <section><h2>Messen</h2>
+    <section class="nur3d"><h2>Messen</h2>
       <div class="btns" style="grid-template-columns:1fr 1fr">
         <button id="measure" class="btn" type="button" aria-pressed="false">Strecke messen</button>
         <button id="measureClear" class="btn" type="button">Zurücksetzen</button>
@@ -98,6 +150,11 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
       <p id="readout" aria-live="polite"></p>
     </section>
     <section><h2>Räume</h2><ul id="rooms"></ul></section>
+    <section><h2>Prüfung</h2>
+      <p id="befundSumme" class="note" aria-live="polite"></p>
+      <ul id="befunde"></ul>
+      <p class="note">Die Räume entstehen aus den Wänden (Geschossfläche minus Wandflächen), jede Fläche trägt den Namen des Raumes, dessen Stempel in ihr liegt. Geprüft werden Wände, Öffnungen, Höhen, Treppe und die Wände im Dachausbau.</p>
+    </section>
     <section><h2>Kennzahlen</h2>
       <dl>
         <dt>Grundstück</dt><dd id="k-plot"></dd>
@@ -118,9 +175,17 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
 var HAUS = /*HAUS*/;
+/*CLIPPING*/
 /*WERTE*/
+/*RAEUME*/
+/*DACH*/
+/*PRUEFEN*/
+/*GRUNDRISS*/
 /*MODEL*/
 </script>
 <script>
 /*APP*/
+</script>
+<script>
+/*PLAN2D*/
 </script>

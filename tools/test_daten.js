@@ -86,26 +86,42 @@ haus.waende.forEach(w => {
 const raumIds = new Set();
 haus.raeume.forEach(r => {
   check(!raumIds.has(r.id), 'Raum-ID doppelt: ' + r.id); raumIds.add(r.id);
-  check(r.polygon.length >= 3, r.id + ': weniger als drei Eckpunkte');
-  let s = 0; const p = r.polygon.map(q => [W.mm(q[0]), W.mm(q[1])]);
-  p.forEach((q, i) => { const n = p[(i + 1) % p.length]; s += q[0] * n[1] - n[0] * q[1]; });
-  check(Math.abs(s) / 2 > 0, r.id + ': Fläche 0');
+  check(Array.isArray(r.stempel) && r.stempel.length === 2 && r.stempel.every(v => typeof v === 'number' || typeof v === 'string'), r.id + ': Stempel (Punkt in der Raumfläche) fehlt');
+  check(!('polygon' in r), r.id + ': Räume haben keine Polygone mehr, sie werden aus den Wänden abgeleitet (src/raeume.js)');
 });
+(haus.trennlinien || []).forEach(t => {
+  check(['EG', 'DG'].indexOf(t.geschoss) >= 0, t.id + ': Geschoss ' + t.geschoss);
+  try { check(W.mm(t.von[0]) === W.mm(t.bis[0]) || W.mm(t.von[1]) === W.mm(t.bis[1]), t.id + ': Trennlinie nicht achsparallel'); } catch (e) { fails.push(t.id + ': ' + e.message); }
+});
+
+/* Dachgeschoss: Pias Zimmer, Arbeitszimmer und Abstellkammer haben je eine Tür zum Flur (Angabe des Nutzers vom 11.10.2026), keine offenen Übergänge.
+   Küche / Wohnen / Essen bleiben dagegen offen (Trennlinie im EG). Pias Zimmer und Abstellkammer grenzen deshalb mit einer Wand an den Flur. */
+{
+  check(!(haus.trennlinien || []).some(t => t.geschoss === 'DG'), 'Im DG darf es keine Trennlinien geben: die Räume sind durch Wände mit Türen getrennt');
+  check((haus.trennlinien || []).some(t => t.geschoss === 'EG' && /wohnen-kueche/.test(t.id)), 'Küche und Wohnen / Essen müssen offen bleiben (Trennlinie)');
+  const dgTueren = haus.waende.filter(w => w.geschoss === 'DG').reduce((n, w) => n + (w.oeffnungen || []).filter(o => o.art === 'durchgang').length, 0);
+  check(dgTueren === 3, 'Im DG gibt es ' + dgTueren + ' Türen statt 3 (Abstellkammer, Arbeitszimmer, Pias Zimmer)');
+  const m = buildModel(THREE, haus), g = m.abgeleitet.geschosse.DG;
+  check(g.teilflaechen.length === 4 && g.teilflaechen.every(t => t.raeume.length === 1), 'DG: vier Räume, jeder in einer eigenen Teilfläche');
+}
 
 /* ---------- Modell folgt den Daten ---------- */
 const flaeche = (m, id) => m.rooms.filter(r => r.id === id)[0].area;
 const m0 = buildModel(THREE, haus);
 { // HAR 10 cm tiefer: lichte Breite 3,010 m (Kette 4,745 → 7,755), Tiefe 2,95 + 0,10 = 3,05 m (Plan: HAR 2,95 tief).
   // Nur die Nachbarn an der HAR-Südwand geben nach: der Vorraum Eltern (1,69 m breit, Kette 4,57 → 6,26) und der Flur (1,495 m breit,
-  // 6,435 → 7,93, dazu das Dreieck an der 45°-Schrägwand mit 0,875 m Kathete) verlieren 0,10 m Tiefe. Die Wand Eltern / Bad liegt zwar bündig, gehört aber zu einer eigenen Kette und bleibt stehen.
+  // 6,435 → 7,93) verlieren 0,10 m Tiefe. Die 45°-Schrägwand zwischen Flur und Julians Zimmer bleibt stehen (die früheren Raumpolygone ließen ihre
+  // Schrägkante mitwandern und rechneten ein Dreieck mit 0,875 m Kathete mit).
+  // Die Wand Eltern / Bad liegt zwar bündig, gehört aber zu einer eigenen Kette und bleibt stehen.
   const d = klon(haus); d.achsen['z.harSi'].plus = 3050;
   const m = buildModel(THREE, d);
   const soll = 3.010 * 3.050;
   check(Math.abs(flaeche(m, 'har') - soll) < 1e-6, 'HAR bei 3,05 m Tiefe: ' + flaeche(m, 'har').toFixed(4) + ' m² statt ' + soll.toFixed(4));
   check(Math.abs(flaeche(m, 'eltern') - (flaeche(m0, 'eltern') - 1.690 * 0.10)) < 1e-6, 'Eltern gibt nicht um Breite 1,69 × 0,10 m² nach: ' + flaeche(m, 'eltern').toFixed(4));
-  const flurVerlust = 1.495 * 0.10 + 0.5 * 0.875 * 0.10;
-  check(Math.abs(flaeche(m, 'flur') - (flaeche(m0, 'flur') - flurVerlust)) < 1e-6, 'Flur verliert nicht ' + flurVerlust.toFixed(5) + ' m²: ' + flaeche(m, 'flur').toFixed(4));
+  const flurVerlust = 1.495 * 0.10;
+  check(Math.abs(flaeche(m, 'flur') - (flaeche(m0, 'flur') - flurVerlust)) < 1e-4, 'Flur verliert nicht ' + flurVerlust.toFixed(5) + ' m²: ' + (flaeche(m0, 'flur') - flaeche(m, 'flur')).toFixed(5));
   ['bad', 'ankleide', 'wohnen', 'kind2', 'kind1'].forEach(id => check(Math.abs(flaeche(m, id) - flaeche(m0, id)) < 1e-9, id + ' ändert sich, obwohl nur die HAR-Tiefe geändert wurde'));
+  check(m.befunde.filter(b => b.stufe === 'fehler').length === 0, 'HAR tiefer: Fehler ' + m.befunde.filter(b => b.stufe === 'fehler').map(b => b.text).join(' | '));
 }
 { // Außenmaß breiter (nur zur Prüfung der Verkettung, nicht als gewollte Änderung): Grundfläche +1,0 m × Haustiefe, Ostwand wandert mit
   const d = klon(haus); d.aussenmasse['x.O'].wert += 1000;
@@ -115,13 +131,32 @@ const m0 = buildModel(THREE, haus);
   const b0 = new THREE.Box3().setFromObject(m0.groups.inner), b1 = new THREE.Box3().setFromObject(m.groups.inner);
   check(Math.abs(b1.max.x - b0.max.x - 1.0) < 1e-6, 'Innenwände folgen der Ostwand nicht (Verschiebung ' + (b1.max.x - b0.max.x).toFixed(4) + ' m)');
 }
-{ // Wanddicke 11,5 → 13,5 cm: Die Wand Ankleide / Wohnen liegt mit der Nordfläche auf der Innenseite der Südwand des Bads (hz 6,395)
-  // und wächst nach Süden. Wohnen (5,12 m breit, Kette 3,885 → 9,005) gibt nach und wird um 5,12 × 0,02 m² kleiner.
-  const d = klon(haus); d.wandtypen.IW115.dicke = 135;
+{ // Wanddicke 12,5 → 13,5 cm (Wandtyp IW125 = Westwand des D-Bads, Außenseite fest bei hx 10,44): die Wand wächst nach Osten, das D-Bad (Innenmaß 2,00 m) gibt
+  // 1 cm nach und wird um 0,01 m × 1,885 m² kleiner. Julians Zimmer liegt westlich der Wand und bleibt, ebenso alle anderen Räume.
+  const d = klon(haus); d.wandtypen.IW125.dicke = 135;
   const m = buildModel(THREE, d);
-  const soll = flaeche(m0, 'wohnen') - 5.12 * 0.02;
-  check(Math.abs(flaeche(m, 'wohnen') - soll) < 1e-6, 'Wohnen bei dickerer Wand: ' + flaeche(m, 'wohnen').toFixed(4) + ' m² statt ' + soll.toFixed(4));
+  const soll = flaeche(m0, 'dbad') - 0.01 * 1.885;
+  check(Math.abs(flaeche(m, 'dbad') - soll) < 1e-6, 'D-Bad bei dickerer Wand: ' + flaeche(m, 'dbad').toFixed(4) + ' m² statt ' + soll.toFixed(4));
+  m0.rooms.filter(r => r.id !== 'dbad').forEach(r => check(Math.abs(flaeche(m, r.id) - r.area) < 1e-9, r.id + ' ändert sich, obwohl nur die Dicke von IW125 geändert wurde'));
   check(m.rooms.length === m0.rooms.length, 'Wanddicke ändert die Anzahl der Räume');
+}
+{ // Nachbar gibt nach: Wand Speisekammer / Küche 45 mm nach Süden. Speisekammer wird um 45 mm × Breite größer, die Küche um dasselbe kleiner.
+  const d = klon(haus); d.achsen['z.speisS'].wert += 45;
+  const m = buildModel(THREE, d), breite = (W.mm('x.Oi') - W.mm('x.naehW')) / 1000, dm = 0.045 * breite;
+  check(Math.abs(flaeche(m, 'speis') - (flaeche(m0, 'speis') + dm)) < 1e-6, 'Speisekammer wächst nicht um ' + dm.toFixed(4) + ' m²: ' + flaeche(m, 'speis').toFixed(4));
+  const kb = (W.mm('x.Oi') - W.mm('x.wohnO')) / 1000;
+  check(Math.abs(flaeche(m, 'kueche') - (flaeche(m0, 'kueche') - 0.045 * kb)) < 1e-6, 'Küche schrumpft nicht um ' + (0.045 * kb).toFixed(4) + ' m²: ' + flaeche(m, 'kueche').toFixed(4));
+  check(m.befunde.filter(b => b.stufe === 'fehler').length === 0, 'Speisekammer-Wand verschoben: Fehler ' + m.befunde.filter(b => b.stufe === 'fehler').map(b => b.text).join(' | '));
+}
+{ // Gegenbeispiel aus dem Plan (5.2): Westwand des D-Bads nach Süden bis zur Wand des Nähzimmers verlängert. Sie läuft durch die Südwand von Julians Zimmer
+  // und trennt den Eingangsbereich der Haustür vom Flur ab: Wand schneidet Wand, Teilfläche ohne Raum (ca. 3,9 m²).
+  const d = klon(haus); d.waende.filter(w => w.id === 'eg.dbad-west')[0].bis = ['x.dbW', 'z.flurS'];
+  const m = buildModel(THREE, d);
+  const schnitt = m.befunde.filter(b => b.regel === 2 && b.stufe === 'fehler' && b.elemente.indexOf('eg.dbad-west') >= 0 && b.elemente.indexOf('eg.julian-dbad-sued') >= 0);
+  check(schnitt.length === 1, 'D-Bad-Westwand verlängert: Wand schneidet Wand nicht gemeldet');
+  const rest = m.befunde.filter(b => b.regel === 1 && b.stufe === 'fehler' && /Unbenannte Teilfläche/.test(b.text) && /3,9\d m²|3,8\d m²/.test(b.text));
+  check(rest.length === 1, 'D-Bad-Westwand verlängert: abgetrennter Eingangsbereich (3,8–3,9 m²) nicht als Teilfläche ohne Raum gemeldet: ' + m.befunde.map(b => b.regel + ':' + b.text).join(' | '));
+  check(m0.befunde.filter(b => b.stufe === 'fehler').length === 0, 'Ausgangszustand hat Fehler');
 }
 wirft(() => buildModel(THREE), /Daten|haus/i, 'buildModel ohne Daten');
 

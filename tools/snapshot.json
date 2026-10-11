@@ -1,6 +1,6 @@
 {
- "meshes": 800,
- "tris": 194536,
+ "meshes": 807,
+ "tris": 194770,
  "tags": 49,
  "plotArea": 569.77,
  "footArea": 162.22,
@@ -13,6 +13,11 @@
   141.38,
   142.92
  ],
+ "befunde": {
+  "fehler": 0,
+  "warnung": 0,
+  "hinweis": 2
+ },
  "rooms": {
   "eltern": {
    "name": "Eltern",
@@ -37,7 +42,7 @@
   "bad": {
    "name": "Bad (Eltern)",
    "level": "eg",
-   "area": 8.92
+   "area": 8.79
   },
   "ankleide": {
    "name": "Ankleide",
@@ -97,7 +102,7 @@
   "treppe": {
    "name": "Treppe und Flur (DG)",
    "level": "dg",
-   "area": 3.32
+   "area": 2.61
   }
  }
 }

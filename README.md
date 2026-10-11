@@ -7,22 +7,22 @@ Interaktives, maßstabsgetreues 3D-Modell von Grundstück, Haus und Dachausbau (
 ## Aufbau
 | Ordner | Inhalt |
 |---|---|
-| `src/` | `data/haus.json` (Rohbau-Maße als Daten), `werte.js` (Achsen auflösen), `model.js` (Geometrie), `app.js` (Bedienung), `tpl.html` (Seitenvorlage) |
-| `dist/` | gebaute Seite `haus-und-grundstueck-3d.html` (wird als Artifact veröffentlicht) |
-| `tools/` | Tests (Daten, Modell), gesperrte Werte, Screenshot-Werkzeug |
+| `src/` | `data/haus.json` (Rohbau-Maße als Daten), `werte.js` (Achsen auflösen), `raeume.js` (Räume aus den Wänden ableiten), `dach.js` (Dachhöhe), `pruefen.js` (Prüfregeln), `grundriss.js` (2D-Grundriss mit Maßketten), `model.js` (Geometrie), `app.js` (Bedienung 3D), `plan2d.js` (Bedienung Grundriss), `tpl.html` (Seitenvorlage) |
+| `dist/` | gebaute Seite `haus-und-grundstueck-3d.html` (wird als Artifact veröffentlicht), `veroeffentlicht.json` (Hash der zuletzt veröffentlichten Seite) |
+| `tools/` | Tests (Daten, Räume und Prüfregeln, Grundriss, Modell, Veröffentlichungsstand), gesperrte Werte, Screenshot-Werkzeuge (`shot_view.js` 3D, `shot_plan.js` Grundriss), `plan_svg.js`, `live_pruefen.js` |
 | `eingaben/` | Originalpläne, PDFs, Fotos und Skizzen des Nutzers, Seitenbilder der Pläne |
 | `analyse/` | Hilfsskripte und Zwischendaten der Planauswertung |
 | `archiv/` | frühere Modellstände (v1–v4) |
-| `docs/` | Planung, z. B. `plan-parametrisches-modell.md` (Datenmodell, 2D-Bemaßung, Prüfung) |
+| `docs/` | Planung, z. B. `plan-parametrisches-modell.md` (Datenmodell, 2D-Bemaßung, Prüfung), Abgleiche (`abgleich-eg-grundriss.md`, `abgleich-raeume-ableiten.md`), `plaene/` (Grundrisse als SVG, vom Build geschrieben) |
 | `.devcontainer/` | Entwicklungsumgebung für die lokale Arbeit (Windows/WSL, Mac) |
-| `.claude/` | Skills für KI-Agenten (`wissensrueckgabe`) |
+| `.claude/` | Skills für KI-Agenten (`veroeffentlichen`, `wissensrueckgabe`) |
 
 Im Wurzelverzeichnis: `AGENTS.md` (Regelwerk und Projektbeschreibung, `CLAUDE.md` verweist darauf) und `TODO.md` (offene Punkte).
 
 ## Bauen und Testen
 ```
 npm ci
-python3 build.py
-node tools/test_model.js
+npm test
+npm run build
 ```
 Hinweise zu Koordinaten, Maßen und geklärten Annahmen stehen in `AGENTS.md`. Was in `eingaben/` liegt, steht in `eingaben/README.md`.
