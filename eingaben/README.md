@@ -13,7 +13,10 @@ Dateien so, wie sie in das Gespräch hochgeladen wurden (Namen mit Kennung vorne
 - `7175ee92`, `a1a00ce7` 3D-Ansichten der statischen Elemente
 - `19aed285`, `35f8fff4`, `3e9d959a`, `d3cd0b54`, `21e78d84`, `1fafb53e` Fotos und Skizze der Treppe und des Deckenausschnitts (Treppenloch, Ankunft oben)
 - `01655253`, `0f98993c` Screenshots des Modells mit Hinweisen des Nutzers (Wände, Außenwandecke)
-- übrige (`1556e9a9`, `32710f5f`, `7d13ea6f`, `8b1e373f`, `becebb03`, `fa34ee3e`) frühe Eingaben der ersten Runde, nicht einzeln beschriftet
+- `32710f5f` bemaßter EG-Grundriss mit roten Handmaßen des Nutzers (fertige Innenmaße), Referenz für das EG
+- `foto-ostseite-alt.webp` altes Foto der Ostseite (Haustür), vor dem Dachausbau; nur das Haus ist maßgeblich, Garten und Einfahrt sind veraltet
+- `foto-terrasse-pergola.webp` Terrasse mit Pergola von Südwesten, Westwand des Wohnzimmers mit den drei Fenstertüren
+- übrige (`1556e9a9`, `7d13ea6f`, `8b1e373f`, `becebb03`, `fa34ee3e`) frühe Eingaben der ersten Runde, nicht einzeln beschriftet
 
 ## plaene-seiten/
 Aus den PDFs gerenderte Seitenbilder und Textauszug (`t.txt`), Grundlage der Planauswertung.

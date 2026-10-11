@@ -13,6 +13,7 @@ Interaktives, maßstabsgetreues 3D-Modell von Grundstück, Haus und Dachausbau (
 | `eingaben/` | Originalpläne, PDFs, Fotos und Skizzen des Nutzers, Seitenbilder der Pläne |
 | `analyse/` | Hilfsskripte und Zwischendaten der Planauswertung |
 | `archiv/` | frühere Modellstände (v1–v4) |
+| `docs/` | Planung, z. B. `plan-parametrisches-modell.md` (Datenmodell, 2D-Bemaßung, Prüfung) |
 
 ## Bauen und Testen
 ```

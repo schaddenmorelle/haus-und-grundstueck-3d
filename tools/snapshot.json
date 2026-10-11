@@ -1,0 +1,103 @@
+{
+ "meshes": 522,
+ "tris": 163960,
+ "tags": 47,
+ "plotArea": 569.77,
+ "footArea": 162.22,
+ "ridge": 149.078,
+ "levels": {
+  "eg": 0.8,
+  "dg": 3.771
+ },
+ "terrain": [
+  141.38,
+  142.8
+ ],
+ "rooms": {
+  "eltern": {
+   "name": "Eltern",
+   "level": "eg",
+   "area": 16.3
+  },
+  "har": {
+   "name": "HAR",
+   "level": "eg",
+   "area": 8.88
+  },
+  "kind2": {
+   "name": "Julians Zimmer",
+   "level": "eg",
+   "area": 13.25
+  },
+  "dbad": {
+   "name": "D-Bad",
+   "level": "eg",
+   "area": 3.77
+  },
+  "bad": {
+   "name": "Bad (Eltern)",
+   "level": "eg",
+   "area": 8.92
+  },
+  "ankleide": {
+   "name": "Ankleide",
+   "level": "eg",
+   "area": 5.64
+  },
+  "flur": {
+   "name": "Flur / Diele",
+   "level": "eg",
+   "area": 11.92
+  },
+  "kind1": {
+   "name": "Nähzimmer",
+   "level": "eg",
+   "area": 10.82
+  },
+  "speis": {
+   "name": "Speisekammer",
+   "level": "eg",
+   "area": 4.27
+  },
+  "wohnen": {
+   "name": "Wohnen / Essen",
+   "level": "eg",
+   "area": 39.73
+  },
+  "kueche": {
+   "name": "Küche",
+   "level": "eg",
+   "area": 10.95
+  },
+  "terrasse": {
+   "name": "Terrasse (überdacht)",
+   "level": "out",
+   "area": 10.95
+  },
+  "pergola": {
+   "name": "Pergola",
+   "level": "out",
+   "area": 15
+  },
+  "pia": {
+   "name": "Pias Zimmer",
+   "level": "dg",
+   "area": 33.12
+  },
+  "arbeit": {
+   "name": "Arbeitszimmer",
+   "level": "dg",
+   "area": 15.55
+  },
+  "abstell": {
+   "name": "Abstellkammer",
+   "level": "dg",
+   "area": 8.64
+  },
+  "treppe": {
+   "name": "Treppe und Flur (DG)",
+   "level": "dg",
+   "area": 3.32
+  }
+ }
+}
