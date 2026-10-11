@@ -994,11 +994,14 @@ function buildModel(THREE) {
   })();
 
   /* ---------- Spritzschutzstreifen aus Kies an der Hauswand (Angabe des Nutzers vom 11.10.2026, Foto) ----------
-     Ostseite ab dem Zaun an der Hauswand nach Süden, um die Südostecke und an der Südwand entlang bis zur Kante der Terrasse.
-     Annahmen nach Foto: 40 cm breit, Kiesoberfläche 2 cm über dem Gelände, Betonrandstein 8 cm breit außen, 4 cm über dem Gelände. */
+     Ostseite von der Stufe (Randsteinreihe bei z 12,31) nach Süden, über das Zaunende hinaus, um die Südostecke und an der Südwand
+     entlang bis zur Kante der Terrasse. An beiden Enden quer ein Abschlussstein (vor der Randsteinreihe der Stufe, an der Terrassenkante).
+     Annahmen nach Foto: 40 cm breit, Kies 2 cm über dem Gelände, Betonrandstein und Abschlusssteine 8 cm breit, 4 cm über dem Gelände. */
   (function spritzschutz() {
     var W = 0.40, KB = 0.08, KH = 0.04, KO = 0.02;
-    var xO = F.x1, zS = F.z1, zN = HOF_POLY[5][1] + ZAUN_WIESE + ZAUN_PW / 2, xT = (F.x0 + F.xn) / 2 + 1.7; // Ostwand, Südwand, Zaunende an der Hauswand, Terrassenkante (x 6,5)
+    var xO = F.x1, zS = F.z1, xT = (F.x0 + F.xn) / 2 + 1.7;       // Ostwand, Südwand, Terrassenkante (x 6,5)
+    var zE = STEP_Z + KB, zA = zE + KB;                            // südliche Kante der Randsteinreihe der Stufe, Anfang des Kieses hinter dem Abschlussstein
+    var xA = xT + KB;                                              // Anfang des Kieses an der Südwand hinter dem Abschlussstein
     var kp = [], ku = [];
     function kv(x, z) { kp.push(x, meshY(x, z) + KO, z); ku.push(x, z); } // Eckpunkt auf dem Gelände, Textur nach Lageplan (1 m Kachel)
     function kies(x0, x1, z0, z1) { // Rechteck mit Stützstellen alle 0,25 m
@@ -1008,21 +1011,23 @@ function buildModel(THREE) {
         kv(a, c); kv(a, d); kv(b, d); kv(a, c); kv(b, d); kv(b, c);
       }
     }
-    kies(xO, xO + W, zN, zS + W);       // Ostwand, bis über die Südostecke hinaus
-    kies(xT, xO, zS, zS + W);           // Südwand bis zur Terrassenkante
+    kies(xO, xO + W, zA, zS + W);       // Ostwand, bis über die Südostecke hinaus
+    kies(xA, xO, zS, zS + W);           // Südwand bis zum Abschlussstein an der Terrassenkante
     var g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.BufferAttribute(new Float32Array(kp), 3));
     g.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(ku), 2));
     g.computeVertexNormals();
     var km = mesh(g, mat.kies, false, gGarden, true);
     km.receiveShadow = true; km.userData = { kind: 'kies', breite: W };
-    function stein(xc, zc, w, d) { // Randstein-Stück, Oberkante KH über dem Gelände
+    function stein(art, xc, zc, w, d) { // Stein, Oberkante KH über dem Gelände
       var yc = meshY(xc, zc) + KH - 0.07;
-      boxAt(w, 0.14, d, mat.kante, xc, yc, zc, gGarden).userData = { kind: 'kiesrand' };
+      boxAt(w, 0.14, d, mat.kante, xc, yc, zc, gGarden).userData = { kind: art };
     }
-    var xr = xO + W + KB / 2, zr = zS + W + KB / 2, ne = Math.ceil((zr + KB / 2 - zN) / 0.5), ns = Math.ceil((xO + W - xT) / 0.5);
-    for (var i = 0; i < ne; i++) { var za = zN + (zr + KB / 2 - zN) * i / ne, zb = zN + (zr + KB / 2 - zN) * (i + 1) / ne; stein(xr, (za + zb) / 2, KB, zb - za + 0.005); } // Ostseite, schließt die Ecke
-    for (var j = 0; j < ns; j++) { var xa = xT + (xO + W - xT) * j / ns, xb = xT + (xO + W - xT) * (j + 1) / ns; stein((xa + xb) / 2, zr, xb - xa + 0.005, KB); } // Südseite bis zum Randstein der Ostseite
+    var xr = xO + W + KB / 2, zr = zS + W + KB / 2, ne = Math.ceil((zr + KB / 2 - zA) / 0.5), ns = Math.ceil((xO + W - xA) / 0.5);
+    for (var i = 0; i < ne; i++) { var za = zA + (zr + KB / 2 - zA) * i / ne, zb = zA + (zr + KB / 2 - zA) * (i + 1) / ne; stein('kiesrand', xr, (za + zb) / 2, KB, zb - za + 0.005); } // Ostseite, schließt die Ecke
+    for (var j = 0; j < ns; j++) { var xa = xA + (xO + W - xA) * j / ns, xb = xA + (xO + W - xA) * (j + 1) / ns; stein('kiesrand', (xa + xb) / 2, zr, xb - xa + 0.005, KB); } // Südseite bis zum Randstein der Ostseite
+    stein('kiesabschluss', xO + (W + KB) / 2, zE + KB / 2, W + KB, KB);   // quer an der Stufe, über die ganze Streifenbreite samt Randstein
+    stein('kiesabschluss', xT + KB / 2, zS + (W + KB) / 2, KB, W + KB);   // quer an der Terrassenkante
   })();
 
   /* ---------- Beschriftungen: Höhen und Maße ---------- */

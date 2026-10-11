@@ -233,17 +233,20 @@ const inPoly = (poly, x, z) => { let ins = false; for (let i = 0, j = poly.lengt
   check(imPool === 0, 'Hecke ragt in den Pool');
   check(draussen === 0, 'Hecke ragt über die Grundstücksgrenze (' + draussen + ' Ecken)');
 
-  /* Spritzschutzstreifen aus Kies (Angabe des Nutzers vom 11.10.2026, Foto): an der Hauswand auf der Ostseite ab dem Zaun nach Süden,
-     um die Südostecke und an der Südwand entlang bis zur Kante der Terrasse. Breite mindestens 30 cm (übliches Mindestmaß, Annahme). */
-  const kies = kinds('kies'), rand = kinds('kiesrand');
+  /* Spritzschutzstreifen aus Kies (Angabe des Nutzers vom 11.10.2026, Foto): an der Hauswand auf der Ostseite von der Stufe (z 12,31) nach Süden,
+     über das Zaunende hinaus, um die Südostecke und an der Südwand entlang bis zur Kante der Terrasse. An beiden Enden ein Abschlussstein.
+     Breite mindestens 30 cm (übliches Mindestmaß, Annahme). */
+  const kies = kinds('kies'), rand = kinds('kiesrand'), ende = kinds('kiesabschluss');
   check(kies.length === 1, 'Spritzschutzstreifen: ' + kies.length + ' Teile statt 1');
   check(rand.length > 0, 'Spritzschutzstreifen: kein Randstein');
+  check(ende.length === 2, 'Spritzschutzstreifen: ' + ende.length + ' Abschlusssteine statt 2 (Stufe und Terrassenkante)');
+  const STUFE = 5.74 + 6.27 + 0.30; // Stufe 30 cm südlich der Haustüröffnung (Angabe Nutzer)
   if (kies.length === 1) {
     const vs = ecken(kies[0]), b = box(kies[0]), nah = (x, z) => mn(vs.map(v => Math.hypot(v.x - x, v.z - z)));
-    check(b.min.z >= 13.6 && b.min.z <= 13.9, 'Streifen beginnt bei z ' + b.min.z.toFixed(2) + ' statt am Zaun an der Hauswand (z 13,7)');
-    check(b.min.x >= 6.4 && b.min.x <= 6.6, 'Streifen endet bei x ' + b.min.x.toFixed(2) + ' statt an der Terrassenkante (x 6,5)');
-    const ost = []; for (let z = 13.9; z <= 20.3; z += 0.2) ost.push([16.02, z]);
-    const sued = []; for (let x = 6.6; x <= 15.9; x += 0.2) sued.push([x, 20.42]);
+    check(b.min.z >= STUFE && b.min.z <= STUFE + 0.3, 'Streifen beginnt bei z ' + b.min.z.toFixed(2) + ' statt an der Stufe (z ' + STUFE.toFixed(2) + ')');
+    check(b.min.x >= 6.4 && b.min.x <= 6.7, 'Streifen endet bei x ' + b.min.x.toFixed(2) + ' statt an der Terrassenkante (x 6,5)');
+    const ost = []; for (let z = STUFE + 0.3; z <= 20.3; z += 0.2) ost.push([16.02, z]);
+    const sued = []; for (let x = 6.7; x <= 15.9; x += 0.2) sued.push([x, 20.42]);
     const luecken = ost.concat(sued).filter(q => nah(q[0], q[1]) > 0.35);
     check(luecken.length === 0, 'Streifen hat Lücken an der Hauswand (z. B. bei ' + (luecken[0] ? luecken[0][0].toFixed(1) + ' / ' + luecken[0][1].toFixed(1) : '') + ')');
     const breitO = mx(vs.filter(v => v.z > 14 && v.z < 20).map(v => v.x)) - 16.0, breitS = mx(vs.filter(v => v.x > 7 && v.x < 15.9).map(v => v.z)) - 20.395;
@@ -253,7 +256,18 @@ const inPoly = (poly, x, z) => { let ins = false; for (let i = 0, j = poly.lengt
     check(mn(hh) >= 0.005 && mx(hh) <= 0.06, 'Streifen liegt ' + (mn(hh) * 100).toFixed(1) + ' bis ' + (mx(hh) * 100).toFixed(1) + ' cm über dem Gelände statt 0,5–6 cm');
     const aussen = rand.filter(r => { const c = box(r).getCenter(new THREE.Vector3()); return !(c.x > 16.3 || c.z > 20.7); });
     check(aussen.length === 0, 'Randstein liegt nicht außen am Streifen (' + aussen.length + ' Stücke)');
-    check(rand.every(r => { const c = box(r).getCenter(new THREE.Vector3()), t = box(r).max.y - gelaende(c.x, c.z); return t >= 0.02 && t <= 0.1; }), 'Randstein steht nicht 2–10 cm über dem Gelände');
+    check(rand.concat(ende).every(r => { const c = box(r).getCenter(new THREE.Vector3()), t = box(r).max.y - gelaende(c.x, c.z); return t >= 0.02 && t <= 0.1; }), 'Randstein oder Abschlussstein steht nicht 2–10 cm über dem Gelände');
+    // Abschlusssteine: einer quer über dem Streifen an der Stufe, einer quer an der Terrassenkante; beide schließen den Kies ab, ohne ihn zu überdecken
+    const nord = ende.filter(e => box(e).getCenter(new THREE.Vector3()).z < 14), west = ende.filter(e => box(e).getCenter(new THREE.Vector3()).x < 8);
+    check(nord.length === 1 && west.length === 1, 'Abschlusssteine: erwartet je einen an der Stufe und an der Terrassenkante');
+    if (nord.length === 1) {
+      const e = box(nord[0]), c = e.getCenter(new THREE.Vector3());
+      check(e.min.x <= 16.02 && e.max.x >= 16.4 && c.z >= STUFE && c.z <= STUFE + 0.3 && e.max.z <= b.min.z + 0.01, 'Abschlussstein an der Stufe liegt nicht quer über dem Streifenanfang (x ' + e.min.x.toFixed(2) + '…' + e.max.x.toFixed(2) + ', z ' + c.z.toFixed(2) + ')');
+    }
+    if (west.length === 1) {
+      const e = box(west[0]), c = e.getCenter(new THREE.Vector3());
+      check(c.x >= 6.4 && c.x <= 6.7 && e.min.z <= 20.42 && e.max.z >= 20.395 + 0.4 && e.max.x <= b.min.x + 0.01, 'Abschlussstein an der Terrassenkante liegt nicht quer über dem Streifenende (x ' + c.x.toFixed(2) + ', z ' + e.min.z.toFixed(2) + '…' + e.max.z.toFixed(2) + ')');
+    }
   }
 }
 
