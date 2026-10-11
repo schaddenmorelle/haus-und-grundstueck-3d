@@ -12,10 +12,6 @@ function buildModel(THREE) {
   var TAN = Math.tan(35 * Math.PI / 180); // Dachneigung 35° laut Binderplan
 
   function Y(e) { return e - DATUM; }
-  /* Pixel des Grundrissplans -> Meter (stückweise, an den Absteckmaßen verankert) */
-  function pmx(px) { return px <= 608 ? F.x0 + (px - 420.5) * (3.5 / 187.5) : F.xn + (px - 608) * (9.45 / 494.5); }
-  function pmz(py) { return py <= 851 ? F.z0 + (py - 509) * (6.78 / 342) : F.zn + (py - 851) * (7.875 / 426); }
-  function pm(px, py) { return [pmx(px), pmz(py)]; }
   /* Pixel des Lageplan-Bildes -> Meter */
   function pl(px, py) { return [(px - 265) / 51.9, (py - 214) / 51.9]; }
 
@@ -726,7 +722,7 @@ function buildModel(THREE) {
   return {
     root: root, groups: { house: gHouse, inner: gInner, dg: gDG, rafters: gRaf, deck: gDeck, roof: gRoof, garden: gGarden, terrain: gTerrain, marks: gMarks },
     terrain: root.userData.terrain, pickables: pickables, tags: tags, rooms: roomsOut, zones: zones, info: info,
-    groundY: groundY, bounds: BOUNDS, north: NORTH, H: H, datum: DATUM, sunDir: sunDir, roofH: roofH
+    groundY: groundY, bounds: BOUNDS, north: NORTH, H: H, datum: DATUM, levels: { eg: yF, dg: yD }, sunDir: sunDir, roofH: roofH
   };
 }
 if (typeof module !== 'undefined') module.exports = { buildModel: buildModel };

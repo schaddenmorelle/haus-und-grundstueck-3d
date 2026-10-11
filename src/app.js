@@ -217,7 +217,7 @@
       var r = model.rooms.filter(function (q) { return q.id === id; })[0];
       state.roof = false; state.rafters = false; state.rooms = true; state.dg = r.level === 'dg'; applyState();
       viewBtns.forEach(function (b) { b.classList.remove('on'); b.setAttribute('aria-pressed', 'false'); });
-      var cx = r.center[0], cz = r.center[1], y = model.H.FFB - model.datum + (r.level === 'dg' ? 2.82 : 0);
+      var cx = r.center[0], cz = r.center[1], y = r.level === 'dg' ? model.levels.dg : model.levels.eg;
       var k = Math.max(1, Math.sqrt(r.area) / 4.5);
       flyTo([cx - 6 * k, y + 12 * k, cz + 11 * k], [cx, y, cz], 800);
     }
@@ -315,8 +315,8 @@
   var I = model.info;
   document.getElementById('k-plot').textContent = fmt(I.plotArea, 0) + ' m²';
   document.getElementById('k-foot').textContent = fmt(I.footArea, 0) + ' m²';
-  document.getElementById('k-ridge').textContent = '149,08 m (+' + fmt(I.ridgeAbove, 2) + ' m)';
-  document.getElementById('k-eave').textContent = '145,77 m (+' + fmt(I.eaveAbove, 2) + ' m)';
+  document.getElementById('k-ridge').textContent = fmt(model.H.RIDGE, 2) + ' m (+' + fmt(I.ridgeAbove, 2) + ' m)';
+  document.getElementById('k-eave').textContent = fmt(model.H.EAVE, 2) + ' m (+' + fmt(I.eaveAbove, 2) + ' m)';
   document.getElementById('k-pitch').textContent = fmt(I.pitchDeg, 1) + '°';
 
   /* ---------- Schleife ---------- */
