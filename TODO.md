@@ -20,6 +20,7 @@ Die Arbeitsliste dieses Projekts, **von Anfang an** geführt und nicht nachträg
 <!-- Beschlossen und begründet, aber noch nicht angefangen. -->
 
 - [ ] Phase 1 des Umbauplans (`docs/plan-parametrisches-modell.md`, Abschnitt 8): Daten aus `model.js` in `haus.json` herauslösen (Achsen, gesperrte Außenmaße, Wandtypen, Wände, Öffnungen). Fertig, wenn `model.js` die Daten liest und `npm test` ohne Abweichung vom Snapshot grün bleibt.
+- [ ] Ändern über die Oberfläche (Probiermodus, Plan Abschnitt 4, 8 und 9): Maße in der Seite ändern, Prüfung und Auswirkungen anzeigen, den Export als Änderungsliste erzeugen und mit einem Werkzeug im Repository validiert als neue Sollwerte einspielen. Baut auf Phase 1 und `tools/aendern.js` (Phase 4) auf. Fertig, wenn ein in der Seite geänderter Wert exportiert, vom Werkzeug geprüft und eingespielt wird, `npm test` danach grün ist und ein ungültiger Export abgelehnt wird.
 
 ## Irgendwann
 
@@ -31,6 +32,6 @@ Die Arbeitsliste dieses Projekts, **von Anfang an** geführt und nicht nachträg
 <!-- Was entschieden werden muss, bevor daraus eine Aufgabe werden kann. Mit Datum,
      damit sichtbar ist, wie lange eine Frage schon wartet. -->
 
-- 2026-10-11: Soll es ein Glossar für Fachbegriffe und Raumnamen geben (bisher nur in `CLAUDE.md`)?
+- 2026-10-11: Soll es ein Glossar für Fachbegriffe und Raumnamen geben (bisher nur in `AGENTS.md`)?
 - 2026-10-11: Soll es eine Architekturdatei (arc42) und ADRs geben, oder reicht `docs/plan-parametrisches-modell.md`?
 - 2026-10-11: Wohnflächenberechnung: Umsetzung und Berechnungsgrundlage (z. B. Anrechnung nach Höhenzonen im Dachgeschoss) sind offen. Der Plan nennt sie nur unter „danach“.
