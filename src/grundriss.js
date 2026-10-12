@@ -14,7 +14,8 @@
    annahme, ohne) und ein Schloss, wenn beide Enden auf gesperrten Achsen liegen. Die Herkunft ergibt sich aus den Parametern, von denen
    das Maß wirklich abhängt: Maße werden als Summe aus Achsen und Wandtypen aufgelöst, was sich in der Differenz aufhebt, zählt nicht
    (die Innenkante der Außenwand hebt sich bei der HAR-Tiefe auf, übrig bleibt das Aufmaß 2,95 m). Die Namen der Maße sind vorläufig:
-   Phase 4 (Ändern) legt fest, wie ein Maß angesprochen wird. */
+   Mit diesen Namen spricht src/aendern.js (Phase 4) ein Maß an; jedes Segment einer Kette trägt dafür `parameter` (Achsen und Wandtypen, von denen es
+   abhängt, mit Faktor k) und bei Öffnungen und Pfeilern `oeffnungen` (Verweis auf die Öffnung in der Wand). */
 if (typeof require !== 'undefined') { var polygonClipping = require('polygon-clipping'); var RA = require('./raeume.js'); }
 
 var grundrissAbleiten, kettenSchnitt, grundrissSvg;
@@ -31,12 +32,12 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
     var typen = haus.wandtypen || {}, defs = {}, memo = {};
     [haus.aussenmasse || {}, haus.achsen || {}].forEach(function (gr) { Object.keys(gr).forEach(function (n) { defs[n] = gr[n]; }); });
     function leer(root, rootQ) { return { root: root, rootQ: rootQ, t: {} }; }
-    function kopie(e) { var o = leer(e.root, e.rootQ); Object.keys(e.t).forEach(function (k) { o.t[k] = { c: e.t[k].c, q: e.t[k].q }; }); return o; }
-    function addTerm(e, key, c, q) { if (e.t[key]) e.t[key].c += c; else e.t[key] = { c: c, q: q }; }
+    function kopie(e) { var o = leer(e.root, e.rootQ); Object.keys(e.t).forEach(function (k) { o.t[k] = { c: e.t[k].c, q: e.t[k].q, s: e.t[k].s }; }); return o; }
+    function addTerm(e, key, c, q, s) { if (e.t[key]) { e.t[key].c += c; e.t[key].s += s || 0; } else e.t[key] = { c: c, q: q, s: s || 0 }; }
     function typQ(name) { var n = String(name).replace(/\/2$/, ''); return (typen[n] && typen[n].quelle) || 'ohne'; }
     function term(e, x, sg, name, quelle) { // x: Zahl (mm) oder Wandtyp ("IW175", "TB-DG/2")
       if (x == null) return;
-      if (typeof x === 'number') addTerm(e, 'p:' + name + (sg > 0 ? '+' : '-'), sg * x, quelle || 'ohne');
+      if (typeof x === 'number') addTerm(e, 'p:' + name + (sg > 0 ? '+' : '-'), sg * x, quelle || 'ohne', sg);
       else { var halb = /\/2$/.test(x); addTerm(e, 't:' + String(x).replace(/\/2$/, ''), sg * (halb ? 0.5 : 1), typQ(x)); }
     }
     function achseExpr(name) {
@@ -65,13 +66,29 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
       if (a.root !== b.root) { q = schlechter(q, a.rootQ); q = schlechter(q, b.rootQ); }
       return q || 'plan';
     }
+    /* Parameter, von denen die Differenz b − a abhängt, mit ihrem Faktor k (Änderung des Maßes = k × Änderung des Parameters):
+       { art: 'wurzel' (Achse mit eigenem Wert) | 'achse+' / 'achse-' (Zahl in plus / minus einer abgeleiteten Achse) | 'typ' (Wandtyp, k = 0,5 bei halber Dicke)
+              | 'wanddicke' (eigene Dicke einer Wand), name, k }. Phase 4 (src/aendern.js) wählt daraus den Parameter, der nachgibt. */
+    function abhaengig(a, b) {
+      var out = [], keys = {};
+      Object.keys(a.t).concat(Object.keys(b.t)).forEach(function (k) { keys[k] = 1; });
+      Object.keys(keys).forEach(function (k) {
+        var ta = a.t[k], tb = b.t[k], c = (tb ? tb.c : 0) - (ta ? ta.c : 0), m;
+        if (Math.abs(c) < 1e-9) return;
+        if (k.indexOf('t:') === 0) out.push({ art: 'typ', name: k.slice(2), k: c });
+        else if (k.indexOf('d:') === 0) out.push({ art: 'wanddicke', name: k.slice(2), k: c });
+        else if ((m = /^p:(.*)([+-])$/.exec(k))) out.push({ art: m[2] === '+' ? 'achse+' : 'achse-', name: m[1], k: (tb ? tb.s : 0) - (ta ? ta.s : 0) });
+      });
+      if (a.root !== b.root) { out.push({ art: 'wurzel', name: a.root, k: -1 }); out.push({ art: 'wurzel', name: b.root, k: 1 }); }
+      return out;
+    }
     function achseZuWert(c, praefix) { // Name einer Achse (x. oder z.) mit diesem Wert; Außenmaße zuerst
       var gruppen = [haus.aussenmasse || {}, haus.achsen || {}], i, n;
       for (i = 0; i < gruppen.length; i++) for (n in gruppen[i]) if (n.indexOf(praefix) === 0 && Math.abs(WV.mm(n) - c) < TOL) return n;
       return null;
     }
     return { haus: haus, WV: WV, abl: abl, typen: typen, defs: defs, leer: leer, kopie: kopie, addTerm: addTerm, term: term, typQ: typQ, achseExpr: achseExpr,
-             ausdruckExpr: ausdruckExpr, differenzQ: differenzQ, achseZuWert: achseZuWert };
+             ausdruckExpr: ausdruckExpr, differenzQ: differenzQ, abhaengig: abhaengig, achseZuWert: achseZuWert };
   }
 
   /* ---------- Wände eines Geschosses mit Richtung, Flächen (Seiten) und Herkunft ---------- */
@@ -137,11 +154,13 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
     merged.forEach(function (s, i) {
       var q = s.q;
       if (s.fl && s.fr && s.ids.length === 1) q = K.differenzQ(s.fl.e, s.fr.e);
-      segs.push({ art: 'wand', von: s.s, bis: s.e, laenge: s.e - s.s, name: 'wand:' + s.ids.join('+'), quelle: q, fest: false, ids: s.ids, schraeg: s.schraeg });
+      segs.push({ art: 'wand', von: s.s, bis: s.e, laenge: s.e - s.s, name: 'wand:' + s.ids.join('+'), quelle: q, fest: false, ids: s.ids, schraeg: s.schraeg,
+                  parameter: s.fl && s.fr && s.ids.length === 1 ? K.abhaengig(s.fl.e, s.fr.e) : null });
       if (i + 1 < merged.length) {
         var n = merged[i + 1], mid = (s.e + n.s) / 2, r = richtung === 'x' ? raumBei(K, g, mid, bei) : raumBei(K, g, bei, mid);
         var name = r ? 'raum:' + r.id + (richtung === 'x' ? '.breite' : '.tiefe') : 'luft:' + s.ids[0] + '/' + n.ids[0];
-        segs.push({ art: 'raum', von: s.e, bis: n.s, laenge: n.s - s.e, name: name, quelle: s.fr && n.fl ? K.differenzQ(s.fr.e, n.fl.e) : 'ohne', fest: false, ids: r ? [r.id] : [], schraeg: false });
+        segs.push({ art: 'raum', von: s.e, bis: n.s, laenge: n.s - s.e, name: name, quelle: s.fr && n.fl ? K.differenzQ(s.fr.e, n.fl.e) : 'ohne', fest: false, ids: r ? [r.id] : [], schraeg: false,
+                  parameter: s.fr && n.fl ? K.abhaengig(s.fr.e, n.fl.e) : null });
       }
     });
     return { richtung: richtung, bei: bei, von: merged.length ? merged[0].s : 0, bis: merged.length ? merged[merged.length - 1].e : 0, segmente: segs };
@@ -233,7 +252,7 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
         else if (na && nb) name = (imAussen(na) && imAussen(nb) ? 'aussen:' : 'gesamt:') + na + '-' + nb;
         else name = 'gesamt:' + seite + (k + 1);
         kette.segmente.push({ art: 'gesamt', von: s.a, bis: s.b, laenge: s.b - s.a, name: name, quelle: na && nb ? K.differenzQ(K.achseExpr(na), K.achseExpr(nb)) : 'ohne',
-                              fest: !!(fa && fb && fa.fest && fb.fest), ids: [], schraeg: false });
+                              fest: !!(fa && fb && fa.fest && fb.fest), ids: [], schraeg: false, parameter: na && nb ? K.abhaengig(K.achseExpr(na), K.achseExpr(nb)) : null });
       });
       if (kette.segmente.length) out.push(kette);
     });
@@ -279,11 +298,11 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
       }).sort(function (a, b) { return a.s - b.s; });
       var lo = Math.min(ln.a[along], ln.b[along]), hi = Math.max(ln.a[along], ln.b[along]), segs = [], cur = lo, pf = 0, prev = null;
       teile.forEach(function (t) {
-        if (t.s - cur > TOL) { pf++; segs.push({ art: 'pfeiler', von: cur, bis: t.s, laenge: t.s - cur, name: info.id + '.pfeiler' + pf, quelle: schlechter(prev ? prev.o.quelle || 'plan' : null, t.o.quelle || 'plan'), fest: false, ids: [info.id], schraeg: false }); }
-        segs.push({ art: 'oeffnung', von: t.s, bis: t.e, laenge: t.e - t.s, name: info.id + '.oeff' + (t.k + 1), quelle: t.o.quelle || 'plan', fest: false, ids: [info.id], schraeg: false });
+        if (t.s - cur > TOL) { pf++; segs.push({ art: 'pfeiler', von: cur, bis: t.s, laenge: t.s - cur, name: info.id + '.pfeiler' + pf, quelle: schlechter(prev ? prev.o.quelle || 'plan' : null, t.o.quelle || 'plan'), fest: false, ids: [info.id], schraeg: false, oeffnungen: { vorige: prev ? prev.k : null, naechste: t.k } }); }
+        segs.push({ art: 'oeffnung', von: t.s, bis: t.e, laenge: t.e - t.s, name: info.id + '.oeff' + (t.k + 1), quelle: t.o.quelle || 'plan', fest: false, ids: [info.id], schraeg: false, oeffnungen: { wand: info.id, k: t.k } });
         cur = t.e; prev = t;
       });
-      if (hi - cur > TOL) { pf++; segs.push({ art: 'pfeiler', von: cur, bis: hi, laenge: hi - cur, name: info.id + '.pfeiler' + pf, quelle: prev ? prev.o.quelle || 'plan' : 'plan', fest: false, ids: [info.id], schraeg: false }); }
+      if (hi - cur > TOL) { pf++; segs.push({ art: 'pfeiler', von: cur, bis: hi, laenge: hi - cur, name: info.id + '.pfeiler' + pf, quelle: prev ? prev.o.quelle || 'plan' : 'plan', fest: false, ids: [info.id], schraeg: false, oeffnungen: { vorige: prev ? prev.k : null, naechste: null } }); }
       out.push({ typ: 'oeffnungen', seite: seite, richtung: richtung, bei: null, wand: info.id, koord: seite === 'N' || seite === 'S' ? mid[1] : mid[0], von: lo, bis: hi, segmente: segs });
     });
     return out;
