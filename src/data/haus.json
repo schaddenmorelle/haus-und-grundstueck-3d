@@ -118,8 +118,39 @@
   "treppe": {
     "steigungen": 15, "auftritt": 250, "laufbreite": 900, "gelaender": 150, "nische": 540,
     "anker": ["x.Oi", "z.ZS"], "geraderLaufAb": 1357, "laufEnde": 3365, "quelle": "nutzer",
-    "notiz": "Treppenplanung: 15 Steigungen, Auftritt 25 cm, Wendelung Stufe 1–6 an der Ostwand, danach gerader Lauf nach Westen. Maße in mm; anker = Innenecke Ostwand / Nordseite Wand Nähzimmer-Speisekammer, u läuft nach Westen, v nach Norden. geraderLaufAb und laufEnde sind u-Maße des geraden Laufs (Stufe 7 bis zum Austritt). Lauf 0,90 m bis zum Geländer, Geländer 0,15 m, Nische 0,54 m (Angaben des Nutzers)."
+    "stufendicke": 44,
+    "wendel": {
+      "notiz": "Grundrisse der Stufen 1–6 in (u, v) ab der Innenecke (u nach Westen, v nach Norden, mm); \"W\" ist die Laufbreite, \"U0\" geraderLaufAb. Aus der Treppenplanung (Wortmann) übernommen, vorher Zahlen in model.js.",
+      "1": [[0, 1400], [950, 1400], [950, "W"], [0, 1160]],
+      "2": [[0, 1160], [950, "W"], [0, 700]],
+      "3": [[0, 700], [950, "W"], [0, 250]],
+      "4": [[0, 250], [950, "W"], [350, 0], [0, 0]],
+      "5": [[350, 0], [950, "W"], [800, 0]],
+      "6": [[800, 0], [950, "W"], ["U0", "W"], ["U0", 0]]
+    },
+    "notiz": "Treppenplanung: 15 Steigungen, Auftritt 25 cm, Wendelung Stufe 1–6 an der Ostwand, danach gerader Lauf nach Westen. Maße in mm; anker = Innenecke Ostwand / Nordseite Wand Nähzimmer-Speisekammer, u läuft nach Westen, v nach Norden. geraderLaufAb und laufEnde sind u-Maße des geraden Laufs (Stufe 7 bis zum Austritt). Lauf 0,90 m bis zum Geländer, Geländer 0,15 m, Nische 0,54 m (Angaben des Nutzers). Stufe n liegt mit der Trittfläche n × Steigung über OKFF EG (Steigung = Geschosshöhe / steigungen), Stufendicke 44 mm."
   },
+
+  "kamin": {
+    "mitte": [{ "ref": "x.naehW", "plus": 175 }, { "ref": "z.ZSa", "plus": 595 }], "breite": 350, "tiefe": 490, "oberkante": 6800, "quelle": "plan",
+    "notiz": "Querschnitt 35 × 49 cm aus dem Plan, Westseite bündig mit der Westwand der Speisekammer, 35 cm südlich der Wand Nähzimmer / Speisekammer; Oberkante 149,60 m ü. NN, Höhe angenommen"
+  },
+
+  "dachfenster": [
+    { "id": "pia-nord", "typ": "Roto WSA 11/14 R89 G K WD AL", "raum": "Pias Zimmer", "mitte": [8245, 2470], "richtung": [0, -1], "breite": 1140, "laenge": 1400, "daemmblock": 30, "quelle": "nutzer" },
+    { "id": "pia-ost", "typ": "Roto WDF 07/14 R89G K WD AL", "raum": "Pias Zimmer", "mitte": [10540, 6835], "richtung": [1, 0], "breite": 740, "laenge": 1400, "daemmblock": 30, "quelle": "nutzer" },
+    { "id": "arbeit-west", "typ": "Roto WDF 07/14 R89G K WD AL", "raum": "Arbeitszimmer", "mitte": [5960, 8600], "richtung": [-1, 0], "breite": 740, "laenge": 1400, "daemmblock": 30, "quelle": "nutzer" },
+    { "id": "arbeit-sued", "typ": "Roto WDF 07/14 R89G K WD AL", "raum": "Arbeitszimmer", "mitte": [7725, 12240], "richtung": [0, 1], "breite": 740, "laenge": 1400, "daemmblock": 30, "quelle": "nutzer" },
+    { "id": "treppenhaus-ost", "typ": "Velux GGU CK04", "raum": "Treppenhaus", "mitte": [10760, 8570], "richtung": [1, 0], "breite": 550, "laenge": 980, "daemmblock": 0, "quelle": "nutzer",
+      "notiz": "Größen: Blendrahmenaußenmaß laut Herstellerdatenblatt (Breite quer zur Traufe, Länge entlang der Schräge); die Mitten (hx, hz in der Draufsicht) aus dem Dachausbauplan; richtung = Richtung der Dachfläche nach außen" }
+  ],
+
+  "schnitte": [
+    { "id": "A", "name": "Schnitt A–A (durch die Treppe)", "von": [{ "ref": "x.V", "minus": 400 }, { "ref": "z.ZS", "minus": 450 }], "bis": [{ "ref": "x.O", "plus": 400 }, { "ref": "z.ZS", "minus": 450 }],
+      "notiz": "waagerecht in der Mitte des geraden Laufs (450 mm nördlich der Wand Nähzimmer / Speisekammer); der Blick geht nach links von der Laufrichtung, hier nach Norden" },
+    { "id": "B", "name": "Schnitt B–B (quer durch Pias Zimmer)", "von": [{ "ref": "x.W", "minus": 400 }, 4560], "bis": [{ "ref": "x.O", "plus": 400 }, 4560],
+      "notiz": "waagerecht auf der Höhe des Raumstempels von Pias Zimmer (hz 4,56), quer zum Nord-Süd-First des Flügels B; Blick nach Norden" }
+  ],
   "ketten": [
     { "id": "dg.treppe", "name": "DG-Treppe (Lauf + Geländer + Nische = lichter Abstand der Treppenwände)", "gesamt": ["z.tN", "z.ZS"],
       "teile": [ { "was": "Lauf", "wert": "treppe.laufbreite" }, { "was": "Geländer", "wert": "treppe.gelaender" }, { "was": "Nische", "wert": "treppe.nische" } ],

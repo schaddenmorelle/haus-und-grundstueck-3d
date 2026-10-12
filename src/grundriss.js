@@ -14,10 +14,11 @@
    annahme, ohne) und ein Schloss, wenn beide Enden auf gesperrten Achsen liegen. Die Herkunft ergibt sich aus den Parametern, von denen
    das Maß wirklich abhängt: Maße werden als Summe aus Achsen und Wandtypen aufgelöst, was sich in der Differenz aufhebt, zählt nicht
    (die Innenkante der Außenwand hebt sich bei der HAR-Tiefe auf, übrig bleibt das Aufmaß 2,95 m). Die Namen der Maße sind vorläufig:
-   Phase 4 (Ändern) legt fest, wie ein Maß angesprochen wird. */
-if (typeof require !== 'undefined') { var polygonClipping = require('polygon-clipping'); var RA = require('./raeume.js'); }
+   Mit diesen Namen spricht src/aendern.js (Phase 4) ein Maß an; jedes Segment einer Kette trägt dafür `parameter` (Achsen und Wandtypen, von denen es
+   abhängt, mit Faktor k) und bei Öffnungen und Pfeilern `oeffnungen` (Verweis auf die Öffnung in der Wand). */
+if (typeof require !== 'undefined') { var polygonClipping = require('polygon-clipping'); var RA = require('./raeume.js'); var treppeAbleiten = require('./treppe.js').treppeAbleiten; }
 
-var grundrissAbleiten, kettenSchnitt, grundrissSvg;
+var grundrissAbleiten, kettenSchnitt, grundrissSvg, planHilfen;
 (function () {
   var TOL = 1e-6;
   var RANG = { aufmass: 0, plan: 1, nutzer: 1, ohne: 2, annahme: 3 }; // je höher, desto unsicherer
@@ -31,12 +32,12 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
     var typen = haus.wandtypen || {}, defs = {}, memo = {};
     [haus.aussenmasse || {}, haus.achsen || {}].forEach(function (gr) { Object.keys(gr).forEach(function (n) { defs[n] = gr[n]; }); });
     function leer(root, rootQ) { return { root: root, rootQ: rootQ, t: {} }; }
-    function kopie(e) { var o = leer(e.root, e.rootQ); Object.keys(e.t).forEach(function (k) { o.t[k] = { c: e.t[k].c, q: e.t[k].q }; }); return o; }
-    function addTerm(e, key, c, q) { if (e.t[key]) e.t[key].c += c; else e.t[key] = { c: c, q: q }; }
+    function kopie(e) { var o = leer(e.root, e.rootQ); Object.keys(e.t).forEach(function (k) { o.t[k] = { c: e.t[k].c, q: e.t[k].q, s: e.t[k].s }; }); return o; }
+    function addTerm(e, key, c, q, s) { if (e.t[key]) { e.t[key].c += c; e.t[key].s += s || 0; } else e.t[key] = { c: c, q: q, s: s || 0 }; }
     function typQ(name) { var n = String(name).replace(/\/2$/, ''); return (typen[n] && typen[n].quelle) || 'ohne'; }
     function term(e, x, sg, name, quelle) { // x: Zahl (mm) oder Wandtyp ("IW175", "TB-DG/2")
       if (x == null) return;
-      if (typeof x === 'number') addTerm(e, 'p:' + name + (sg > 0 ? '+' : '-'), sg * x, quelle || 'ohne');
+      if (typeof x === 'number') addTerm(e, 'p:' + name + (sg > 0 ? '+' : '-'), sg * x, quelle || 'ohne', sg);
       else { var halb = /\/2$/.test(x); addTerm(e, 't:' + String(x).replace(/\/2$/, ''), sg * (halb ? 0.5 : 1), typQ(x)); }
     }
     function achseExpr(name) {
@@ -65,13 +66,29 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
       if (a.root !== b.root) { q = schlechter(q, a.rootQ); q = schlechter(q, b.rootQ); }
       return q || 'plan';
     }
+    /* Parameter, von denen die Differenz b − a abhängt, mit ihrem Faktor k (Änderung des Maßes = k × Änderung des Parameters):
+       { art: 'wurzel' (Achse mit eigenem Wert) | 'achse+' / 'achse-' (Zahl in plus / minus einer abgeleiteten Achse) | 'typ' (Wandtyp, k = 0,5 bei halber Dicke)
+              | 'wanddicke' (eigene Dicke einer Wand), name, k }. Phase 4 (src/aendern.js) wählt daraus den Parameter, der nachgibt. */
+    function abhaengig(a, b) {
+      var out = [], keys = {};
+      Object.keys(a.t).concat(Object.keys(b.t)).forEach(function (k) { keys[k] = 1; });
+      Object.keys(keys).forEach(function (k) {
+        var ta = a.t[k], tb = b.t[k], c = (tb ? tb.c : 0) - (ta ? ta.c : 0), m;
+        if (Math.abs(c) < 1e-9) return;
+        if (k.indexOf('t:') === 0) out.push({ art: 'typ', name: k.slice(2), k: c });
+        else if (k.indexOf('d:') === 0) out.push({ art: 'wanddicke', name: k.slice(2), k: c });
+        else if ((m = /^p:(.*)([+-])$/.exec(k))) out.push({ art: m[2] === '+' ? 'achse+' : 'achse-', name: m[1], k: (tb ? tb.s : 0) - (ta ? ta.s : 0) });
+      });
+      if (a.root !== b.root) { out.push({ art: 'wurzel', name: a.root, k: -1 }); out.push({ art: 'wurzel', name: b.root, k: 1 }); }
+      return out;
+    }
     function achseZuWert(c, praefix) { // Name einer Achse (x. oder z.) mit diesem Wert; Außenmaße zuerst
       var gruppen = [haus.aussenmasse || {}, haus.achsen || {}], i, n;
       for (i = 0; i < gruppen.length; i++) for (n in gruppen[i]) if (n.indexOf(praefix) === 0 && Math.abs(WV.mm(n) - c) < TOL) return n;
       return null;
     }
     return { haus: haus, WV: WV, abl: abl, typen: typen, defs: defs, leer: leer, kopie: kopie, addTerm: addTerm, term: term, typQ: typQ, achseExpr: achseExpr,
-             ausdruckExpr: ausdruckExpr, differenzQ: differenzQ, achseZuWert: achseZuWert };
+             ausdruckExpr: ausdruckExpr, differenzQ: differenzQ, abhaengig: abhaengig, achseZuWert: achseZuWert };
   }
 
   /* ---------- Wände eines Geschosses mit Richtung, Flächen (Seiten) und Herkunft ---------- */
@@ -137,11 +154,13 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
     merged.forEach(function (s, i) {
       var q = s.q;
       if (s.fl && s.fr && s.ids.length === 1) q = K.differenzQ(s.fl.e, s.fr.e);
-      segs.push({ art: 'wand', von: s.s, bis: s.e, laenge: s.e - s.s, name: 'wand:' + s.ids.join('+'), quelle: q, fest: false, ids: s.ids, schraeg: s.schraeg });
+      segs.push({ art: 'wand', von: s.s, bis: s.e, laenge: s.e - s.s, name: 'wand:' + s.ids.join('+'), quelle: q, fest: false, ids: s.ids, schraeg: s.schraeg,
+                  parameter: s.fl && s.fr && s.ids.length === 1 ? K.abhaengig(s.fl.e, s.fr.e) : null });
       if (i + 1 < merged.length) {
         var n = merged[i + 1], mid = (s.e + n.s) / 2, r = richtung === 'x' ? raumBei(K, g, mid, bei) : raumBei(K, g, bei, mid);
         var name = r ? 'raum:' + r.id + (richtung === 'x' ? '.breite' : '.tiefe') : 'luft:' + s.ids[0] + '/' + n.ids[0];
-        segs.push({ art: 'raum', von: s.e, bis: n.s, laenge: n.s - s.e, name: name, quelle: s.fr && n.fl ? K.differenzQ(s.fr.e, n.fl.e) : 'ohne', fest: false, ids: r ? [r.id] : [], schraeg: false });
+        segs.push({ art: 'raum', von: s.e, bis: n.s, laenge: n.s - s.e, name: name, quelle: s.fr && n.fl ? K.differenzQ(s.fr.e, n.fl.e) : 'ohne', fest: false, ids: r ? [r.id] : [], schraeg: false,
+                  parameter: s.fr && n.fl ? K.abhaengig(s.fr.e, n.fl.e) : null });
       }
     });
     return { richtung: richtung, bei: bei, von: merged.length ? merged[0].s : 0, bis: merged.length ? merged[merged.length - 1].e : 0, segmente: segs };
@@ -233,7 +252,7 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
         else if (na && nb) name = (imAussen(na) && imAussen(nb) ? 'aussen:' : 'gesamt:') + na + '-' + nb;
         else name = 'gesamt:' + seite + (k + 1);
         kette.segmente.push({ art: 'gesamt', von: s.a, bis: s.b, laenge: s.b - s.a, name: name, quelle: na && nb ? K.differenzQ(K.achseExpr(na), K.achseExpr(nb)) : 'ohne',
-                              fest: !!(fa && fb && fa.fest && fb.fest), ids: [], schraeg: false });
+                              fest: !!(fa && fb && fa.fest && fb.fest), ids: [], schraeg: false, parameter: na && nb ? K.abhaengig(K.achseExpr(na), K.achseExpr(nb)) : null });
       });
       if (kette.segmente.length) out.push(kette);
     });
@@ -279,11 +298,11 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
       }).sort(function (a, b) { return a.s - b.s; });
       var lo = Math.min(ln.a[along], ln.b[along]), hi = Math.max(ln.a[along], ln.b[along]), segs = [], cur = lo, pf = 0, prev = null;
       teile.forEach(function (t) {
-        if (t.s - cur > TOL) { pf++; segs.push({ art: 'pfeiler', von: cur, bis: t.s, laenge: t.s - cur, name: info.id + '.pfeiler' + pf, quelle: schlechter(prev ? prev.o.quelle || 'plan' : null, t.o.quelle || 'plan'), fest: false, ids: [info.id], schraeg: false }); }
-        segs.push({ art: 'oeffnung', von: t.s, bis: t.e, laenge: t.e - t.s, name: info.id + '.oeff' + (t.k + 1), quelle: t.o.quelle || 'plan', fest: false, ids: [info.id], schraeg: false });
+        if (t.s - cur > TOL) { pf++; segs.push({ art: 'pfeiler', von: cur, bis: t.s, laenge: t.s - cur, name: info.id + '.pfeiler' + pf, quelle: schlechter(prev ? prev.o.quelle || 'plan' : null, t.o.quelle || 'plan'), fest: false, ids: [info.id], schraeg: false, oeffnungen: { vorige: prev ? prev.k : null, naechste: t.k } }); }
+        segs.push({ art: 'oeffnung', von: t.s, bis: t.e, laenge: t.e - t.s, name: info.id + '.oeff' + (t.k + 1), quelle: t.o.quelle || 'plan', fest: false, ids: [info.id], schraeg: false, oeffnungen: { wand: info.id, k: t.k } });
         cur = t.e; prev = t;
       });
-      if (hi - cur > TOL) { pf++; segs.push({ art: 'pfeiler', von: cur, bis: hi, laenge: hi - cur, name: info.id + '.pfeiler' + pf, quelle: prev ? prev.o.quelle || 'plan' : 'plan', fest: false, ids: [info.id], schraeg: false }); }
+      if (hi - cur > TOL) { pf++; segs.push({ art: 'pfeiler', von: cur, bis: hi, laenge: hi - cur, name: info.id + '.pfeiler' + pf, quelle: prev ? prev.o.quelle || 'plan' : 'plan', fest: false, ids: [info.id], schraeg: false, oeffnungen: { vorige: prev ? prev.k : null, naechste: null } }); }
       out.push({ typ: 'oeffnungen', seite: seite, richtung: richtung, bei: null, wand: info.id, koord: seite === 'N' || seite === 'S' ? mid[1] : mid[0], von: lo, bis: hi, segmente: segs });
     });
     return out;
@@ -294,6 +313,43 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
   function cm(mm) { return zahl(mm / 10, 1); }
   function mass(mm) { return mm >= 1000 ? zahl(mm / 1000, 3) : zahl(mm / 10, 1); } // wie im gedruckten Plan: ab 1 m in Metern, darunter in Zentimetern
   function qm(mm2) { return zahl(mm2 / 1e6, 2) + ' m²'; }
+
+  /* ---------- Markierung beim Anklicken: welche Flächen gehören zu einem Maß? ----------
+     Jedes Segment einer Kette bekommt `bereiche` = [{ id, ring }] (Ringe in mm): Wandmaß = die ganze Wand (bei zusammengefassten Wänden alle),
+     Pfeiler = das Wandstück zwischen den Öffnungen, Öffnung = der Ausschnitt, Gesamtmaß = die Außenwände zwischen den Endpunkten.
+     Raummaße haben keine Bereiche (sie zeigen die Schnittlinie). */
+  function markieren(K, g, infos, ring, ketten, oel) {
+    var kanten = huellenKanten(K, g, ring), byId = {}, opByName = {};
+    infos.forEach(function (i) { byId[i.id] = i; });
+    oel.forEach(function (o) { opByName[o.name] = o; });
+    ketten.forEach(function (k) {
+      k.segmente.forEach(function (s) {
+        var b = [], i, o;
+        if (s.art === 'wand') s.ids.forEach(function (id) { if (byId[id]) b.push({ id: id, ring: byId[id].w.ring }); });
+        else if (s.art === 'pfeiler') {
+          i = byId[s.ids[0]];
+          if (i && i.orth) {
+            var h = i.orth === 'h', c = h ? i.ln.a[1] : i.ln.a[0], d = i.ln.t / 2;
+            b.push({ id: s.name, ring: h ? [[s.von, c - d], [s.bis, c - d], [s.bis, c + d], [s.von, c + d]] : [[c - d, s.von], [c + d, s.von], [c + d, s.bis], [c - d, s.bis]] });
+          }
+        } else if (s.art === 'oeffnung') { o = opByName[s.name]; if (o) b.push({ id: s.name, ring: o.ring }); }
+        else if (s.art === 'gesamt') {
+          var horiz = k.seite === 'N' || k.seite === 'S';
+          var edges = kanten.filter(function (e) { return e.seite === k.seite && Math.min(e.bis, s.bis) - Math.max(e.von, s.von) > TOL; });
+          var aussen = edges.reduce(function (m, e) { return m == null ? e.koord : (k.seite === 'N' || k.seite === 'W' ? Math.min(m, e.koord) : Math.max(m, e.koord)); }, null);
+          edges = edges.filter(function (e) { return Math.abs(e.koord - aussen) < 0.5; }); // nur die äußerste Kante zählt (die Treppenöffnung im DG liegt dahinter)
+          infos.forEach(function (w) {
+            if (w.orth !== (horiz ? 'h' : 'v')) return;
+            var lo = horiz ? w.x0 : w.z0, hi = horiz ? w.x1 : w.z1;
+            if (Math.min(hi, s.bis) - Math.max(lo, s.von) <= TOL) return;
+            var face = k.seite === 'N' ? w.z0 : k.seite === 'S' ? w.z1 : k.seite === 'W' ? w.x0 : w.x1;
+            if (edges.some(function (e) { return Math.abs(e.koord - face) < 0.5; })) b.push({ id: w.id, ring: w.w.ring });
+          });
+        }
+        s.bereiche = b;
+      });
+    });
+  }
 
   /* ---------- Grundriss ableiten ---------- */
   function eindeutigeNamen(ketten) {
@@ -325,6 +381,8 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
     });
     ketten = ketten.concat(gesamtKetten(K, g, ring));
     eindeutigeNamen(ketten);
+    var oel = oeffnungsListe(K, g, infos);
+    markieren(K, g, infos, ring, ketten, oel);
     var waende = infos.map(function (i) { return { id: i.id, typ: i.w.wand.typ, dicke: i.ln.t, ring: i.w.ring, quelle: i.q, freiesEnde: !!i.w.wand.freiesEnde }; });
     var daemmung = [];
     infos.forEach(function (i) { // erste Schicht eines Wandtyps (z. B. Dämmung der Außenwand) liegt auf der Flucht-Seite
@@ -343,7 +401,7 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
     });
     var plan = {
       geschoss: g, grenzen: grenzen, huelle: ring, waende: waende, waendeUnion: gs.wandUnion || [], daemmung: daemmung,
-      oeffnungen: oeffnungsListe(K, g, infos), raeume: raeume, ketten: ketten,
+      oeffnungen: oel, raeume: raeume, ketten: ketten,
       trennlinien: gs.waende.filter(function (w) { return w.trennlinie; }).map(function (w) { return { id: w.id, von: w.linie.a, bis: w.linie.b }; }),
       treppe: null, treppenoeffnung: null,
       marken: (befunde || []).filter(function (b) { return b.ort && b.geschoss === g; }).map(function (b) { return { regel: b.regel, stufe: b.stufe, text: b.text, ort: b.ort, elemente: b.elemente }; })
@@ -351,7 +409,9 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
     var T = haus.treppe;
     if (g === 'EG' && T && T.anker && T.laufEnde) {
       var ax = WV.mm(T.anker[0]), az = WV.mm(T.anker[1]);
-      plan.treppe = { lauf: [[ax - T.laufEnde, az - T.laufbreite], [ax - T.geraderLaufAb, az - T.laufbreite], [ax - T.geraderLaufAb, az], [ax - T.laufEnde, az]] };
+      var TR = T.steigungen ? treppeAbleiten(haus, WV) : null;
+      plan.treppe = { lauf: [[ax - T.laufEnde, az - T.laufbreite], [ax - T.geraderLaufAb, az - T.laufbreite], [ax - T.geraderLaufAb, az], [ax - T.laufEnde, az]],
+                      stufen: TR ? TR.stufen.map(function (s) { return { n: s.n, polygon: s.polygon, schwerpunkt: s.schwerpunkt, hoehe: s.hoehe }; }) : [], lauflinie: TR ? TR.lauflinie : [] };
     }
     if (g === 'DG' && haus.dg && haus.dg.treppenoeffnung) plan.treppenoeffnung = haus.dg.treppenoeffnung.map(function (q) { return [WV.mm(q[0]), WV.mm(q[1])]; });
     return plan;
@@ -370,12 +430,14 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
     '.plan .bg{fill:var(--pg)}.plan .raumf{fill:var(--pt);stroke:none}.plan .raumf.on{fill:color-mix(in srgb,var(--qp) 28%,var(--pt))}.plan .wandf{fill:var(--pw);stroke:none}',
     '.plan .eps{fill:url(#hatch)}.plan .oef{fill:var(--pg);stroke:none}.plan .rahmen{fill:none;stroke:var(--pi);stroke-width:14}.plan .glas{fill:none;stroke:var(--pi);stroke-width:9}',
     '.plan .trenn{stroke:var(--pm);stroke-width:12;stroke-dasharray:60 50;fill:none}.plan .treppe{fill:none;stroke:var(--pm);stroke-width:12;stroke-dasharray:90 40}',
+    '.plan .stufe{fill:none;stroke:var(--pm);stroke-width:9;stroke-linejoin:round}.plan .lauflinie{fill:none;stroke:var(--pm);stroke-width:8;stroke-dasharray:50 40}.plan .snr{font-size:95px;text-anchor:middle;fill:var(--pm)}',
+    '.plan .schnittl .sl{stroke:var(--pe);stroke-width:14;stroke-dasharray:160 50 20 50;fill:none}.plan .schnittl .sa{stroke:var(--pe);stroke-width:14;fill:var(--pe)}.plan .schnittl text{font-size:230px;font-weight:700;fill:var(--pe);text-anchor:middle}.plan .schnittl .hit{stroke:none;cursor:pointer}',
     '.plan .halo{paint-order:stroke;stroke:var(--pg);stroke-width:34;stroke-linejoin:round;fill:var(--pi)}',
     '.plan .rname{font-weight:600;font-size:200px;text-anchor:middle}.plan .rinfo{font-size:150px;text-anchor:middle;fill:var(--pm)}.plan .kreuz{stroke:var(--pm);stroke-width:10}',
     '.plan .olabel{font-size:105px;text-anchor:middle;fill:var(--pm)}.plan .dim{font-size:' + FS + 'px}.plan .dim text{stroke:none}',
     '.plan .ql{stroke-width:14;fill:none}.plan .tick{stroke:var(--pi);stroke-width:12}.plan .ext{stroke:var(--pm);stroke-width:7;opacity:.7}.plan .leit{stroke:var(--pm);stroke-width:6}',
     '.plan .scan{stroke:var(--pm);stroke-width:6;stroke-dasharray:20 90;opacity:.35;fill:none}.plan .hit{fill:transparent;stroke:none;cursor:pointer}.plan .hit:hover{fill:color-mix(in srgb,var(--pi) 12%,transparent)}',
-    '.plan .hit.on{fill:color-mix(in srgb,var(--pe) 22%,transparent);stroke:var(--pe);stroke-width:8}.plan .hl{stroke:var(--pe);stroke-width:34;fill:none;stroke-linecap:round}',
+    '.plan .hit.on{fill:color-mix(in srgb,var(--pe) 22%,transparent);stroke:var(--pe);stroke-width:8}.plan .hl{stroke:var(--pe);stroke-width:34;fill:none;stroke-linecap:round}.plan .hlf{fill:var(--pe);fill-opacity:.4;stroke:var(--pe);stroke-width:26;stroke-linejoin:round;pointer-events:none}',
     '.plan .q-plan{fill:var(--qp);stroke:var(--qp)}.plan .q-aufmass{fill:var(--qa);stroke:var(--qa)}.plan .q-nutzer{fill:var(--qn);stroke:var(--qn)}',
     '.plan .q-annahme{fill:var(--qx);stroke:var(--qx)}.plan .q-ohne{fill:var(--qo);stroke:var(--qo)}.plan .dim text.q-plan,.plan .dim text.q-aufmass,.plan .dim text.q-nutzer,.plan .dim text.q-annahme,.plan .dim text.q-ohne{stroke:none}',
     '.plan .ql.q-annahme{stroke-dasharray:90 40}.plan .ql.q-ohne{stroke-dasharray:30 40}.plan .schloss{fill:none;stroke:var(--pi);stroke-width:14}.plan .schloss rect{fill:var(--pi)}',
@@ -427,7 +489,7 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
       }
       var hx = horiz ? Math.min(p0[0], p1[0]) : lage - 160, hy = horiz ? lage - 160 : Math.min(p0[1], p1[1]);
       var hw = horiz ? Math.abs(p1[0] - p0[0]) : 320, hh = horiz ? 320 : Math.abs(p1[1] - p0[1]);
-      var attr = ' data-name="' + esc(s.name) + '" data-wert="' + f(s.laenge) + '" data-quelle="' + s.quelle + '" data-fest="' + (s.fest ? 1 : 0) + '" data-art="' + s.art + '" data-richtung="' + k.richtung + '" data-von="' + f(s.von) + '" data-bis="' + f(s.bis) + '"' + (k.bei != null ? ' data-bei="' + f(k.bei) + '"' : '') + (s.schraeg ? ' data-schraeg="1"' : '');
+      var attr = ' data-name="' + esc(s.name) + '" data-wert="' + f(s.laenge) + '" data-quelle="' + s.quelle + '" data-fest="' + (s.fest ? 1 : 0) + '" data-art="' + s.art + '" data-richtung="' + k.richtung + '" data-von="' + f(s.von) + '" data-bis="' + f(s.bis) + '"' + (k.bei != null ? ' data-bei="' + f(k.bei) + '"' : '') + (s.schraeg ? ' data-schraeg="1"' : '') + (s.abgeleitet ? ' data-abgeleitet="1"' : '');
       out.push('<rect class="hit"' + attr + ' x="' + f(hx) + '" y="' + f(hy) + '" width="' + f(hw) + '" height="' + f(hh) + '"><title>' + esc(s.name + ': ' + mass(s.laenge) + (s.fest ? ' (gesperrt)' : '')) + '</title></rect>');
     });
     return '<g class="dim" data-kette="' + nr + '">' + out.join('') + '</g>';
@@ -451,13 +513,23 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
     }).join('');
     var oeffText = zeigeO ? plan.oeffnungen.map(function (op) {
       var vert = op.richtung === 'z', x = op.mitte[0], z = op.mitte[1];
-      if (vert) return '<text class="olabel halo" transform="rotate(-90 ' + f(x) + ' ' + f(z) + ')" x="' + f(x) + '" y="' + f(z + 35) + '">' + esc(op.beschriftung) + '</text>';
-      return '<text class="olabel halo" x="' + f(x) + '" y="' + f(z + 35) + '">' + esc(op.beschriftung) + '</text>';
+      var text = vert ? '<text class="olabel halo" transform="rotate(-90 ' + f(x) + ' ' + f(z) + ')" x="' + f(x) + '" y="' + f(z + 35) + '">' + esc(op.beschriftung) + '</text>'
+                      : '<text class="olabel halo" x="' + f(x) + '" y="' + f(z + 35) + '">' + esc(op.beschriftung) + '</text>';
+      var quer = Math.max(op.dicke, 260), bw = vert ? quer : op.breite, bh = vert ? op.breite : quer; // anklickbar: der Ausschnitt, mindestens so breit wie die Beschriftung hoch ist
+      var lo = (vert ? z : x) - op.breite / 2;
+      var attr = ' data-name="' + esc(op.name) + '" data-wert="' + f(op.breite) + '" data-quelle="' + op.quelle + '" data-fest="0" data-art="oeffnung" data-richtung="' + op.richtung + '" data-von="' + f(lo) + '" data-bis="' + f(lo + op.breite) + '"';
+      return text + '<rect class="hit"' + attr + ' x="' + f(x - bw / 2) + '" y="' + f(z - bh / 2) + '" width="' + f(bw) + '" height="' + f(bh) + '"><title>' + esc(op.name + ': ' + mass(op.breite)) + '</title></rect>';
     }).join('') : '';
 
     /* Treppe, Treppenöffnung, Trennlinien */
     var extra = plan.trennlinien.map(function (t) { return '<line class="trenn" x1="' + f(t.von[0]) + '" y1="' + f(t.von[1]) + '" x2="' + f(t.bis[0]) + '" y2="' + f(t.bis[1]) + '"/>'; }).join('');
-    if (plan.treppe) extra += '<path class="treppe" d="' + pfad(plan.treppe.lauf) + '"/>';
+    if (plan.treppe) {
+      if (plan.treppe.stufen && plan.treppe.stufen.length) { // Stufen mit Nummer und Lauflinie (durch die Schwerpunkte der Stufen)
+        extra += plan.treppe.stufen.map(function (st) { return '<path class="stufe" data-stufe="' + st.n + '" d="' + pfad(st.polygon) + '"><title>Stufe ' + st.n + ': Trittfläche ' + zahl(st.hoehe / 1000, 3) + ' m über OKFF EG</title></path>'; }).join('');
+        extra += '<path class="lauflinie" d="M' + plan.treppe.lauflinie.map(function (p) { return f(p[0]) + ' ' + f(p[1]); }).join('L') + '"/>';
+        extra += plan.treppe.stufen.map(function (st) { return '<text class="snr halo" x="' + f(st.schwerpunkt[0]) + '" y="' + f(st.schwerpunkt[1] + 32) + '">' + st.n + '</text>'; }).join('');
+      } else extra += '<path class="treppe" d="' + pfad(plan.treppe.lauf) + '"/>';
+    }
     if (plan.treppenoeffnung) extra += '<path class="treppe" d="' + pfad(plan.treppenoeffnung) + '"/>';
 
     /* Raumstempel: Name, Fläche, lichte Maße */
@@ -494,6 +566,21 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
       });
     }
 
+    /* Schnittlinien: gestrichelt mit Buchstaben an den Enden und Pfeilen in Blickrichtung (links von der Laufrichtung) */
+    var schnittSvgTeile = (o.schnittlinien || []).map(function (sl) {
+      var L = Math.hypot(sl.b[0] - sl.a[0], sl.b[1] - sl.a[1]), u = [(sl.b[0] - sl.a[0]) / L, (sl.b[1] - sl.a[1]) / L], bl = [u[1], -u[0]], pf = 420, out = '';
+      erweitere(sl.a[0], sl.a[1]); erweitere(sl.b[0], sl.b[1]); erweitere(sl.a[0] + bl[0] * (pf + 330), sl.a[1] + bl[1] * (pf + 330)); erweitere(sl.b[0] + bl[0] * (pf + 330), sl.b[1] + bl[1] * (pf + 330));
+      out += '<line class="sl" x1="' + f(sl.a[0]) + '" y1="' + f(sl.a[1]) + '" x2="' + f(sl.b[0]) + '" y2="' + f(sl.b[1]) + '"/>';
+      [sl.a, sl.b].forEach(function (p) {
+        var t = [p[0] + bl[0] * pf, p[1] + bl[1] * pf], k1 = [t[0] - bl[0] * 120 + u[1] * 90 * -1, t[1] - bl[1] * 120 + u[0] * 90], k2 = [t[0] - bl[0] * 120 - u[1] * 90 * -1, t[1] - bl[1] * 120 - u[0] * 90];
+        out += '<line class="sl" style="stroke-dasharray:none" x1="' + f(p[0]) + '" y1="' + f(p[1]) + '" x2="' + f(t[0]) + '" y2="' + f(t[1]) + '"/><path class="sa" d="M' + f(t[0]) + ' ' + f(t[1]) + 'L' + f(k1[0]) + ' ' + f(k1[1]) + 'L' + f(k2[0]) + ' ' + f(k2[1]) + 'Z"/>' +
+          '<text class="halo" x="' + f(p[0] + bl[0] * (pf + 330)) + '" y="' + f(p[1] + bl[1] * (pf + 330) + 80) + '">' + esc(sl.id) + '</text>';
+      });
+      var m = [(sl.a[0] + sl.b[0]) / 2, (sl.a[1] + sl.b[1]) / 2], w = 300, nq = [-u[1], u[0]];
+      out += '<polygon class="hit" points="' + [[sl.a[0] + nq[0] * w, sl.a[1] + nq[1] * w], [sl.b[0] + nq[0] * w, sl.b[1] + nq[1] * w], [sl.b[0] - nq[0] * w, sl.b[1] - nq[1] * w], [sl.a[0] - nq[0] * w, sl.a[1] - nq[1] * w]].map(function (p) { return f(p[0]) + ',' + f(p[1]); }).join(' ') + '" fill="transparent"><title>' + esc(sl.name || sl.id) + '</title></polygon>';
+      return '<g class="schnittl" data-schnitt="' + esc(sl.id) + '">' + out + '</g>';
+    }).join('');
+
     /* Befund-Marken */
     var markenSvg = zeigeMarken ? plan.marken.map(function (m, i) {
       return '<g class="marke ' + m.stufe + '" data-marke="' + i + '" transform="translate(' + f(m.ort[0]) + ' ' + f(m.ort[1]) + ')"><circle r="170"/><text y="70">!</text><title>' + esc('Regel ' + m.regel + ': ' + m.text) + '</title></g>';
@@ -506,7 +593,9 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
     return '<svg xmlns="http://www.w3.org/2000/svg" class="plan" viewBox="' + f(vx) + ' ' + f(vy) + ' ' + f(vw) + ' ' + f(vh) + '"' + size + ' role="img" aria-label="Grundriss ' + esc(plan.geschoss) + '" data-geschoss="' + esc(plan.geschoss) + '" data-viewbox="' + f(vx) + ' ' + f(vy) + ' ' + f(vw) + ' ' + f(vh) + '">' +
       style + defs + (standalone ? '<rect class="bg" x="' + f(vx) + '" y="' + f(vy) + '" width="' + f(vw) + '" height="' + f(vh) + '"/>' : '') +
       '<g class="boden">' + bodenSvg + '</g><g class="waende">' + waendeSvg + '</g><g class="oeffnungen">' + oeffSvg + '</g><g class="extra">' + extra + '</g>' +
-      '<g class="oeffnungstexte">' + oeffText + '</g><g class="raeume">' + raumSvg + '</g><g class="massketten">' + kettenSvgTeile + '</g><g class="marken">' + markenSvg + '</g></svg>';
+      '<g class="oeffnungstexte">' + oeffText + '</g><g class="raeume">' + raumSvg + '</g><g class="massketten">' + kettenSvgTeile + '</g><g class="schnittlinien">' + schnittSvgTeile + '</g><g class="marken">' + markenSvg + '</g></svg>';
   };
+  /* Zeichenhilfen für Schnitt und Ansicht (src/schnitt.js): dieselben Maßketten, Farben und Zahlenformate wie im Grundriss */
+  planHilfen = { kettenSvg: kettenSvg, kettenLayout: kettenLayout, CSS: CSS, CSS_DUNKEL: CSS_DUNKEL, f: f, esc: esc, pfad: pfad, mass: mass, zahl: zahl, schlossSvg: schlossSvg, FS: FS };
 })();
-if (typeof module !== 'undefined') module.exports = { grundrissAbleiten: grundrissAbleiten, kettenSchnitt: kettenSchnitt, grundrissSvg: grundrissSvg };
+if (typeof module !== 'undefined') module.exports = { grundrissAbleiten: grundrissAbleiten, kettenSchnitt: kettenSchnitt, grundrissSvg: grundrissSvg, planHilfen: planHilfen };

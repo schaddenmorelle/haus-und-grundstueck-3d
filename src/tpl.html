@@ -62,10 +62,24 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
 #plan2d svg.plan{width:100%;height:100%;display:block;user-select:none;-webkit-user-select:none}
 #planTools{position:absolute;right:12px;top:12px;z-index:3;display:flex;gap:6px}
 #planTools .btn{width:40px;height:40px;font-size:18px;padding:0;background:var(--panel);box-shadow:var(--shadow)}
+#pm3d{position:absolute;left:376px;bottom:12px;z-index:3;margin:0;max-width:calc(100% - 392px);padding:6px 12px;border:1px solid var(--red);border-radius:6px;background:var(--panel);color:var(--ink);font-size:13px;box-shadow:var(--shadow)}
+#pm3d[hidden]{display:none}
 #planInfo{position:absolute;left:0;right:0;bottom:0;z-index:3;margin:0;padding:8px 14px;min-height:38px;background:color-mix(in srgb,var(--panel) 92%,transparent);border-top:1px solid var(--rule);font-size:13px;font-variant-numeric:tabular-nums;pointer-events:none}
 .modus2d #fallback{display:none}
 .modus2d #gl,.modus2d #tags,.modus2d #hud,.modus2d #measTag{display:none}
 .nur2d{display:none}.modus2d .nur2d{display:block}.modus2d .nur3d{display:none}
+.pm-zeile{display:flex;gap:6px;margin:6px 0}.pm-zeile input{flex:1;min-width:0;height:36px;border:1px solid var(--rule);border-radius:5px;background:var(--paper);color:var(--ink);padding:0 10px;font:inherit;font-variant-numeric:tabular-nums}
+.pm-zeile .btn{padding:0 14px}
+.pm-q{align-items:center;justify-content:space-between;font-size:13px}.pm-q select{height:32px;border:1px solid var(--rule);border-radius:5px;background:var(--paper);color:var(--ink);padding:0 6px;font:inherit;max-width:55%}
+#pm-liste{margin:0 0 8px;padding:0;list-style:none;display:grid;gap:4px}
+#pm-liste li{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;font-size:13px;border-left:3px solid var(--on);padding:3px 0 3px 8px}
+#pm-liste li.leer{border-left-color:var(--rule);color:var(--muted)}
+#pm-liste li button{flex:none;width:28px;height:28px;border:1px solid var(--rule);background:var(--chip);color:var(--ink);border-radius:4px;cursor:pointer;font:inherit;line-height:1}
+.pm-aus{margin:8px 0;padding:8px;border:1px solid var(--rule);border-radius:5px;background:var(--paper);font:12px/1.45 Barlow,sans-serif;white-space:pre-wrap;max-height:240px;overflow:auto;font-variant-numeric:tabular-nums}
+.pm-fehler{color:var(--red);white-space:pre-wrap}
+.pm-warn{color:var(--red);font-weight:600}
+#pm-text{width:100%;margin-top:8px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:5px;padding:6px}
+.btns.zwei{grid-template-columns:repeat(2,minmax(0,1fr))}.btns.vier{grid-template-columns:repeat(4,minmax(0,1fr))}#modusBtns+.btns{margin-top:6px}#schnittBtns+.btns{margin-top:6px}#plan2d.zeichnet,#plan2d.zeichnet *{cursor:crosshair}
 .leg{display:grid;gap:5px;font-size:13px}.leg span{display:flex;align-items:center;gap:8px}
 .leg i{display:inline-block;width:26px;height:0;border-top:3px solid currentColor}.leg i.s{border-top-style:dashed}.leg i.p{border-top-style:dotted}
 .q-plan{color:var(--q-plan)}.q-aufmass{color:var(--q-aufmass)}.q-nutzer{color:var(--q-nutzer)}.q-annahme{color:var(--q-annahme)}.q-ohne{color:var(--q-ohne)}
@@ -75,6 +89,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
  #togglePanel{left:8px;top:8px}
  #hud{right:8px;top:8px}
  #planTools{right:8px;top:8px}
+ #pm3d{left:8px;right:8px;bottom:auto;top:56px;max-width:none}
  #planInfo{bottom:auto;top:0;padding:8px 120px 8px 100px;min-height:56px}
 }
 </style>
@@ -87,6 +102,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
       <div id="planTools"><button id="planPlus" class="btn" type="button" aria-label="Vergrößern">+</button><button id="planMinus" class="btn" type="button" aria-label="Verkleinern">−</button><button id="planFit" class="btn" type="button" aria-label="Ganzer Plan">⤢</button></div>
       <p id="planInfo" aria-live="polite"></p>
     </div>
+    <p id="pm3d" aria-live="polite" hidden></p>
     <div id="hud">
       <svg viewBox="0 0 60 60" role="img" aria-label="Kompass"><circle cx="30" cy="30" r="26" fill="none" stroke="currentColor" stroke-opacity=".25"/><g id="needle"><polygon points="30,7 35,31 25,31" fill="#c8321e"/><polygon points="30,53 35,31 25,31" fill="#8a8f96"/></g><text x="30" y="19" font-size="9" text-anchor="middle" fill="currentColor" style="display:none">N</text></svg>
     </div>
@@ -101,13 +117,43 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
         <button class="btn" type="button" data-modus="EG" aria-pressed="false">Grundriss EG</button>
         <button class="btn" type="button" data-modus="DG" aria-pressed="false">Grundriss DG</button>
       </div>
+      <div class="btns" id="schnittBtns">
+        <button class="btn" type="button" data-modus="sch:A" aria-pressed="false">Schnitt A–A</button>
+        <button class="btn" type="button" data-modus="sch:B" aria-pressed="false">Schnitt B–B</button>
+        <button class="btn" type="button" id="btnFrei" data-modus="sch:frei" aria-pressed="false" hidden>Freier Schnitt</button>
+      </div>
+      <div class="btns vier" id="ansichtBtns">
+        <button class="btn" type="button" data-modus="an:N" aria-pressed="false">Nord</button>
+        <button class="btn" type="button" data-modus="an:O" aria-pressed="false">Ost</button>
+        <button class="btn" type="button" data-modus="an:S" aria-pressed="false">Süd</button>
+        <button class="btn" type="button" data-modus="an:W" aria-pressed="false">West</button>
+      </div>
     </section>
-    <section class="nur2d"><h2>Im Grundriss</h2>
+    <section class="nur2d" id="probe"><h2>Probiermodus</h2>
+      <label class="chk"><input id="pm-an" type="checkbox">Maße ausprobieren</label>
+      <div id="pm-box" hidden>
+        <p class="note">Ein Maß im Plan (Grundriss, Schnitt oder Ansicht) anklicken und den neuen Wert mit Einheit eingeben (1,30m, 12,5cm, 885mm). Der Nachbarraum gibt nach, gesperrte Außenmaße bleiben stehen. Die Seite speichert nichts: Die Änderungsliste wird exportiert und im Repository mit <b>node tools/aendern.js --liste</b> geprüft und eingespielt. Beim Wechsel zu 3D wird das Haus mit den geänderten Daten neu aufgebaut.</p>
+        <p id="pm-mass" class="note" aria-live="polite">Kein Maß gewählt.</p>
+        <div class="pm-zeile"><input id="pm-wert" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="z. B. 1,30m" aria-label="Neuer Wert mit Einheit"><button id="pm-ok" class="btn" type="button">Anwenden</button></div>
+        <label class="chk" id="pm-einzeln-l" hidden><input id="pm-einzeln" type="checkbox">Nur diese Wand (statt des Wandtyps)</label>
+        <div class="pm-zeile pm-q"><label for="pm-quelle">Herkunft des neuen Werts</label><select id="pm-quelle"><option value="">bleibt wie sie ist</option><option value="nutzer">Angabe des Nutzers</option><option value="aufmass">Aufmaß</option><option value="plan">Plan</option><option value="annahme">Annahme</option></select></div>
+        <label class="chk"><input id="pm-aussen" type="checkbox">Gesperrte Außenmaße freigeben</label>
+        <p id="pm-fehler" class="note pm-fehler" role="alert"></p>
+        <h2>Änderungen</h2>
+        <ol id="pm-liste"></ol>
+        <div id="pm-aus" class="pm-aus" hidden></div>
+        <div class="btns zwei"><button id="pm-export" class="btn" type="button">Exportieren</button><button id="pm-reset" class="btn" type="button">Zurücksetzen</button></div>
+        <textarea id="pm-text" rows="8" readonly hidden aria-label="Änderungsliste zum Kopieren"></textarea>
+      </div>
+    </section>
+    <section class="nur2d"><h2>Im Plan</h2>
       <label class="chk"><input id="p-mass" type="checkbox" checked>Maßketten</label>
       <label class="chk"><input id="p-raeume" type="checkbox" checked>Raumstempel mit Fläche</label>
       <label class="chk"><input id="p-oeff" type="checkbox" checked>Maße der Öffnungen</label>
       <label class="chk"><input id="p-marken" type="checkbox" checked>Befunde der Prüfung</label>
-      <p class="note">Ziehen verschiebt, Mausrad oder zwei Finger zoomen. Ein Maß anklicken zeigt Name, Wert und Herkunft.</p>
+      <p class="note">Ziehen verschiebt, Mausrad oder zwei Finger zoomen. Ein Maß anklicken zeigt Name, Wert und Herkunft; die zugehörige Wand, der Ausschnitt oder die Raumlinie leuchtet rot auf.</p>
+      <div class="btns zwei"><button id="sl-neu" class="btn" type="button">Schnittlinie legen</button></div>
+      <p class="note">Schnitt A–A und B–B stehen als rote Linien im Grundriss; ein Klick darauf öffnet den Schnitt. „Schnittlinie legen“: zwei Punkte im Grundriss anklicken, der Blick geht nach links von der Laufrichtung. Schnitte und Ansichten zeigen Höhen ab OKFF EG (142,80 m ü. NN); die Höhen lassen sich im Probiermodus ändern.</p>
     </section>
     <section class="nur2d"><h2>Herkunft der Maße</h2>
       <div class="leg">
@@ -179,8 +225,11 @@ var HAUS = /*HAUS*/;
 /*WERTE*/
 /*RAEUME*/
 /*DACH*/
+/*TREPPE*/
 /*PRUEFEN*/
 /*GRUNDRISS*/
+/*SCHNITT*/
+/*AENDERN*/
 /*MODEL*/
 </script>
 <script>

@@ -158,6 +158,28 @@ const m0 = buildModel(THREE, haus);
   check(rest.length === 1, 'D-Bad-Westwand verlängert: abgetrennter Eingangsbereich (3,8–3,9 m²) nicht als Teilfläche ohne Raum gemeldet: ' + m.befunde.map(b => b.regel + ':' + b.text).join(' | '));
   check(m0.befunde.filter(b => b.stufe === 'fehler').length === 0, 'Ausgangszustand hat Fehler');
 }
+/* ---------- Treppe, Kamin, Dachfenster, Schnittlinien (Phase 5): Sollwerte aus AGENTS.md (Angaben des Nutzers, Herstellerdatenblätter, Plan) ---------- */
+{
+  const WV = werteAufloesen(haus), T = haus.treppe;
+  check(T.steigungen === 15 && T.auftritt === 250 && T.laufbreite === 900 && T.stufendicke === 44, 'Treppe: 15 Steigungen, Auftritt 25 cm, Laufbreite 0,90 m, Stufendicke 4,4 cm (Treppenplanung, Angaben des Nutzers)');
+  check(['1', '2', '3', '4', '5', '6'].every(n => Array.isArray(T.wendel[n]) && T.wendel[n].length >= 3), 'Treppe: Wendelung Stufe 1–6 als Polygone');
+  check(Object.keys(T.wendel).filter(k => /^\d+$/.test(k)).length === 6, 'Treppe: nur die Stufen 1–6 sind gewendelt');
+  check(Object.keys(T.wendel).filter(k => /^\d+$/.test(k)).every(k => T.wendel[k].every(q => q.every(v => typeof v === 'number' || v === 'W' || v === 'U0'))), 'Treppe: in der Wendelung stehen Zahlen und nur die Platzhalter "W" (Laufbreite) und "U0" (geraderLaufAb)');
+  const groessen = { 'Roto WDF 07/14 R89G K WD AL': [740, 1400], 'Roto WSA 11/14 R89 G K WD AL': [1140, 1400], 'Velux GGU CK04': [550, 980] }; // Herstellerdatenblätter (AGENTS.md)
+  const ids = haus.dachfenster.map(f => f.id);
+  check(haus.dachfenster.length === 5 && new Set(ids).size === 5, 'Dachfenster: fünf mit eindeutigen IDs: ' + ids);
+  haus.dachfenster.forEach(f => {
+    check(groessen[f.typ] && f.breite === groessen[f.typ][0] && f.laenge === groessen[f.typ][1], 'Dachfenster ' + f.id + ' (' + f.typ + '): Größe ' + f.breite + ' × ' + f.laenge + ' nicht laut Datenblatt');
+    check([[0, -1], [0, 1], [1, 0], [-1, 0]].some(r => r[0] === f.richtung[0] && r[1] === f.richtung[1]), 'Dachfenster ' + f.id + ': Richtung nicht N, O, S oder W');
+  });
+  check(haus.dachfenster.filter(f => f.typ === 'Roto WDF 07/14 R89G K WD AL').length === 3 && haus.dachfenster.filter(f => f.typ === 'Velux GGU CK04').length === 1, 'Dachfenster: drei Roto 07/14, ein Roto 11/14 (Norden), ein Velux CK04 (Treppenhaus)');
+  const k = haus.kamin;
+  check(k.breite === 350 && k.tiefe === 490 && k.oberkante === 149600 - haus.bezug.okffEG, 'Kamin: 35 × 49 cm, Oberkante 149,60 m ü. NN (' + (149600 - haus.bezug.okffEG) + ' mm ab OKFF EG): ' + k.oberkante);
+  check(WV.mm(k.mitte[0]) === 9355 && WV.mm(k.mitte[1]) === 10355, 'Kamin: Mitte hx ' + WV.mm(k.mitte[0]) + ' / hz ' + WV.mm(k.mitte[1]) + ' statt 9355 / 10355 (Westseite bündig mit der Westwand der Speisekammer, 35 cm südlich der Wand zum Nähzimmer)');
+  const sids = haus.schnitte.map(s => s.id);
+  check(sids.join() === 'A,B', 'Schnittlinien A und B: ' + sids);
+  haus.schnitte.forEach(s => { const a = [WV.mm(s.von[0]), WV.mm(s.von[1])], b = [WV.mm(s.bis[0]), WV.mm(s.bis[1])]; check(isFinite(a[0] + a[1] + b[0] + b[1]) && Math.hypot(b[0] - a[0], b[1] - a[1]) > 1000, 'Schnittlinie ' + s.id + ' hat keine Länge'); });
+}
 wirft(() => buildModel(THREE), /Daten|haus/i, 'buildModel ohne Daten');
 
 if (fails.length) { console.log('FEHLER:\n  ' + fails.join('\n  ')); process.exit(1); }

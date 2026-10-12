@@ -253,6 +253,7 @@ function mitTreppe() {
   h.achsen['z.tN'] = { wert: 1200 }; h.achsen['z.tS'] = { wert: 2100 };
   h.treppe = { steigungen: 15, auftritt: 250, laufbreite: 900, gelaender: 150, nische: 540, anker: ['x.Oi', 'z.tS'], geraderLaufAb: 1357, laufEnde: 2200 };
   h.dg.treppenoeffnung = [['x.tW', 'z.tN'], ['x.tO', 'z.tN'], ['x.tO', 'z.tS'], ['x.tW', 'z.tS']];
+  h.dach.traufe = 6000; // hoher Dachraum über der Öffnung, damit die Kopfhöhe (Regel 11) nicht stört
   return h;
 }
 {
@@ -270,6 +271,51 @@ function mitTreppe() {
 {
   const h = mitTreppe(); h.achsen['x.tW'].wert = 4000; // Öffnung beginnt hinter dem Lauf (Lauf von x 3500 bis 4343)
   hat(lauf(h), 11, 'fehler', /Treppenöffnung/i, 'Treppenöffnung umfasst den Lauf nicht');
+}
+
+/* ---------- Regel 11: Kopfhöhe über der Lauflinie ---------- */
+{
+  const h = mitTreppe(); h.dach.traufe = 3500; // niedriges Dach: über den obersten Stufen bleibt unter der Dachhaut weniger als 2 m
+  hat(lauf(h), 11, 'fehler', /Kopfhöhe/i, 'Kopfhöhe unter der Dachschräge zu gering');
+}
+
+/* ---------- Regel 14: Dachfenster liegen ganz in einer Dachfläche ---------- */
+{ // Flügel A: 6000 × 4000 mm mit Überstand 200 → Nord- und Südfläche bis zum First bei hz 2000, Walmflächen an den Enden
+  const fenster = (mitte, richtung) => ({ id: 'f', typ: 'Test', mitte, richtung, breite: 740, laenge: 1400 });
+  const h = basis(); h.dachfenster = [fenster([3000, 800], [0, -1])];
+  ohne(lauf(h), 14, 'Dachfenster mitten in der Nordfläche');
+  h.dachfenster = [fenster([3000, 1900], [0, -1])]; // die Länge entlang der Schräge (1147 mm in der Draufsicht) überschreitet den First bei hz 2000
+  hat(lauf(h), 14, 'fehler', /Dachfläche/i, 'Dachfenster über dem First');
+  h.dachfenster = [fenster([500, 800], [0, -1])];   // liegt im Walm an der Westseite
+  hat(lauf(h), 14, 'fehler', /Dachfläche/i, 'Dachfenster im Walm statt in der Nordfläche');
+  h.dachfenster = [fenster([9000, 800], [0, -1])];  // außerhalb des Daches
+  hat(lauf(h), 14, 'fehler', /Dach/i, 'Dachfenster außerhalb des Daches');
+}
+
+/* ---------- Regel 15: berechneter First gegenüber dem Plan ---------- */
+{ // First = Traufe − Überstand · tan 35° + tan 35° · halbe Gebäudetiefe (4000 + 2 · 200) / 2 = 4900,5 mm
+  const h = basis(); h.pruefwerte = { firstNN: 4900 };
+  ohne(lauf(h), 15, 'First stimmt (Abweichung 0,5 mm)');
+  h.pruefwerte.firstNN = 4910;
+  hat(lauf(h), 15, 'hinweis', /First/i, 'Abweichung 9,5 mm ist ein Hinweis');
+  h.pruefwerte.firstNN = 4950;
+  hat(lauf(h), 15, 'warnung', /First/i, 'Abweichung 49,5 mm ist eine Warnung');
+  h.bezug = { okffEG: 142800 }; h.pruefwerte.firstNN = 142800 + 4900; // Höhen im Plan sind ü. NN, im Modell ab OKFF EG
+  ohne(lauf(h), 15, 'First ü. NN wird auf OKFF EG bezogen');
+}
+
+/* ---------- Regel 16: Kamin liegt in beiden Geschossen frei im Raum ---------- */
+{
+  const kamin = mitte => ({ mitte, breite: 350, tiefe: 490, oberkante: 4500 });
+  const h = basis(); h.kamin = kamin([1500, 2000]);
+  ohne(lauf(h), 16, 'Kamin frei im Raum, EG und DG');
+  h.kamin = kamin([3000, 2000]); // steckt in der Innenwand des EG
+  hat(lauf(h), 16, 'warnung', /Kamin.*EG.*Wand/, 'Kamin in der Innenwand des EG');
+  h.kamin = kamin([1175, 2000]); // im EG frei, im DG bündig an der Außenkante der West-Kniewand (hx 1000–1100) und damit in ihr
+  const r = lauf(h);
+  check(finde(r, 16, 'warnung', /DG/).length === 1 && finde(r, 16, 'warnung', /EG/).length === 0, 'Kamin nur im DG in der Kniewand: ' + r.befunde.map(b => b.text));
+  h.kamin = kamin([-500, 2000]); // außerhalb des Hauses
+  hat(lauf(h), 16, 'fehler', /außerhalb/i, 'Kamin außerhalb der Geschossfläche');
 }
 
 if (fails.length) { console.log('FEHLER:\n  ' + fails.join('\n  ')); process.exit(1); }

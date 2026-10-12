@@ -19,8 +19,6 @@ Die Arbeitsliste dieses Projekts, **von Anfang an** geführt und nicht nachträg
 
 <!-- Beschlossen und begründet, aber noch nicht angefangen. -->
 
-- [ ] Ändern über die Oberfläche (Probiermodus, Plan Abschnitt 4, 8 und 9): Maße in der Seite ändern, Prüfung und Auswirkungen anzeigen, den Export als Änderungsliste erzeugen und mit einem Werkzeug im Repository validiert als neue Sollwerte einspielen. Baut auf Phase 1 und `tools/aendern.js` (Phase 4) auf. Fertig, wenn ein in der Seite geänderter Wert exportiert, vom Werkzeug geprüft und eingespielt wird, `npm test` danach grün ist und ein ungültiger Export abgelehnt wird.
-
 ## Irgendwann
 
 <!-- Ideen und Annehmlichkeiten. Hier darf etwas liegenbleiben, ohne zu stören —
