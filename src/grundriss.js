@@ -18,7 +18,7 @@
    abhängt, mit Faktor k) und bei Öffnungen und Pfeilern `oeffnungen` (Verweis auf die Öffnung in der Wand). */
 if (typeof require !== 'undefined') { var polygonClipping = require('polygon-clipping'); var RA = require('./raeume.js'); }
 
-var grundrissAbleiten, kettenSchnitt, grundrissSvg;
+var grundrissAbleiten, kettenSchnitt, grundrissSvg, planHilfen;
 (function () {
   var TOL = 1e-6;
   var RANG = { aufmass: 0, plan: 1, nutzer: 1, ohne: 2, annahme: 3 }; // je höher, desto unsicherer
@@ -570,5 +570,7 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
       '<g class="boden">' + bodenSvg + '</g><g class="waende">' + waendeSvg + '</g><g class="oeffnungen">' + oeffSvg + '</g><g class="extra">' + extra + '</g>' +
       '<g class="oeffnungstexte">' + oeffText + '</g><g class="raeume">' + raumSvg + '</g><g class="massketten">' + kettenSvgTeile + '</g><g class="marken">' + markenSvg + '</g></svg>';
   };
+  /* Zeichenhilfen für Schnitt und Ansicht (src/schnitt.js): dieselben Maßketten, Farben und Zahlenformate wie im Grundriss */
+  planHilfen = { kettenSvg: kettenSvg, kettenLayout: kettenLayout, CSS: CSS, CSS_DUNKEL: CSS_DUNKEL, f: f, esc: esc, pfad: pfad, mass: mass, zahl: zahl, schlossSvg: schlossSvg, FS: FS };
 })();
-if (typeof module !== 'undefined') module.exports = { grundrissAbleiten: grundrissAbleiten, kettenSchnitt: kettenSchnitt, grundrissSvg: grundrissSvg };
+if (typeof module !== 'undefined') module.exports = { grundrissAbleiten: grundrissAbleiten, kettenSchnitt: kettenSchnitt, grundrissSvg: grundrissSvg, planHilfen: planHilfen };
