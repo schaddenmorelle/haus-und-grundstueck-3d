@@ -22,6 +22,9 @@ function dachAbleiten(haus, WV) {
     hmax = hmax || dg.wandHoechst;
     return h < -1e8 ? yD + 2200 : Math.min(yD + hmax, h - dg.wandAbstandDachhaut);
   }
-  return { neigung: d.neigung, tan: tan, ueberstand: ueber, traufe: d.traufe, A: A, B: B, inR: inR, dR: dR, hoehe: hoehe, wandOK: wandOK };
+  /* First über OKFF EG: der höchste Punkt ist die Mitte der schmaleren Seite eines Flügels */
+  function ersteHoehe(r) { return d.traufe - ueber * tan + tan * Math.min(r.x1 - r.x0, r.z1 - r.z0) / 2; }
+  var first = Math.max(ersteHoehe(A), B ? ersteHoehe(B) : -1e9);
+  return { neigung: d.neigung, tan: tan, ueberstand: ueber, traufe: d.traufe, A: A, B: B, first: first, inR: inR, dR: dR, hoehe: hoehe, wandOK: wandOK };
 }
 if (typeof module !== 'undefined') module.exports = { dachAbleiten: dachAbleiten };

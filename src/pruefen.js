@@ -5,8 +5,9 @@
      ort:      [hx, hz] in mm hausrelativ oder null
    Regeln: 1 Teilflächen und Stempel · 2 Wandüberschneidungen · 3 freie Enden, Stummel, Wände außerhalb · 4 Öffnungen ·
            7 Flächenbilanz · 9 Maßketten · 10 Geschosshöhe · 11 Treppe (Steigung, Schrittmaß, Öffnung) · 12 Höhen der Öffnungen ·
-           13 Kniewände im Dachausbau. Maße in mm. */
-if (typeof require !== 'undefined') { var polygonClipping = require('polygon-clipping'); var RA = require('./raeume.js'); }
+           13 Kniewände im Dachausbau · 14 Dachfenster in einer Dachfläche · 15 First gegenüber dem Plan · 16 Kamin in beiden Geschossen. Maße in mm.
+   Regel 11 prüft auch die Kopfhöhe über der Lauflinie (src/treppe.js). Nicht umgesetzt: Regel 14 „zwischen zwei Sparrenachsen“ (Binderplan fehlt als Daten). */
+if (typeof require !== 'undefined') { var polygonClipping = require('polygon-clipping'); var RA = require('./raeume.js'); var TP = require('./treppe.js'); }
 
 function pruefen(haus, WV, abl, dach) {
   var R = typeof RA !== 'undefined' ? RA : { imWandRing: imWandRing, ringFlaeche: ringFlaeche, multiFlaeche: multiFlaeche, geschossRing: geschossRing };
@@ -160,6 +161,12 @@ function pruefen(haus, WV, abl, dach) {
       var aussen = polygonClipping.difference([geschlossen(lauf)], [geschlossen(oef)]);
       if (aussen.length && R.multiFlaeche(aussen) > TOL) b(11, 'fehler', 'Treppenöffnung umfasst den geraden Lauf nicht (' + (R.multiFlaeche(aussen) / 1e6).toFixed(3).replace('.', ',') + ' m² des Laufs liegen außerhalb)', ['treppe'], mitte(lauf), 'DG');
     }
+    /* Kopfhöhe: mindestens 2,00 m über der Lauflinie (unter der Decke, in der Treppenöffnung unter der Dachhaut abzüglich Sparrenabstand) */
+    if (T.anker && T.geraderLaufAb && T.laufEnde) {
+      var tpa = typeof TP !== 'undefined' ? TP.treppeAbleiten : treppeAbleiten, tpk = typeof TP !== 'undefined' ? TP.treppeKopfhoehe : treppeKopfhoehe;
+      var tr = tpa(haus, WV), kh = tpk(haus, WV, tr, dach);
+      if (kh.min < 2000 - 1e-6) b(11, 'fehler', 'Treppe: Kopfhöhe nur ' + mm(kh.min) + ' über Stufe ' + kh.stufe + ' (mindestens 2000 mm über der Lauflinie)' + (kh.stellen.filter(function (s) { return s.hoehe === kh.min; })[0].art === 'decke' ? '; die Treppenöffnung reicht nicht weit genug' : ''), ['treppe'], kh.ort, 'EG');
+    }
   }
 
   /* ---- Regel 12: Höhen der Öffnungen im EG ---- */
@@ -203,6 +210,38 @@ function pruefen(haus, WV, abl, dach) {
         if (h < minH) { minH = h; minAt = [x, z]; }
       }
       if (hmax && soll13 && minH < soll13 - tol13) b(13, 'warnung', 'Kniewand ' + w.id + ' nur ' + mm(minH) + ' hoch (Soll ' + mm(soll13) + ' ± ' + mm(tol13) + ', die Dachhaut minus Sparrenabstand begrenzt) bei ' + pos(minAt), [w.id], minAt, 'DG');
+    });
+  }
+
+  /* ---- Regel 14: Dachfenster liegen ganz in einer Dachfläche (nicht über First, Grat oder Kehle) ---- */
+  if (dach && haus.dachfenster) {
+    var cs = Math.cos(haus.dach.neigung * Math.PI / 180);
+    haus.dachfenster.forEach(function (f) {
+      var c = [WV.mm(f.mitte[0]), WV.mm(f.mitte[1])], o = f.richtung, p = [-o[1], o[0]], hc = dach.hoehe(c[0], c[1]), abw = 0;
+      if (hc < -1e8) { b(14, 'fehler', 'Dachfenster ' + f.id + ' (' + f.typ + ') liegt nicht auf dem Dach (' + pos(c) + ')', [f.id], c, 'DG'); return; }
+      [[1, 1], [1, -1], [-1, 1], [-1, -1]].forEach(function (k) {
+        var d = k[0] * f.laenge * cs / 2, e = k[1] * f.breite / 2, x = c[0] + d * o[0] + e * p[0], z = c[1] + d * o[1] + e * p[1], h = dach.hoehe(x, z);
+        abw = Math.max(abw, h < -1e8 ? 1e9 : Math.abs(h - (hc - dach.tan * d)));
+      });
+      if (abw > 5) b(14, 'fehler', 'Dachfenster ' + f.id + ' (' + f.typ + ') liegt nicht ganz in einer Dachfläche (Abweichung bis ' + mm(abw) + ' von der Fläche in der Fenstermitte; First, Grat oder Dachrand im Fenster?) bei ' + pos(c), [f.id], c, 'DG');
+    });
+  }
+
+  /* ---- Regel 15: berechneter First gegenüber dem Plan ---- */
+  if (dach && haus.pruefwerte && haus.pruefwerte.firstNN != null) {
+    var sollFirst = haus.pruefwerte.firstNN - ((haus.bezug && haus.bezug.okffEG) || 0), dFirst = dach.first - sollFirst;
+    if (Math.abs(dFirst) > 5) b(15, Math.abs(dFirst) > 20 ? 'warnung' : 'hinweis', 'First berechnet ' + mm(dach.first) + ' über OKFF EG, laut Plan ' + mm(sollFirst) + ' (Abweichung ' + mm(dFirst) + ')', [], null, null);
+  }
+
+  /* ---- Regel 16: Kamin steht in beiden Geschossen frei im Raum (nicht in einer Wand, nicht außerhalb der Geschossfläche) ---- */
+  if (haus.kamin) {
+    var km = haus.kamin, kc = [WV.mm(km.mitte[0]), WV.mm(km.mitte[1])], kr = [[kc[0] - km.breite / 2, kc[1] - km.tiefe / 2], [kc[0] + km.breite / 2, kc[1] - km.tiefe / 2], [kc[0] + km.breite / 2, kc[1] + km.tiefe / 2], [kc[0] - km.breite / 2, kc[1] + km.tiefe / 2]];
+    geschosse.forEach(function (g) {
+      var gs = abl.geschosse[g], K = [[geschlossen(kr)]], flaecheKamin = km.breite * km.tiefe;
+      var drin = polygonClipping.intersection(K, [[geschlossen(gs.boden)]]), fDrin = drin.length ? R.multiFlaeche(drin) : 0;
+      if (flaecheKamin - fDrin > 100) { b(16, 'fehler', 'Kamin liegt im ' + g + ' außerhalb der Geschossfläche (' + (( flaecheKamin - fDrin) / 1e6).toFixed(3).replace('.', ',') + ' m² ragen hinaus) bei ' + pos(kc), ['kamin'], kc, g); return; }
+      var wand = gs.wandUnion.length ? polygonClipping.intersection(K, gs.wandUnion) : [], fW = wand.length ? R.multiFlaeche(wand) : 0;
+      if (fW > 100) b(16, 'warnung', 'Kamin schneidet im ' + g + ' eine Wand (' + (fW / 1e6).toFixed(3).replace('.', ',') + ' m² Überlappung) bei ' + pos(kc) + '; steht er in der Wand?', ['kamin'], kc, g);
     });
   }
   return out;

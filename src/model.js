@@ -5,7 +5,7 @@
    aufgelöst mit werteAufloesen() aus src/werte.js. Die Räume leitet raeumeAbleiten() aus den Wänden ab (src/raeume.js), die Dachhöhe
    dachAbleiten() (src/dach.js), die Prüfregeln pruefen() (src/pruefen.js) liefern die Befunde. Außenanlagen, Gelände und Ausstattung
    stehen noch als Zahlen in diesem Code. */
-if (typeof require !== 'undefined') { var werteAufloesen = require('./werte.js').werteAufloesen, wandLinie = require('./raeume.js').wandLinie, raeumeAbleiten = require('./raeume.js').raeumeAbleiten, dachAbleiten = require('./dach.js').dachAbleiten, pruefen = require('./pruefen.js').pruefen; }
+if (typeof require !== 'undefined') { var werteAufloesen = require('./werte.js').werteAufloesen, wandLinie = require('./raeume.js').wandLinie, raeumeAbleiten = require('./raeume.js').raeumeAbleiten, dachAbleiten = require('./dach.js').dachAbleiten, treppeAbleiten = require('./treppe.js').treppeAbleiten, pruefen = require('./pruefen.js').pruefen; }
 function buildModel(THREE, haus) {
   if (!haus) throw new Error('buildModel: Hausdaten (src/data/haus.json) fehlen');
   var WV = werteAufloesen(haus);
@@ -630,27 +630,18 @@ function buildModel(THREE, haus) {
         else dgWall((c - half) / 1000, (c + half) / 1000, sg[0] / 1000, sg[1] / 1000, hm, bOnly, sg[2]);
       });
     });
-    // Treppe nach Treppenplanung (Wortmann): 15 Steigungen à 19,81 cm, Auftritt 25 cm, Laufbreite 1,0125 m,
+    // Treppe nach Treppenplanung (Wortmann): 15 Steigungen à 19,81 cm (Geschosshöhe / 15), Auftritt 25 cm, Laufbreite 0,90 m,
     // Viertelwendelung (Stufen 1 bis 6) an der Ostwand, danach gerader Lauf nach Westen. (u, v) = Maße der Zeichnung ab Innenecke.
+    // Grundrisse und Höhen der Stufen liefert treppeAbleiten() (src/treppe.js) aus haus.treppe.
     (function stair() {
-      var T = haus.treppe, rise = (yD - (yF + 0.012)) / T.steigungen, TH = 0.044, W = T.laufbreite / 1000, PV = [0.95, W];
+      var T = haus.treppe, TR = treppeAbleiten(haus, WV), TH = TR.dicke / 1000, W = T.laufbreite / 1000, PV = [0.95, W];
       var U0 = T.geraderLaufAb / 1000, U1 = T.laufEnde / 1000;                  // u-Maße des geraden Laufs (Stufe 7 bis Austritt)
       function toP(u, v) { return P(axM(T.anker[0]) - u, axM(T.anker[1]) - v); }
-      function top(n) { return yF + 0.012 + n * rise; }
-      var UN = []; for (var i = 7; i <= 15; i++) UN[i] = U0 + (i - 7) * ((U1 - U0) / 8);
-      var polys = {
-        1: [[0, 1.4], [0.95, 1.4], PV, [0, 1.16]],
-        2: [[0, 1.16], PV, [0, 0.70]],
-        3: [[0, 0.70], PV, [0, 0.25]],
-        4: [[0, 0.25], PV, [0.35, 0], [0, 0]],
-        5: [[0.35, 0], PV, [0.80, 0]],
-        6: [[0.80, 0], PV, [U0, W], [U0, 0]]
-      };
-      for (var n = 7; n <= 14; n++) polys[n] = [[UN[n], 0], [UN[n + 1], 0], [UN[n + 1], W], [UN[n], W]];
-      Object.keys(polys).forEach(function (k) {
-        var g = new THREE.ExtrudeGeometry(shapeOf(polys[k].map(function (p) { return toP(p[0], p[1]); })), { depth: TH, bevelEnabled: false });
+      function top(n) { return yF + n * TR.steigung / 1000; }
+      TR.stufen.forEach(function (s) {
+        var g = new THREE.ExtrudeGeometry(shapeOf(s.uv.map(function (p) { return toP(p[0] / 1000, p[1] / 1000); })), { depth: TH, bevelEnabled: false });
         var o = mesh(g, mat.oak, true, gInner, true);
-        o.rotation.x = -Math.PI / 2; o.position.y = top(+k) - TH;
+        o.rotation.x = -Math.PI / 2; o.position.y = top(s.n) - TH;
       });
       // Geländer: Handlauf Eiche, Stäbe Edelstahl 16 mm
       // Geländer: von unten hoch, oben zweimal 90 Grad (15 cm) und zurück bis zur Dachschräge; Nische (54 cm) daneben
@@ -686,11 +677,11 @@ function buildModel(THREE, haus) {
   (function structure() {
     // Kamin: Erdgeschoss bis über den First (Querschnitt 35 x 49 cm aus dem Plan, Höhe angenommen)
     (function () {
-      var top = Y(149.6), c = P(axM('x.naehW') + 0.175, axM('z.ZSa') + 0.35 + 0.245), h = top - yF; // Westseite bündig mit der Westwand der Speisekammer (x.naehW), 35 cm südlich der Wand Nähzimmer / Speisekammer
-      var yr = Math.min.apply(null, [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(function (k) { return Y(roofH(c[0] + k[0] * 0.175, c[1] + k[1] * 0.245)); })) - 0.1;
-      boxAt(0.35, yr - yF, 0.49, mat.chimney, c[0], (yF + yr) / 2, c[1], gHouse);
-      boxAt(0.37, top - yr, 0.51, mat.chimneyOut, c[0], (yr + top) / 2, c[1], gHouse);
-      boxAt(0.39, 0.04, 0.53, mat.steelDark, c[0], top + 0.02, c[1], gHouse);
+      var K = haus.kamin, top = yF + K.oberkante / 1000, c = P(axM(K.mitte[0]), axM(K.mitte[1])), h = top - yF; // Lage, Querschnitt und Höhe aus haus.kamin (Westseite bündig mit der Westwand der Speisekammer)
+      var kb = K.breite / 2000, kt = K.tiefe / 2000, yr = Math.min.apply(null, [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(function (k) { return Y(roofH(c[0] + k[0] * kb, c[1] + k[1] * kt)); })) - 0.1;
+      boxAt(kb * 2, yr - yF, kt * 2, mat.chimney, c[0], (yF + yr) / 2, c[1], gHouse);
+      boxAt(kb * 2 + 0.02, top - yr, kt * 2 + 0.02, mat.chimneyOut, c[0], (yr + top) / 2, c[1], gHouse);
+      boxAt(kb * 2 + 0.04, 0.04, kt * 2 + 0.04, mat.steelDark, c[0], top + 0.02, c[1], gHouse);
       var fl = mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.32, 16), mat.steel, true, gHouse, false); fl.position.set(c[0], top + 0.2, c[1]);
       var hood = mesh(new THREE.ConeGeometry(0.15, 0.1, 16), mat.steel, true, gHouse, false); hood.position.set(c[0], top + 0.42, c[1]);
     })();
@@ -737,14 +728,8 @@ function buildModel(THREE, haus) {
       pg.stroke(); mat.pvZelle.map = new THREE.CanvasTexture(pc); mat.pvZelle.color.set(0xffffff);
     }
 
-    // Fenster: [Typ, hx, hz der Mitte, Richtung nach außen, Breite, Länge, Dämmblock rundum]
-    var WIN = [
-      ['Roto WSA 11/14 R89 G K WD AL', 8.245, 2.47, [0, -1], 1.14, 1.40, 0.03],   // Pias Zimmer, Nord
-      ['Roto WDF 07/14 R89G K WD AL', 10.54, 6.835, [1, 0], 0.74, 1.40, 0.03],    // Pias Zimmer, Ost
-      ['Roto WDF 07/14 R89G K WD AL', 5.96, 8.60, [-1, 0], 0.74, 1.40, 0.03],     // Arbeitszimmer, West
-      ['Roto WDF 07/14 R89G K WD AL', 7.725, 12.24, [0, 1], 0.74, 1.40, 0.03],    // Arbeitszimmer, Süd
-      ['Velux GGU CK04', 10.76, 8.57, [1, 0], 0.55, 0.98, 0]                      // Treppenhaus, Ost
-    ];
+    // Fenster aus haus.dachfenster: [Typ, hx, hz der Mitte (m), Richtung nach außen, Breite, Länge (m), Dämmblock rundum (m)]
+    var WIN = haus.dachfenster.map(function (f) { return [f.typ, f.mitte[0] / 1000, f.mitte[1] / 1000, f.richtung, f.breite / 1000, f.laenge / 1000, f.daemmblock / 1000]; });
     WIN.forEach(function (d) {
       var g = onRoof(d[3], d[1], d[2], 'dachfenster', { typ: d[0] }), w = d[4], l = d[5], fb = 0.045, y0 = 0.02;
       frame(g, 'blendrahmen', w, l, fb, 0.07, y0, mat.frame);                     // Blendrahmen, Leiste 4,5 cm (Lichtmaß 650/1310 bei 07/14)
