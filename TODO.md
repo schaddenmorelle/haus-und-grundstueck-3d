@@ -31,4 +31,3 @@ Die Arbeitsliste dieses Projekts, **von Anfang an** geführt und nicht nachträg
 
 - 2026-10-11: Soll es ein Glossar für Fachbegriffe und Raumnamen geben (bisher nur in `AGENTS.md`)?
 - 2026-10-11: Soll es eine Architekturdatei (arc42) und ADRs geben, oder reicht `docs/plan-parametrisches-modell.md`?
-- 2026-10-12: Terrasse in der Wohnfläche: Anteil 25 % (Regelfall) oder bis 50 % (besonders hochwertig nutzbar)? Gesetzlich ist beides möglich, die Wahl liegt beim Nutzer; derzeit 25 %.
