@@ -126,23 +126,24 @@ function oeff(an, id) { return an.oeffnungen.filter(o => o.name === id)[0]; }
   const N = ansichtAbleiten(A.h, A.WV, A.abl, A.dach, 'N');
   check(N.seite === 'N' && nahe(N.breite, 12950, 1e-6), 'Ansicht N: Breite ' + N.breite);
   const tuer = oeff(N, 'eg.aw.nord.oeff1'), fenster = oeff(N, 'eg.aw.nord.oeff2');
-  check(tuer && nahe(tuer.s0, 5555) && nahe(tuer.s1, 6565) && nahe(tuer.y0, 0) && nahe(tuer.y1, 2375), 'Nordtür 101 × 237,5: ' + JSON.stringify(tuer));
-  check(fenster && nahe(fenster.s0, 9055) && nahe(fenster.s1, 10565) && nahe(fenster.y0, 1125) && nahe(fenster.y1, 2375), 'Nordfenster 151 × 125, Brüstung 112,5: ' + JSON.stringify(fenster));
+  // Nord (Blick nach Süden, links ist Osten): s = 12950 − hx; die Tür liegt bei hx 5,555–6,565 (Kette oben im Plan), Fenster bei hx 9,055–10,565
+  check(tuer && nahe(tuer.s0, 12950 - 6565) && nahe(tuer.s1, 12950 - 5555) && nahe(tuer.y0, 0) && nahe(tuer.y1, 2375), 'Nordtür 101 × 237,5: ' + JSON.stringify(tuer));
+  check(fenster && nahe(fenster.s0, 12950 - 10565) && nahe(fenster.s1, 12950 - 9055) && nahe(fenster.y0, 1125) && nahe(fenster.y1, 2375), 'Nordfenster 151 × 125, Brüstung 112,5: ' + JSON.stringify(fenster));
   check(N.oeffnungen.length === 2, 'Ansicht N zeigt ' + N.oeffnungen.length + ' Öffnungen statt 2');
   // Dachsilhouette: von der Traufe am Überstand (−235) bis zum First
   const sil = N.dach;
   check(nahe(sil[0][0], -235) && nahe(sil[0][1], 2970 - 235 * tan, 0.5), 'Silhouette beginnt bei ' + JSON.stringify(sil[0]));
   check(nahe(Math.max(...sil.map(p => p[1])), 6280, 2), 'Silhouette: First ' + Math.max(...sil.map(p => p[1])));
-  // Dachfenster nach Norden (Pias Zimmer, 114 × 140 cm auf der Schräge): s 8245 ± 570, senkrecht 140 · sin 35° = 803 mm um Dachhöhe 4700
+  // Dachfenster nach Norden (Pias Zimmer, 114 × 140 cm auf der Schräge): s 12950 − 8245 ± 570, senkrecht 140 · sin 35° = 803 mm um Dachhöhe 4700
   check(N.dachfenster.length === 1 && N.dachfenster[0].id === 'pia-nord', 'Dachfenster in Ansicht N: ' + N.dachfenster.map(f => f.id));
   const df = N.dachfenster[0];
-  check(df && nahe(df.s0, 8245 - 570) && nahe(df.s1, 8245 + 570) && nahe(df.y1 - df.y0, 1400 * Math.sin(35 * Math.PI / 180), 1) && nahe((df.y0 + df.y1) / 2, 4700, 1), 'Dachfenster Nord: ' + JSON.stringify(df));
+  check(df && nahe(df.s0, 12950 - 8245 - 570) && nahe(df.s1, 12950 - 8245 + 570) && nahe(df.y1 - df.y0, 1400 * Math.sin(35 * Math.PI / 180), 1) && nahe((df.y0 + df.y1) / 2, 4700, 1), 'Dachfenster Nord: ' + JSON.stringify(df));
   // First und Grate: Von Norden sichtbar sind der First (Höhe 149,08 m ü. NN ≙ 6280) und die Grate der Nordwalme; die Südwalme verdeckt das Dach selbst
   const firstK = N.kanten.filter(k => k.art === 'first'), grate = N.kanten.filter(k => k.art === 'grat');
   check(firstK.length >= 1 && firstK.every(k => nahe(k.a[1], 6280, 3) && nahe(k.b[1], 6280, 3)), 'Firstlinien in Ansicht N: ' + JSON.stringify(firstK));
   check(grate.length >= 2 && grate.every(k => k.a[1] < k.b[1] + 1e-6 || k.b[1] < k.a[1] + 1e-6), 'Grate in Ansicht N: ' + grate.length);
   check(N.kanten.every(k => k.a[1] > 2800 && k.b[1] > 2800), 'Kanten unterhalb der Traufkante dürfen nicht erscheinen');
-  check(N.kamin && nahe(N.kamin.y1, 6800) && nahe(N.kamin.s0, 9355 - 175) && nahe(N.kamin.s1, 9355 + 175), 'Kamin in Ansicht N: ' + JSON.stringify(N.kamin));
+  check(N.kamin && nahe(N.kamin.y1, 6800) && nahe(N.kamin.s0, 12950 - 9355 - 175) && nahe(N.kamin.s1, 12950 - 9355 + 175), 'Kamin in Ansicht N: ' + JSON.stringify(N.kamin));
   check(N.koten.okffEG === 0 && N.koten.traufe === 2970 && nahe(N.koten.first, 6280, 2), 'Koten Ansicht: ' + JSON.stringify(N.koten));
   // Höhen der Öffnungen sind bearbeitbare Maße mit eigenem Namen: Brüstung, Höhe, Sturz (bis zur Decke 2525)
   const h1 = segmente(N).filter(s => s.name === 'eg.aw.nord.oeff2.bruestung')[0], h2 = segmente(N).filter(s => s.name === 'eg.aw.nord.oeff2.hoehe')[0], h3 = segmente(N).filter(s => s.name === 'eg.aw.nord.oeff2.sturz')[0];
@@ -150,25 +151,25 @@ function oeff(an, id) { return an.oeffnungen.filter(o => o.name === id)[0]; }
   const t1 = segmente(N).filter(s => s.name === 'eg.aw.nord.oeff1.hoehe')[0];
   check(t1 && nahe(t1.laenge, 2375), 'Höhe der Nordtür: ' + (t1 && t1.laenge));
 
-  // Süd (Blick nach Norden, links ist Osten): s = 12950 − hx
+  // Süd (Blick nach Norden, links ist Westen): s = hx; Terrassentür hx 3,885–6,895 (ab Ostecke 6,055, 3,01 breit), Badfenster hx 1,76–3,27 (ab x.V 0,23, 1,51 breit)
   const S = ansichtAbleiten(A.h, A.WV, A.abl, A.dach, 'S');
   const ft = oeff(S, 'eg.aw.sued.oeff1');
-  check(ft && nahe(ft.s0, 6055) && nahe(ft.s1, 9065) && nahe(ft.y0, 0) && nahe(ft.y1, 2375), 'Südtür 301 × 237,5 (Terrasse): ' + JSON.stringify(ft));
+  check(ft && nahe(ft.s0, 12950 - 6055 - 3010) && nahe(ft.s1, 12950 - 6055) && nahe(ft.y0, 0) && nahe(ft.y1, 2375), 'Südtür 301 × 237,5 (Terrasse): ' + JSON.stringify(ft));
   const bf = oeff(S, 'eg.aw.sued-west.oeff1');
-  check(bf && nahe(bf.s0, 12950 - 3270) && nahe(bf.s1, 12950 - 1760) && nahe(bf.y0, 1500) && nahe(bf.y1, 2375), 'Badfenster (Südseite des Westflügels): ' + JSON.stringify(bf));
+  check(bf && nahe(bf.s0, 1760) && nahe(bf.s1, 3270) && nahe(bf.y0, 1500) && nahe(bf.y1, 2375), 'Badfenster (Südseite des Westflügels): ' + JSON.stringify(bf));
 
-  // Ost (Blick nach Westen, links ist Norden): s = hz
+  // Ost (Blick nach Westen, links ist Süden): s = 14655 − hz
   const O = ansichtAbleiten(A.h, A.WV, A.abl, A.dach, 'O');
   const ot = oeff(O, 'eg.aw.ost.oeff3');
-  check(ot && nahe(ot.s0, 4510) && nahe(ot.s1, 5670) && nahe(ot.y1, 2375) && nahe(O.breite, 14655), 'Haustür in der Ostwand 116 × 237,5 bei hz 4,51–5,67: ' + JSON.stringify(ot));
+  check(ot && nahe(ot.s0, 14655 - 5670) && nahe(ot.s1, 14655 - 4510) && nahe(ot.y1, 2375) && nahe(O.breite, 14655), 'Haustür in der Ostwand 116 × 237,5 bei hz 4,51–5,67: ' + JSON.stringify(ot));
   check(O.oeffnungen.length === 6, 'Ansicht O: ' + O.oeffnungen.length + ' Öffnungen statt 6 (Plan: Ostwand)');
   check(O.dachfenster.map(f => f.id).sort().join() === 'pia-ost,treppenhaus-ost', 'Dachfenster nach Osten: ' + O.dachfenster.map(f => f.id));
 
-  // West (Blick nach Osten, links ist Süden): s = 14655 − hz
+  // West (Blick nach Osten, links ist Norden): s = hz
   const W = ansichtAbleiten(A.h, A.WV, A.abl, A.dach, 'W');
   const wf = oeff(W, 'eg.aw.west.oeff1'), wf2 = oeff(W, 'eg.aw.west-wohnen.oeff1');
-  check(wf && nahe(wf.s0, 14655 - 5145) && nahe(wf.s1, 14655 - 4385), 'Westfenster Eltern: ' + JSON.stringify(wf));
-  check(wf2 && nahe(wf2.s0, 385) && nahe(wf2.s1, 1395), 'Westfenster Wohnzimmer: ' + JSON.stringify(wf2));
+  check(wf && nahe(wf.s0, 4385) && nahe(wf.s1, 5145), 'Westfenster Eltern: ' + JSON.stringify(wf));
+  check(wf2 && nahe(wf2.s0, 13260) && nahe(wf2.s1, 14270), 'Westfenster Wohnzimmer: ' + JSON.stringify(wf2));
   check(W.dachfenster.map(f => f.id).join() === 'arbeit-west', 'Dachfenster nach Westen: ' + W.dachfenster.map(f => f.id));
 }
 

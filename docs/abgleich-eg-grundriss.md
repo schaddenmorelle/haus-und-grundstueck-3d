@@ -6,7 +6,7 @@ Stand 11.10.2026. Referenz ist `eingaben/bilder/32710f5f-image.png`, der genaues
 
 **Vorgehen**
 - Die Geometrie folgt den gedruckten Maßketten.
-- Die roten Raummaße stehen als Prüfmaße in `tools/pruefmasse.json`. `npm test` vergleicht sie mit dem Modell. Erwartet ist Modell − Aufmaß zwischen −1 und +4 cm.
+- Die roten Raummaße stehen als Prüfmaße in `src/data/pruefmasse.json`. `npm test` vergleicht sie mit dem Modell. Erwartet ist Modell − Aufmaß zwischen −1 und +4 cm.
 - Wo rote Maße in sich aufgehen und mehr als 10 cm vom Druck abweichen, ist das Aufmaß übernommen.
 
 ## Korrigiert

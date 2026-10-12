@@ -471,38 +471,12 @@ const inPoly = (poly, x, z) => { let ins = false; for (let i = 0, j = poly.lengt
   }
 }
 
-/* Prüfmaße aus dem Aufmaß: nur Bericht, kein Fehler (bekannte Abweichungen stehen in docs/abgleich-eg-grundriss.md) */
-function span(poly, dir, at) {
-  const ts = [];
-  for (let i = 0; i < poly.length; i++) {
-    const a = poly[i], b = poly[(i + 1) % poly.length];
-    const [ca, cb, ua, ub] = dir === 'x' ? [a[1], b[1], a[0], b[0]] : [a[0], b[0], a[1], b[1]];
-    if ((ca - at) * (cb - at) < 0 || (ca === at) !== (cb === at)) { if (ca !== cb) ts.push(ua + (ub - ua) * (at - ca) / (cb - ca)); }
-  }
-  ts.sort((p, q) => p - q);
-  let best = 0; for (let i = 0; i + 1 < ts.length; i += 2) best = Math.max(best, ts[i + 1] - ts[i]);
-  return best;
-}
-function edgeLen(poly, q) {
-  let best = 1e9, len = 0;
-  for (let i = 0; i < poly.length; i++) {
-    const a = poly[i], b = poly[(i + 1) % poly.length], vx = b[0] - a[0], vz = b[1] - a[1], L2 = vx * vx + vz * vz;
-    const t = Math.max(0, Math.min(1, ((q[0] - a[0]) * vx + (q[1] - a[1]) * vz) / L2));
-    const dd = Math.hypot(q[0] - a[0] - t * vx, q[1] - a[1] - t * vz);
-    if (dd < best) { best = dd; len = Math.sqrt(L2); }
-  }
-  return len;
-}
-const PM = JSON.parse(fs.readFileSync(path.join(__dirname, 'pruefmasse.json'), 'utf8'));
-const byId = {}; m.rooms.forEach(r => { byId[r.id] = r; });
-console.log('\nPrüfmaße: Aufmaß (fertig) ↔ Modell (Rohbau) in cm, erwartet Modell − Aufmaß = ' + PM.putz_cm[0] + ' … +' + PM.putz_cm[1] + ' (Putz), ! = auffällig');
-PM.masse.forEach(p => {
-  const r = byId[p.raum];
-  if (!r || !r.poly) { fails.push('Prüfmaß ohne Raum: ' + p.raum); return; }
-  const mod = (p.kante_bei ? edgeLen(r.poly, p.kante_bei) : span(r.poly, p.richtung, p.bei)) * 100, d = mod - p.cm;
-  const off = p.kante_bei ? Math.abs(d) > PM.kante_cm : d < PM.putz_cm[0] || d > PM.putz_cm[1];
-  console.log('  ' + (off ? '!' : ' ') + ' ' + p.was.padEnd(42) + String(p.cm).padStart(5) + String(mod.toFixed(1)).padStart(8) + (d >= 0 ? '  +' : '  ') + d.toFixed(1));
-});
+/* Prüfmaße aus dem Aufmaß (src/data/pruefmasse.json, Auswertung in src/aufmass.js): nur Bericht, kein Fehler (bekannte Abweichungen stehen in
+   docs/abgleich-eg-grundriss.md); ein Prüfmaß, das das Modell nicht findet, ist ein Fehler. */
+const PM = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'src', 'data', 'pruefmasse.json'), 'utf8'));
+const AUFMASS = require('../src/aufmass.js').auswerten(require('../src/aendern.js').ableiten(JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'src', 'data', 'haus.json'), 'utf8'))), PM);
+console.log('\n' + require('../src/aufmass.js').bericht(AUFMASS, PM));
+AUFMASS.zeilen.filter(z => z.status === 'unbekannt').forEach(z => fails.push('Prüfmaß nicht gefunden: ' + z.was));
 
 /* Snapshot */
 if (process.env.UPDATE || !fs.existsSync(SNAP)) {

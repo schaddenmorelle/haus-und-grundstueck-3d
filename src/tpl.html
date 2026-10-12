@@ -79,6 +79,15 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
 .pm-fehler{color:var(--red);white-space:pre-wrap}
 .pm-warn{color:var(--red);font-weight:600}
 #pm-text{width:100%;margin-top:8px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:5px;padding:6px}
+#am-text{width:100%;margin-top:8px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:5px;padding:6px}
+#aufmass summary{cursor:pointer;font-size:13px;min-height:32px;display:flex;align-items:center}
+.am-liste{margin:0 0 8px;padding:0;list-style:none;display:grid;gap:4px}
+.am-liste li{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;font-size:13px;border-left:3px solid var(--rule);padding:3px 0 3px 8px;font-variant-numeric:tabular-nums}
+.am-liste li.ok{border-left-color:var(--q-aufmass,#2f7d3a)}.am-liste li.auffaellig,.am-liste li.unbekannt{border-left-color:var(--red)}.am-liste li.leer{color:var(--muted)}
+.am-liste li>button.sprung{flex:1;min-width:0;display:grid;gap:1px;text-align:left;border:0;background:transparent;color:inherit;font:inherit;padding:0;cursor:pointer}
+.am-liste li>button.sprung:hover b{text-decoration:underline}.am-liste small{color:var(--muted);font-size:12px}
+.am-liste li>button.weg{flex:none;width:28px;height:28px;border:1px solid var(--rule);background:var(--chip);color:var(--ink);border-radius:4px;cursor:pointer;font:inherit;line-height:1}
+.plan .hit.gem:not(.on){stroke:var(--qa);stroke-width:8;fill:color-mix(in srgb,var(--qa) 16%,transparent)}.plan .hit.gem.abw:not(.on){stroke:var(--pwarn);fill:color-mix(in srgb,var(--pwarn) 24%,transparent)}
 .btns.zwei{grid-template-columns:repeat(2,minmax(0,1fr))}.btns.vier{grid-template-columns:repeat(4,minmax(0,1fr))}#modusBtns+.btns{margin-top:6px}#schnittBtns+.btns{margin-top:6px}#plan2d.zeichnet,#plan2d.zeichnet *{cursor:crosshair}
 .leg{display:grid;gap:5px;font-size:13px}.leg span{display:flex;align-items:center;gap:8px}
 .leg i{display:inline-block;width:26px;height:0;border-top:3px solid currentColor}.leg i.s{border-top-style:dashed}.leg i.p{border-top-style:dotted}
@@ -144,6 +153,22 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
         <div id="pm-aus" class="pm-aus" hidden></div>
         <div class="btns zwei"><button id="pm-export" class="btn" type="button">Exportieren</button><button id="pm-reset" class="btn" type="button">Zurücksetzen</button></div>
         <textarea id="pm-text" rows="8" readonly hidden aria-label="Änderungsliste zum Kopieren"></textarea>
+      </div>
+    </section>
+    <section class="nur2d" id="aufmass"><h2>Aufmaß</h2>
+      <p id="am-summe" class="note" aria-live="polite"></p>
+      <details><summary>Prüfmaße ansehen</summary><ol id="am-liste" class="am-liste"></ol></details>
+      <label class="chk"><input id="am-an" type="checkbox">Aufmaß erfassen</label>
+      <div id="am-box" hidden>
+        <p class="note">Ein Maß im Plan anklicken und den gemessenen Wert eintragen (in cm; 1,255m oder 1255mm gehen auch). Die Seite zeigt sofort die Abweichung des Modells vom Aufmaß. Das Modell ändert sich dadurch nicht. Die Seite speichert nichts: Die Messliste wird exportiert und im Repository mit <b>node tools/aufmass.js --liste</b> eingetragen.</p>
+        <p id="am-mass" class="note" aria-live="polite">Kein Maß gewählt.</p>
+        <div class="pm-zeile"><input id="am-wert" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="gemessen in cm, z. B. 125,5" aria-label="Gemessener Wert in cm"><button id="am-ok" class="btn" type="button">Eintragen</button></div>
+        <div class="pm-zeile"><input id="am-datum" type="date" aria-label="Datum der Messung"><input id="am-notiz" type="text" maxlength="120" autocomplete="off" placeholder="Notiz (optional)" aria-label="Notiz zur Messung"></div>
+        <p id="am-fehler" class="note pm-fehler" role="alert"></p>
+        <h2>Neu erfasst</h2>
+        <ol id="am-neu" class="am-liste"></ol>
+        <div class="btns zwei"><button id="am-export" class="btn" type="button">Exportieren</button><button id="am-reset" class="btn" type="button">Zurücksetzen</button></div>
+        <textarea id="am-text" rows="8" readonly hidden aria-label="Messliste zum Kopieren"></textarea>
       </div>
     </section>
     <section class="nur2d"><h2>Im Plan</h2>
@@ -221,6 +246,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
 var HAUS = /*HAUS*/;
+var PRUEFMASSE = /*PRUEFMASSE*/;
 /*CLIPPING*/
 /*WERTE*/
 /*RAEUME*/
@@ -230,6 +256,7 @@ var HAUS = /*HAUS*/;
 /*GRUNDRISS*/
 /*SCHNITT*/
 /*AENDERN*/
+/*AUFMASS*/
 /*MODEL*/
 </script>
 <script>

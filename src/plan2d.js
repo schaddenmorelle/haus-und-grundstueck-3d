@@ -1,10 +1,13 @@
 /* Plan 2D: zeigt den Grundriss (src/grundriss.js) in der Seite, mit Verschieben, Zoomen und Auswahl von Maßen, Räumen und Befunden.
    Läuft nur im Browser. Die Seite speichert nichts. Umschalten zwischen 3D, den Grundrissen, den Schnitten und den Ansichten über die Schaltflächen
-   „Darstellung“ (data-modus: 3d, EG, DG, sch:A, sch:B, sch:frei, an:N, an:O, an:S, an:W; Schnitte und Ansichten zeichnet src/schnitt.js). */
+   „Darstellung“ (data-modus: 3d, EG, DG, sch:A, sch:B, sch:frei, an:N, an:O, an:S, an:W; Schnitte und Ansichten zeichnet src/schnitt.js).
+   Aufmaß (Phase 6): Die Prüfmaße (PRUEFMASSE, src/data/pruefmasse.json) erscheinen mit Abweichung im Plan und in der Liste; neue Messungen werden
+   erfasst und als Messliste exportiert (src/aufmass.js), die Seite speichert nichts. */
 (function () {
   'use strict';
   var shell = document.getElementById('shell'), host = document.getElementById('plan2d'), box = document.getElementById('planSvg'), info = document.getElementById('planInfo'), panel = document.getElementById('panel');
   if (!host || !box || typeof grundrissAbleiten !== 'function' || typeof schnittSvg !== 'function') return;
+  var MIT_AUFMASS = typeof Aufmass !== 'undefined' && typeof PRUEFMASSE !== 'undefined';
   var D = null, markName = null, geschoss = null, frei = null, zeichnen = null, svg = null, vb = null, vb0 = null, aus = null, auswahlRaum = null;
   var probe = { an: false, liste: [], res: null, mass: null }; // Probiermodus: Änderungen auf einer Kopie der Daten, die Seite speichert nichts
   var opt = { massketten: true, raeume: true, oeffnungen: true, marken: true };
@@ -55,6 +58,7 @@
       if (el) { aus = el; el.classList.add('on'); hervorheben(el); }
     }
     if (auswahlRaum) markiereRaum(auswahlRaum);
+    aufmassMarkieren();
   }
   function zeige(g, neu) {
     var wechsel = g !== geschoss;
@@ -134,8 +138,9 @@
     hervorheben(el);
     var wert = Number(el.getAttribute('data-wert')), q = el.getAttribute('data-quelle');
     probeMass(el);
+    aufmassMass(el);
     info.textContent = el.getAttribute('data-name') + ' · ' + mass(wert) + ' (' + fmt(wert, wert % 1 ? 1 : 0) + ' mm) · Herkunft: ' + HERKUNFT[q] +
-      (el.getAttribute('data-fest') === '1' ? ' · gesperrt (Außenmaß)' : '') + (el.getAttribute('data-schraeg') ? ' · schräg gemessen' : '') + (el.getAttribute('data-abgeleitet') ? ' · abgeleitet, nicht änderbar' : '');
+      (el.getAttribute('data-fest') === '1' ? ' · gesperrt (Außenmaß)' : '') + (el.getAttribute('data-schraeg') ? ' · schräg gemessen' : '') + (el.getAttribute('data-abgeleitet') ? ' · abgeleitet, nicht änderbar' : '') + aufmassHinweis(el.getAttribute('data-name'));
   }
   function markiereRaum(id) {
     auswahlRaum = id;
@@ -234,6 +239,16 @@
   host.addEventListener('pointerup', ende); host.addEventListener('pointercancel', ende);
 
   /* ---------- Probiermodus ---------- */
+  function herunterladen(dateiname, text) { // im Artifact über die Fähigkeit „downloads“, sonst als Link; der Text steht in jedem Fall im Feld zum Kopieren
+    if (window.claude && typeof window.claude.use === 'function') {
+      return window.claude.use('downloads').then(function (d) { if (d) return d.save({ filename: dateiname, data: text }); throw new Error('keine Downloads'); });
+    }
+    return new Promise(function (ok) {
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = dateiname;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); ok();
+    });
+  }
   var pm = {};
   ['an', 'box', 'mass', 'wert', 'ok', 'einzeln-l', 'einzeln', 'quelle', 'aussen', 'fehler', 'liste', 'aus', 'export', 'reset', 'text'].forEach(function (k) { pm[k] = document.getElementById('pm-' + k); });
   function pmWert(mm) { return fmt(mm / 1000, 3).replace(/,?0+$/, '') + 'm'; }
@@ -313,19 +328,120 @@
       var text;
       try { text = JSON.stringify(Aendern.listeErzeugen(HAUS, probe.liste), null, 2) + '\n'; } catch (e) { pm.fehler.textContent = e.message; return; }
       pm.text.value = text; pm.text.hidden = false; pm.text.focus({ preventScroll: true }); pm.text.select();
-      var speichern = function () { // im Artifact über die Fähigkeit „downloads“, sonst als Link; der Text steht in jedem Fall im Feld zum Kopieren
-        if (window.claude && typeof window.claude.use === 'function') {
-          return window.claude.use('downloads').then(function (d) { if (d) return d.save({ filename: 'aenderungen.json', data: text }); throw new Error('keine Downloads'); });
-        }
-        return new Promise(function (ok) {
-          var a = document.createElement('a');
-          a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = 'aenderungen.json';
-          document.body.appendChild(a); a.click(); document.body.removeChild(a); ok();
-        });
-      };
+      var speichern = function () { return herunterladen('aenderungen.json', text); };
       try { speichern().catch(function () { /* abgelehnt oder nicht möglich: der Text steht im Feld */ }); } catch (e) { /* dito */ }
     });
     probeAnzeigen();
+  }
+
+  /* ---------- Aufmaß ---------- */
+  var am = { an: false, neu: [], mass: null }, amE = {};
+  ['an', 'box', 'summe', 'liste', 'mass', 'wert', 'datum', 'notiz', 'ok', 'fehler', 'neu', 'export', 'reset', 'text'].forEach(function (k) { amE[k] = document.getElementById('am-' + k); });
+  function heuteIso() { var d = new Date(), z = function (n) { return (n < 10 ? '0' : '') + n; }; return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate()); }
+  function aufmassAlle() { // Prüfmaße aus dem Repository und die in dieser Sitzung erfassten, gegen das gerade gezeigte Haus (auch im Probiermodus)
+    var rep = PRUEFMASSE.masse || [], res = Aufmass.auswerten(daten(), { putz_cm: PRUEFMASSE.putz_cm, kante_cm: PRUEFMASSE.kante_cm, masse: rep.concat(am.neu) });
+    res.zeilen.forEach(function (z, i) { z.neu = i >= rep.length; z.index = i - rep.length; });
+    return res;
+  }
+  function cmText(mm, vorzeichen) { var t = fmt(mm / 10, 1); return (vorzeichen && mm > 0 ? '+' : '') + t; }
+  function abweichungText(z) {
+    if (z.status === 'unbekannt') return 'Maß im Modell nicht gefunden';
+    var t = 'gemessen ' + cmText(z.gemessen) + ' · Modell ' + cmText(z.modell) + ' · Modell − Aufmaß ' + cmText(z.abweichung, true) + ' cm';
+    if (z.status === 'auffaellig') t += ' · erwartet ' + cmText(z.erwartet[0], true) + ' … ' + cmText(z.erwartet[1], true);
+    return t + (z.datum ? ' · ' + z.datum.split('-').reverse().join('.') : '');
+  }
+  function aufmassHinweis(name) { // Zusatz zur Infozeile eines angeklickten Maßes: letzte Messung dazu
+    if (!MIT_AUFMASS) return '';
+    var z = aufmassAlle().zeilen.filter(function (q) { return q.mass === name; }).pop();
+    return z ? ' · Aufmaß: ' + abweichungText(z) + (z.status === 'auffaellig' ? ' (auffällig)' : z.status === 'ok' ? ' (im erwarteten Rahmen)' : '') : '';
+  }
+  function aufmassMarkieren() { // Maße mit Messung im Plan kennzeichnen (grün umrandet, bei auffälliger Abweichung gelb); danach Listen auffrischen
+    if (!MIT_AUFMASS) return;
+    var res = aufmassAlle(), stand = {};
+    res.zeilen.forEach(function (z) { if (z.mass) stand[z.mass] = z; }); // spätere Messung desselben Maßes gilt
+    if (svg) [].forEach.call(svg.querySelectorAll('.hit[data-name]'), function (h) {
+      var z = stand[h.getAttribute('data-name')];
+      h.classList.toggle('gem', !!z && z.status !== 'unbekannt');
+      h.classList.toggle('abw', !!z && z.status === 'auffaellig');
+    });
+    aufmassListen(res);
+  }
+  function aufmassZeile(z, mitWeg) {
+    var li = document.createElement('li'), t = document.createElement('button');
+    li.className = z.status === 'auffaellig' ? 'auffaellig' : z.status === 'unbekannt' ? 'unbekannt' : z.status === 'ok' ? 'ok' : 'offen';
+    t.type = 'button'; t.className = 'sprung';
+    var b = document.createElement('b'), kl = document.createElement('small');
+    b.textContent = z.was; kl.textContent = abweichungText(z) + (z.notiz ? ' · ' + z.notiz : '');
+    t.appendChild(b); t.appendChild(kl);
+    t.addEventListener('click', function () { aufmassSpringen(z); });
+    li.appendChild(t);
+    if (mitWeg) {
+      var x = document.createElement('button');
+      x.type = 'button'; x.className = 'weg'; x.textContent = '×'; x.setAttribute('aria-label', 'Messung ' + z.was + ' entfernen');
+      x.addEventListener('click', function () { am.neu.splice(z.index, 1); aufmassMarkieren(); });
+      li.appendChild(x);
+    }
+    return li;
+  }
+  function aufmassListen(res) {
+    var rep = res.zeilen.filter(function (z) { return !z.neu; }), neu = res.zeilen.filter(function (z) { return z.neu; });
+    amE.summe.textContent = 'Prüfmaße im Repository: ' + rep.length + ', davon ' + rep.filter(function (z) { return z.status === 'auffaellig'; }).length + ' auffällig. ' + (neu.length ? neu.length + ' neu erfasst, noch nicht exportiert.' : '');
+    amE.liste.innerHTML = '';
+    rep.forEach(function (z) { amE.liste.appendChild(aufmassZeile(z, false)); });
+    amE.neu.innerHTML = '';
+    if (!neu.length) { var l0 = document.createElement('li'); l0.className = 'leer'; l0.textContent = 'Noch keine Messung erfasst.'; amE.neu.appendChild(l0); }
+    neu.forEach(function (z) { amE.neu.appendChild(aufmassZeile(z, true)); });
+    amE.export.disabled = !neu.length; amE.reset.disabled = !neu.length;
+  }
+  function aufmassSpringen(z) { // zur Messung im Plan: Maß anwählen, bei Raumprüfmaßen den Raum
+    if (z.mass) {
+      if (!z.geschoss) { info.textContent = z.was + ' (' + z.mass + '): ' + abweichungText(z) + ' – im Schnitt oder in der Ansicht anklicken.'; return; }
+      if (z.geschoss !== geschoss) setModus(z.geschoss);
+      var el = [].filter.call(svg.querySelectorAll('.hit[data-name]'), function (e) { return e.getAttribute('data-name') === z.mass; })[0];
+      if (el) { waehleMass(el); var bb = el.getBBox(), r = box.getBoundingClientRect(), br = 6000, h = br * r.height / Math.max(1, r.width); vb = [bb.x + bb.width / 2 - br / 2, bb.y + bb.height / 2 - h / 2, br, h]; setVB(); }
+    } else if (z.raum) { window.__plan2d.zeigeRaum(z.raum); info.textContent = z.was + ' · ' + abweichungText(z); }
+  }
+  function aufmassMass(el) { // ein Maß im Plan wurde angeklickt (Aufmaß erfassen)
+    if (!MIT_AUFMASS || !am.an) return;
+    var wert = Number(el.getAttribute('data-wert'));
+    am.mass = { name: el.getAttribute('data-name'), wert: wert };
+    amE.mass.textContent = am.mass.name + ' · Modell ' + mass(wert);
+    amE.fehler.textContent = '';
+    if (panel.classList.contains('closed')) { var tg = document.getElementById('togglePanel'); if (tg) tg.click(); } // das Eingabefeld liegt im Menü
+    amE.mass.scrollIntoView({ block: 'nearest' });
+    amE.wert.focus({ preventScroll: true }); amE.wert.select();
+  }
+  function aufmassEintragen() {
+    if (!am.mass) { amE.fehler.textContent = 'Zuerst ein Maß im Plan anklicken.'; return; }
+    var e;
+    try {
+      e = { mass: am.mass.name, cm: Aufmass.cmParsen(amE.wert.value), was: Aufmass.beschreibung(daten(), am.mass.name), datum: amE.datum.value || heuteIso() };
+      if (amE.notiz.value.trim()) e.notiz = amE.notiz.value.trim();
+      Aufmass.eintragPruefen(e, daten());
+    } catch (x) { amE.fehler.textContent = x.message; return; }
+    amE.fehler.textContent = '';
+    am.neu = am.neu.filter(function (q) { return q.mass !== e.mass; }).concat([e]); // eine zweite Messung desselben Maßes ersetzt die erste
+    markName = e.mass;
+    aufmassMarkieren();
+    var z = aufmassAlle().zeilen.filter(function (q) { return q.mass === e.mass; }).pop();
+    info.textContent = 'Erfasst: ' + z.was + ' · ' + abweichungText(z) + (z.status === 'auffaellig' ? ' – auffällig' : '');
+    am.mass = null; amE.mass.textContent = 'Kein Maß gewählt.'; amE.wert.value = ''; amE.notiz.value = '';
+  }
+  if (MIT_AUFMASS && amE.an) {
+    amE.datum.value = heuteIso();
+    amE.an.addEventListener('change', function () { am.an = amE.an.checked; amE.box.hidden = !am.an; if (!am.an) { am.mass = null; amE.fehler.textContent = ''; } });
+    amE.ok.addEventListener('click', aufmassEintragen);
+    amE.wert.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); aufmassEintragen(); } });
+    amE.reset.addEventListener('click', function () { am.neu = []; amE.text.hidden = true; amE.fehler.textContent = ''; aufmassMarkieren(); });
+    amE.export.addEventListener('click', function () {
+      var text;
+      try { text = JSON.stringify(Aufmass.listeErzeugen(daten(), am.neu), null, 2) + '\n'; } catch (e) { amE.fehler.textContent = e.message; return; }
+      amE.text.value = text; amE.text.hidden = false; amE.text.focus({ preventScroll: true }); amE.text.select();
+      try { herunterladen('aufmass.json', text).catch(function () { /* abgelehnt oder nicht möglich: der Text steht im Feld */ }); } catch (e) { /* dito */ }
+    });
+  } else {
+    var sec = document.getElementById('aufmass');
+    if (sec) sec.hidden = true;
   }
 
   /* ---------- Schnittstelle zur Seite ---------- */
@@ -339,6 +455,7 @@
       waehleRaum(id);
     },
     probe: function () { return probe; },
+    aufmass: function () { return { an: am.an, neu: am.neu.slice(), res: MIT_AUFMASS ? aufmassAlle() : null }; },
     zeigeBefund: function (b) { // Befund aus der Liste: Geschoss wechseln, Stelle heranholen
       if (!b.ort) return;
       var g = b.geschoss || geschoss;
