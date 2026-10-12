@@ -221,11 +221,17 @@
       var text;
       try { text = JSON.stringify(Aendern.listeErzeugen(HAUS, probe.liste), null, 2) + '\n'; } catch (e) { pm.fehler.textContent = e.message; return; }
       pm.text.value = text; pm.text.hidden = false; pm.text.focus({ preventScroll: true }); pm.text.select();
-      try { // Datei zum Speichern; wo Downloads gesperrt sind, bleibt der Text zum Kopieren stehen
-        var a = document.createElement('a');
-        a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = 'aenderungen.json';
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-      } catch (e) { /* Text steht im Feld */ }
+      var speichern = function () { // im Artifact über die Fähigkeit „downloads“, sonst als Link; der Text steht in jedem Fall im Feld zum Kopieren
+        if (window.claude && typeof window.claude.use === 'function') {
+          return window.claude.use('downloads').then(function (d) { if (d) return d.save({ filename: 'aenderungen.json', data: text }); throw new Error('keine Downloads'); });
+        }
+        return new Promise(function (ok) {
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = 'aenderungen.json';
+          document.body.appendChild(a); a.click(); document.body.removeChild(a); ok();
+        });
+      };
+      try { speichern().catch(function () { /* abgelehnt oder nicht möglich: der Text steht im Feld */ }); } catch (e) { /* dito */ }
     });
     probeAnzeigen();
   }
