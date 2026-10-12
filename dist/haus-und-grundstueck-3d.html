@@ -79,6 +79,15 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
 .pm-fehler{color:var(--red);white-space:pre-wrap}
 .pm-warn{color:var(--red);font-weight:600}
 #pm-text{width:100%;margin-top:8px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:5px;padding:6px}
+#am-text{width:100%;margin-top:8px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:5px;padding:6px}
+#aufmass summary{cursor:pointer;font-size:13px;min-height:32px;display:flex;align-items:center}
+.am-liste{margin:0 0 8px;padding:0;list-style:none;display:grid;gap:4px}
+.am-liste li{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;font-size:13px;border-left:3px solid var(--rule);padding:3px 0 3px 8px;font-variant-numeric:tabular-nums}
+.am-liste li.ok{border-left-color:var(--q-aufmass,#2f7d3a)}.am-liste li.auffaellig,.am-liste li.unbekannt{border-left-color:var(--red)}.am-liste li.leer{color:var(--muted)}
+.am-liste li>button.sprung{flex:1;min-width:0;display:grid;gap:1px;text-align:left;border:0;background:transparent;color:inherit;font:inherit;padding:0;cursor:pointer}
+.am-liste li>button.sprung:hover b{text-decoration:underline}.am-liste small{color:var(--muted);font-size:12px}
+.am-liste li>button.weg{flex:none;width:28px;height:28px;border:1px solid var(--rule);background:var(--chip);color:var(--ink);border-radius:4px;cursor:pointer;font:inherit;line-height:1}
+.plan .hit.gem:not(.on){stroke:var(--qa);stroke-width:8;fill:color-mix(in srgb,var(--qa) 16%,transparent)}.plan .hit.gem.abw:not(.on){stroke:var(--pwarn);fill:color-mix(in srgb,var(--pwarn) 24%,transparent)}
 .btns.zwei{grid-template-columns:repeat(2,minmax(0,1fr))}.btns.vier{grid-template-columns:repeat(4,minmax(0,1fr))}#modusBtns+.btns{margin-top:6px}#schnittBtns+.btns{margin-top:6px}#plan2d.zeichnet,#plan2d.zeichnet *{cursor:crosshair}
 .leg{display:grid;gap:5px;font-size:13px}.leg span{display:flex;align-items:center;gap:8px}
 .leg i{display:inline-block;width:26px;height:0;border-top:3px solid currentColor}.leg i.s{border-top-style:dashed}.leg i.p{border-top-style:dotted}
@@ -144,6 +153,22 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
         <div id="pm-aus" class="pm-aus" hidden></div>
         <div class="btns zwei"><button id="pm-export" class="btn" type="button">Exportieren</button><button id="pm-reset" class="btn" type="button">Zurücksetzen</button></div>
         <textarea id="pm-text" rows="8" readonly hidden aria-label="Änderungsliste zum Kopieren"></textarea>
+      </div>
+    </section>
+    <section class="nur2d" id="aufmass"><h2>Aufmaß</h2>
+      <p id="am-summe" class="note" aria-live="polite"></p>
+      <details><summary>Prüfmaße ansehen</summary><ol id="am-liste" class="am-liste"></ol></details>
+      <label class="chk"><input id="am-an" type="checkbox">Aufmaß erfassen</label>
+      <div id="am-box" hidden>
+        <p class="note">Ein Maß im Plan anklicken und den gemessenen Wert eintragen (in cm; 1,255m oder 1255mm gehen auch). Die Seite zeigt sofort die Abweichung des Modells vom Aufmaß. Das Modell ändert sich dadurch nicht. Die Seite speichert nichts: Die Messliste wird exportiert und im Repository mit <b>node tools/aufmass.js --liste</b> eingetragen.</p>
+        <p id="am-mass" class="note" aria-live="polite">Kein Maß gewählt.</p>
+        <div class="pm-zeile"><input id="am-wert" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="gemessen in cm, z. B. 125,5" aria-label="Gemessener Wert in cm"><button id="am-ok" class="btn" type="button">Eintragen</button></div>
+        <div class="pm-zeile"><input id="am-datum" type="date" aria-label="Datum der Messung"><input id="am-notiz" type="text" maxlength="120" autocomplete="off" placeholder="Notiz (optional)" aria-label="Notiz zur Messung"></div>
+        <p id="am-fehler" class="note pm-fehler" role="alert"></p>
+        <h2>Neu erfasst</h2>
+        <ol id="am-neu" class="am-liste"></ol>
+        <div class="btns zwei"><button id="am-export" class="btn" type="button">Exportieren</button><button id="am-reset" class="btn" type="button">Zurücksetzen</button></div>
+        <textarea id="am-text" rows="8" readonly hidden aria-label="Messliste zum Kopieren"></textarea>
       </div>
     </section>
     <section class="nur2d"><h2>Im Plan</h2>
@@ -221,6 +246,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
 <script>
 var HAUS = {"version":1,"einheit":"mm","hinweis":"Einzige Quelle für Rohbau-Maße (Plan docs/plan-parametrisches-modell.md). Alle Maße in ganzen Millimetern, hausrelativ (hx nach Osten, hz nach Süden, Ursprung NW-Außenecke des oberen Gebäudeblocks). Ausdrücke: Zahl = mm, Achsenname, oder { ref, plus, minus } mit Zahl in mm oder Wandtyp (\"IW175/2\" = halbe Dicke). quelle: plan | aufmass | annahme | nutzer. Räume haben keine Polygone: ein Stempel (Punkt in mm) wählt die Teilfläche, die aus Geschossfläche minus Wände und Trennlinien entsteht (src/raeume.js). freiesEnde: true an einer Wand erklärt ein Wandende ohne Anschluss für gewollt (Prüfregel 3).","lage":{"x":3050,"z":5740,"quelle":"plan","notiz":"NW-Außenecke des oberen Gebäudeblocks im Grundstückssystem (Standortkoordinaten = Lage + hausrelativ)"},"bezug":{"nnDatum":142000,"okffEG":142800,"quelle":"plan","notiz":"Höhen y = Höhe ü. NN − 142,0; OKFF EG 142,80 m ü. NN"},"geschosse":{"EG":{"okff":0,"lichteHoehe":2525,"quelle":"annahme","notiz":"Raumhöhe 2,525 m angenommen"},"DG":{"okff":2971,"deckenaufbau":446,"quelle":"plan","fest":true,"notiz":"Treppenplanung: Geschosshöhe OKFF–OKFF 2,971 m, Decke 44,6 cm (Rohdecke und Fußbodenaufbau); Prüfregel 10: okff − lichte Höhe EG = Deckenaufbau"}},"aussenmasse":{"x.W":{"wert":0,"fest":true,"quelle":"plan","notiz":"Westkante des oberen Gebäudeblocks (Ursprung)"},"x.O":{"wert":12950,"fest":true,"quelle":"plan","notiz":"Ostkante, Breite 12,95 m"},"x.V":{"wert":3500,"fest":true,"quelle":"plan","notiz":"Westkante des Südbaukörpers (Versprung 3,50 m)"},"z.N":{"wert":0,"fest":true,"quelle":"plan","notiz":"Nordkante (Ursprung)"},"z.U":{"wert":6780,"fest":true,"quelle":"plan","notiz":"Südkante des Westbaukörpers (Versprung 6,78 m)"},"z.S":{"wert":14655,"fest":true,"quelle":"plan","notiz":"Südkante, Tiefe 14,655 m"}},"wandtypen":{"AW":{"dicke":385,"schichten":[["EPS",200],["Poroton",185]],"quelle":"nutzer","notiz":"Außenwand: 20 cm EPS außen, 18,5 cm Poroton innen. Die erste Schicht liegt auf der Flucht-Seite der Wand (Außenseite)."},"IW175":{"dicke":175,"quelle":"plan"},"IW125":{"dicke":125,"quelle":"plan"},"IW115":{"dicke":115,"quelle":"plan"},"TB-DG":{"dicke":125,"quelle":"annahme","notiz":"Trockenbauwände im DG einheitlich 12,5 cm, nicht gemessen (Maße reicht der Nutzer nach)"}},"achsen":{"x.Wi":{"ref":"x.W","plus":"AW","notiz":"Innenseite Westwand"},"x.Oi":{"ref":"x.O","minus":"AW","notiz":"Innenseite Ostwand; Anker der Treppe"},"x.Vi":{"ref":"x.V","plus":"AW","notiz":"Innenseite Westwand Wohnzimmer"},"x.eltO":{"wert":4570,"quelle":"plan","notiz":"Eltern, Ostseite (Westseite der HAR-Wand)"},"x.harW":{"ref":"x.eltO","plus":"IW175"},"x.harO":{"ref":"x.harW","plus":3010,"quelle":"plan","notiz":"HAR 3,01 m breit (Aufmaß 3,00 m fertig)"},"x.julW":{"ref":"x.harO","plus":"IW175","notiz":"Julians Zimmer, Westseite"},"x.elt2":{"wert":6260,"quelle":"plan","notiz":"Querwand mit Elterntür, Westseite (Kette 5,875 + 17,5)"},"x.elt2a":{"ref":"x.elt2","plus":"IW175"},"x.dbW":{"wert":10440,"quelle":"plan","notiz":"D-Bad, Westwand außen"},"x.dbWi":{"ref":"x.dbW","plus":"IW125","notiz":"D-Bad, Innenseite West"},"x.badO":{"ref":"x.Wi","plus":3385,"quelle":"plan","notiz":"Bad 3,385 m breit (Kette oben), Westseite der Wand Bad / Ankleide"},"x.badOa":{"ref":"x.badO","plus":"IW115","notiz":"Ostseite der Wand Bad / Ankleide; liegt bündig mit x.Vi, die Ketten laufen getrennt"},"x.ankO":{"wert":7645,"quelle":"plan","notiz":"Ankleide, Ostseite"},"x.flurW":{"ref":"x.ankO","plus":"IW175","notiz":"Flur, Westseite"},"x.wohnO":{"wert":9005,"quelle":"plan","notiz":"Wohnen / Essen, Ostseite (Küche, Westseite)"},"x.naehW":{"ref":"x.wohnO","plus":"IW175","notiz":"Nähzimmer und Speisekammer, Westseite"},"z.Ni":{"ref":"z.N","plus":"AW","notiz":"Innenseite Nordwand"},"z.Ui":{"ref":"z.U","minus":"AW","notiz":"Innenseite Südwand des Westbaukörpers (Bad)"},"z.Si":{"ref":"z.S","minus":"AW","notiz":"Innenseite Südwand"},"z.harSi":{"ref":"z.Ni","plus":2950,"quelle":"aufmass","notiz":"HAR 2,95 m tief (Aufmaß)"},"z.harSa":{"ref":"z.harSi","plus":"IW175","notiz":"HAR-Südwand, Südseite"},"z.eltS":{"ref":"z.Ni","plus":3010,"quelle":"plan","notiz":"Eltern 3,01 m tief (Kette links), Nordseite der Wand Eltern / Bad"},"z.eltSa":{"ref":"z.eltS","plus":"IW115","notiz":"Südseite der Wand Eltern / Bad; liegt bündig mit z.harSa, die Ketten laufen getrennt"},"z.ankS":{"wert":6395,"quelle":"plan","notiz":"Nordseite der Wand Ankleide / Wohnen; liegt bündig mit z.Ui (Innenseite Südwand Bad), die Ketten laufen getrennt"},"z.ankN":{"wert":4645,"quelle":"plan","notiz":"Ankleide Nordwand, Nordseite"},"z.ankNi":{"ref":"z.ankN","plus":"IW115"},"z.julS":{"wert":4270,"quelle":"plan","notiz":"Südwand Julians Zimmer und D-Bad, Nordseite"},"z.julSa":{"ref":"z.julS","plus":"IW115"},"z.dbN":{"wert":2270,"quelle":"plan","notiz":"D-Bad, Nordwand außen"},"z.dbNi":{"ref":"z.dbN","plus":"IW115","notiz":"D-Bad, Innenseite Nord"},"z.wohnN":{"ref":"z.ankS","plus":"IW115","notiz":"Wohnen / Essen, Nordseite (Wand Ankleide / Wohnen); liegt bündig mit z.flurS + IW175"},"z.flurS":{"wert":6335,"quelle":"plan","notiz":"Flur, Südseite"},"z.naehN":{"ref":"z.flurS","plus":"IW115","notiz":"Nähzimmer, Nordseite"},"z.ZS":{"wert":9645,"quelle":"plan","notiz":"Nordseite der Wand Nähzimmer / Speisekammer; Anker von Treppe und Treppenöffnung"},"z.ZSa":{"ref":"z.ZS","plus":"IW115","notiz":"Speisekammer, Nordseite"},"z.speisS":{"wert":11020,"quelle":"plan","notiz":"Wand Speisekammer / Küche, Nordseite"},"z.kuecheN":{"ref":"z.speisS","plus":"IW175","notiz":"Küche, Nordseite"},"z.A":{"wert":9450,"quelle":"plan","notiz":"Südkante des Dachflügels A (Ost-West-First bei hz 4,725)"},"x.dgW":{"wert":5200,"quelle":"plan","notiz":"DG: Außenseite der West-Kniewand (Planlage)"},"x.dgO":{"wert":11240,"quelle":"plan","notiz":"DG: Außenseite der Ost-Kniewand (Planlage)"},"x.dgWi":{"ref":"x.dgW","plus":"TB-DG"},"x.dgOi":{"ref":"x.dgO","minus":"TB-DG"},"x.tw":{"wert":8235,"quelle":"plan","notiz":"DG: Mittellinie der Trennwand Arbeitszimmer / Abstellkammer"},"x.twW":{"ref":"x.tw","minus":"TB-DG/2"},"x.twO":{"ref":"x.tw","plus":"TB-DG/2"},"x.treppeW":{"wert":9200,"notiz":"DG: Westende von Treppenöffnung und Treppenwänden (AGENTS.md: hx 9,2–12,54)"},"x.treppeO":{"wert":12540,"notiz":"DG: Ostende der Treppenöffnung an der Hauskante (AGENTS.md: hx 9,2–12,54)"},"z.dgN":{"wert":1730,"quelle":"plan","notiz":"DG: Außenseite der Nord-Kniewand (Planlage)"},"z.dgS":{"wert":12960,"quelle":"plan","notiz":"DG: Außenseite der Süd-Kniewand (Planlage)"},"z.dgNi":{"ref":"z.dgN","plus":"TB-DG"},"z.dgSi":{"ref":"z.dgS","minus":"TB-DG"},"z.QZ":{"wert":7310,"quelle":"plan","notiz":"DG: Mittellinie der Querwand Pias Zimmer / Arbeitszimmer"},"z.qN":{"ref":"z.QZ","minus":"TB-DG/2"},"z.qS":{"ref":"z.QZ","plus":"TB-DG/2"},"z.tN":{"ref":"z.ZS","minus":1600,"quelle":"nutzer","notiz":"DG: Südseite der Treppenwand Nord, 1,60 m lichter Abstand zur Treppenwand Süd"},"z.tNa":{"ref":"z.tN","minus":"TB-DG"},"z.tSa":{"ref":"z.ZS","plus":"TB-DG","notiz":"DG: Südseite der Treppenwand Süd"},"z.HN":{"ref":"z.ZS","minus":990,"quelle":"nutzer","notiz":"DG: Nordkante der Treppenöffnung, 99 cm tief"},"z.tuerN":{"wert":8550,"quelle":"plan","notiz":"DG: Tür Arbeitszimmer, Nordseite (hz 8,55–9,41)"}},"huelle":{"aussen":[["x.W","z.N"],["x.O","z.N"],["x.O","z.S"],["x.V","z.S"],["x.V","z.U"],["x.W","z.U"]],"innen":[["x.Wi","z.Ni"],["x.Oi","z.Ni"],["x.Oi","z.Si"],["x.Vi","z.Si"],["x.Vi","z.Ui"],["x.Wi","z.Ui"]]},"dach":{"neigung":35,"fest":true,"quelle":"plan","notiz":"Binderplan, Ansichten, Lageplan; vom Nutzer bestätigt","ueberstand":235,"traufe":2970,"traufeNotiz":"Traufe 145,77 m ü. NN, hier ab OKFF EG","fluegelA":{"x":["x.W","x.O"],"z":["z.N","z.A"],"notiz":"Ost-West-First"},"fluegelB":{"x":["x.V","x.O"],"z":["z.N","z.S"],"notiz":"Nord-Süd-First bei hx 8,225"}},"pruefwerte":{"firstNN":149080,"quelle":"plan","notiz":"First 149,08 m ü. NN laut Plan; das Modell berechnet ihn aus Traufe und Neigung"},"dg":{"ausbauflaeche":[["x.dgW","z.dgN"],["x.dgO","z.dgN"],["x.dgO","z.HN"],["x.treppeW","z.HN"],["x.treppeW","z.ZS"],["x.dgO","z.ZS"],["x.dgO","z.dgS"],["x.dgW","z.dgS"]],"treppenoeffnung":[["x.treppeW","z.HN"],["x.treppeO","z.HN"],["x.treppeO","z.ZS"],["x.treppeW","z.ZS"]],"wandHoechst":2450,"wandAbstandDachhaut":220,"kniewandSoll":1000,"kniewandToleranz":50,"wandNotiz":"Trockenbauwände im DG enden unterhalb der Sparren: Oberkante = Dachhaut − wandAbstandDachhaut, höchstens wandHoechst über dem DG-Boden (Kniewände: hoehe.max). Prüfregel 13: Kniewände sollen kniewandSoll ± kniewandToleranz erreichen."},"treppe":{"steigungen":15,"auftritt":250,"laufbreite":900,"gelaender":150,"nische":540,"anker":["x.Oi","z.ZS"],"geraderLaufAb":1357,"laufEnde":3365,"quelle":"nutzer","stufendicke":44,"wendel":{"notiz":"Grundrisse der Stufen 1–6 in (u, v) ab der Innenecke (u nach Westen, v nach Norden, mm); \"W\" ist die Laufbreite, \"U0\" geraderLaufAb. Aus der Treppenplanung (Wortmann) übernommen, vorher Zahlen in model.js.","1":[[0,1400],[950,1400],[950,"W"],[0,1160]],"2":[[0,1160],[950,"W"],[0,700]],"3":[[0,700],[950,"W"],[0,250]],"4":[[0,250],[950,"W"],[350,0],[0,0]],"5":[[350,0],[950,"W"],[800,0]],"6":[[800,0],[950,"W"],["U0","W"],["U0",0]]},"notiz":"Treppenplanung: 15 Steigungen, Auftritt 25 cm, Wendelung Stufe 1–6 an der Ostwand, danach gerader Lauf nach Westen. Maße in mm; anker = Innenecke Ostwand / Nordseite Wand Nähzimmer-Speisekammer, u läuft nach Westen, v nach Norden. geraderLaufAb und laufEnde sind u-Maße des geraden Laufs (Stufe 7 bis zum Austritt). Lauf 0,90 m bis zum Geländer, Geländer 0,15 m, Nische 0,54 m (Angaben des Nutzers). Stufe n liegt mit der Trittfläche n × Steigung über OKFF EG (Steigung = Geschosshöhe / steigungen), Stufendicke 44 mm."},"kamin":{"mitte":[{"ref":"x.naehW","plus":175},{"ref":"z.ZSa","plus":595}],"breite":350,"tiefe":490,"oberkante":6800,"quelle":"plan","notiz":"Querschnitt 35 × 49 cm aus dem Plan, Westseite bündig mit der Westwand der Speisekammer, 35 cm südlich der Wand Nähzimmer / Speisekammer; Oberkante 149,60 m ü. NN, Höhe angenommen"},"dachfenster":[{"id":"pia-nord","typ":"Roto WSA 11/14 R89 G K WD AL","raum":"Pias Zimmer","mitte":[8245,2470],"richtung":[0,-1],"breite":1140,"laenge":1400,"daemmblock":30,"quelle":"nutzer"},{"id":"pia-ost","typ":"Roto WDF 07/14 R89G K WD AL","raum":"Pias Zimmer","mitte":[10540,6835],"richtung":[1,0],"breite":740,"laenge":1400,"daemmblock":30,"quelle":"nutzer"},{"id":"arbeit-west","typ":"Roto WDF 07/14 R89G K WD AL","raum":"Arbeitszimmer","mitte":[5960,8600],"richtung":[-1,0],"breite":740,"laenge":1400,"daemmblock":30,"quelle":"nutzer"},{"id":"arbeit-sued","typ":"Roto WDF 07/14 R89G K WD AL","raum":"Arbeitszimmer","mitte":[7725,12240],"richtung":[0,1],"breite":740,"laenge":1400,"daemmblock":30,"quelle":"nutzer"},{"id":"treppenhaus-ost","typ":"Velux GGU CK04","raum":"Treppenhaus","mitte":[10760,8570],"richtung":[1,0],"breite":550,"laenge":980,"daemmblock":0,"quelle":"nutzer","notiz":"Größen: Blendrahmenaußenmaß laut Herstellerdatenblatt (Breite quer zur Traufe, Länge entlang der Schräge); die Mitten (hx, hz in der Draufsicht) aus dem Dachausbauplan; richtung = Richtung der Dachfläche nach außen"}],"schnitte":[{"id":"A","name":"Schnitt A–A (durch die Treppe)","von":[{"ref":"x.V","minus":400},{"ref":"z.ZS","minus":450}],"bis":[{"ref":"x.O","plus":400},{"ref":"z.ZS","minus":450}],"notiz":"waagerecht in der Mitte des geraden Laufs (450 mm nördlich der Wand Nähzimmer / Speisekammer); der Blick geht nach links von der Laufrichtung, hier nach Norden"},{"id":"B","name":"Schnitt B–B (quer durch Pias Zimmer)","von":[{"ref":"x.W","minus":400},4560],"bis":[{"ref":"x.O","plus":400},4560],"notiz":"waagerecht auf der Höhe des Raumstempels von Pias Zimmer (hz 4,56), quer zum Nord-Süd-First des Flügels B; Blick nach Norden"}],"ketten":[{"id":"dg.treppe","name":"DG-Treppe (Lauf + Geländer + Nische = lichter Abstand der Treppenwände)","gesamt":["z.tN","z.ZS"],"teile":[{"was":"Lauf","wert":"treppe.laufbreite"},{"was":"Geländer","wert":"treppe.gelaender"},{"was":"Nische","wert":"treppe.nische"}],"notiz":"Rest 10 mm (1,60 m zwischen den Wänden, aber 1,59 m Summe): offen, die Maße reicht der Nutzer nach"}],"waende":[{"id":"eg.aw.nord","geschoss":"EG","typ":"AW","von":["x.W","z.N"],"bis":["x.O","z.N"],"flucht":"oben","hoehe":"traufe","oeffnungen":[{"art":"tuer","ab":5555,"breite":1010,"hoehe":2375,"aussehen":"glas-oben","notiz":"Nebeneingang (Foto): oben dunkles Glas, unten weiße Füllung"},{"art":"fenster","ab":9055,"breite":1510,"bruestung":1125,"hoehe":1250}]},{"id":"eg.aw.ost","geschoss":"EG","typ":"AW","von":["x.O","z.N"],"bis":["x.O","z.S"],"flucht":"rechts","hoehe":"traufe","oeffnungen":[{"art":"fenster","ab":1010,"breite":760,"bruestung":1125,"hoehe":1250},{"art":"fenster","ab":3010,"breite":760,"bruestung":1125,"hoehe":1250},{"art":"tuer","ab":4510,"breite":1160,"hoehe":2375,"streifen":0.12,"notiz":"Haustür: Türblatt mit senkrechtem Glasstreifen (Anteil der Breite), Aufteilung 1,16 + 0,60 m nach Foto geschätzt"},{"art":"fenstertuer","ab":5670,"breite":600,"hoehe":2375,"felder":1,"notiz":"Seitenteil der Haustür"},{"art":"fenster","ab":7010,"breite":1510,"bruestung":1125,"hoehe":1250},{"art":"fenster","ab":11885,"breite":1510,"bruestung":1125,"hoehe":1250}]},{"id":"eg.aw.sued","geschoss":"EG","typ":"AW","von":["x.O","z.S"],"bis":["x.V","z.S"],"flucht":"unten","hoehe":"traufe","oeffnungen":[{"art":"fenstertuer","ab":6055,"breite":3010,"hoehe":2375,"notiz":"Terrassentür Wohnzimmer, ab Ostecke gemessen"}]},{"id":"eg.aw.west-wohnen","geschoss":"EG","typ":"AW","von":["x.V","z.S"],"bis":["x.V","z.Ui"],"flucht":"links","hoehe":"traufe","notiz":"Endet bei z.Ui: die Außenwandecke zwischen Wohnzimmer, Ankleide und Bad ist geschlossen (Westwand beginnt bei ZU − TW)","oeffnungen":[{"art":"fenstertuer","ab":385,"breite":1010,"hoehe":2375,"quelle":"plan"},{"art":"fenstertuer","ab":2485,"breite":2010,"hoehe":2375,"quelle":"aufmass","notiz":"Pfeiler 53 / 111 / 108 cm nach Aufmaß"},{"art":"fenstertuer","ab":5605,"breite":2010,"hoehe":2375,"quelle":"aufmass"}]},{"id":"eg.aw.sued-west","geschoss":"EG","typ":"AW","von":["x.V","z.U"],"bis":["x.W","z.U"],"flucht":"unten","hoehe":"traufe","oeffnungen":[{"art":"fenster","ab":230,"breite":1510,"bruestung":1500,"hoehe":875,"notiz":"Badfenster"}]},{"id":"eg.aw.west","geschoss":"EG","typ":"AW","von":["x.W","z.U"],"bis":["x.W","z.N"],"flucht":"links","hoehe":"traufe","oeffnungen":[{"art":"fenstertuer","ab":1635,"breite":760,"hoehe":2375},{"art":"fenstertuer","ab":3885,"breite":2010,"hoehe":2375}]},{"id":"eg.eltern-har","geschoss":"EG","typ":"IW175","von":["x.eltO","z.Ni"],"bis":["x.eltO","z.harSa"],"flucht":"links","hoehe":"decke"},{"id":"eg.har-sued","geschoss":"EG","typ":"IW175","von":["x.eltO","z.harSi"],"bis":["x.julW","z.harSi"],"flucht":"oben","hoehe":"decke","oeffnungen":[{"art":"durchgang","ab":2155,"breite":885,"hoehe":2190,"quelle":"aufmass","notiz":"Tür HAR 88,5/219"}]},{"id":"eg.querwand-elterntuer","geschoss":"EG","typ":"IW175","von":["x.elt2","z.harSa"],"bis":["x.elt2","z.ankN"],"flucht":"links","hoehe":"decke","oeffnungen":[{"art":"durchgang","ab":130,"breite":885,"hoehe":2190,"quelle":"annahme","notiz":"Elterntür 88,5/219, Lage und Breite angenommen"}]},{"id":"eg.har-julian","geschoss":"EG","typ":"IW175","von":["x.harO","z.Ni"],"bis":["x.harO","z.harSa"],"flucht":"links","hoehe":"decke"},{"id":"eg.julian-flur-schraeg","geschoss":"EG","typ":"IW175","von":[7900,3356],"bis":[8867,4323],"flucht":"mitte","verlaengerung":50,"hoehe":"decke","notiz":"Schrägwand 45° (Planänderung 1), Flurseite 1,2375 m; Mittellinie, 5 cm Verlängerung an beiden Enden. Der Anfang liegt in der Wand HAR / Julian (war 7992 / 3448, auch mit der Verlängerung fehlten 3,8 cm bis zur Wand und die Ecke blieb offen; die Linie ist dieselbe)"},{"id":"eg.julian-dbad-sued","geschoss":"EG","typ":"IW115","von":[8800,"z.julS"],"bis":["x.Oi","z.julS"],"flucht":"oben","hoehe":"decke","oeffnungen":[{"art":"durchgang","ab":475,"breite":885,"hoehe":2190,"quelle":"aufmass","notiz":"Tür Julians Zimmer nach Aufmaß 47 / 150 cm"},{"art":"durchgang","ab":2860,"breite":760,"hoehe":2190,"quelle":"aufmass","notiz":"Tür D-Bad 76"}]},{"id":"eg.dbad-west","geschoss":"EG","typ":"IW125","von":["x.dbW","z.dbN"],"bis":["x.dbW","z.julS"],"flucht":"links","hoehe":"decke"},{"id":"eg.dbad-nord","geschoss":"EG","typ":"IW115","von":["x.dbW","z.dbN"],"bis":["x.Oi","z.dbN"],"flucht":"oben","hoehe":"decke"},{"id":"eg.eltern-bad","geschoss":"EG","typ":"IW115","von":["x.Wi","z.eltS"],"bis":[2520,"z.eltS"],"flucht":"oben","hoehe":"decke","notiz":"Wand Eltern / Bad, Eltern 3,01 m tief (Kette links)"},{"id":"eg.wc","geschoss":"EG","typ":"IW115","von":[1285,"z.eltSa"],"bis":[1285,4635],"flucht":"links","hoehe":"decke","freiesEnde":true,"notiz":"WC-Wand, WC 90 cm breit; endet frei im Bad"},{"id":"eg.vorraum-bad-schraeg","geschoss":"EG","typ":"IW115","von":[2479,3436],"bis":[3790,4747],"flucht":"mitte","verlaengerung":50,"hoehe":"decke","notiz":"Schrägwand 45° Vorraum / Bad, Mittellinie. Das Ende liegt in der Wand Bad / Ankleide (war 3729 / 4686, auch mit der Verlängerung fehlten 0,8 cm bis zur Wand und die Ecke zum Bad blieb offen; die Linie ist dieselbe)","oeffnungen":[{"art":"durchgang","ab":633,"breite":885,"hoehe":2190,"notiz":"Badtür 88,5"}]},{"id":"eg.ankleide-nord","geschoss":"EG","typ":"IW115","von":["x.badOa","z.ankN"],"bis":[6700,"z.ankN"],"flucht":"oben","hoehe":"decke","oeffnungen":[{"art":"durchgang","ab":730,"breite":760,"hoehe":2190,"notiz":"Tür Ankleide 76"}]},{"id":"eg.ankleide-flur-schraeg","geschoss":"EG","typ":"IW115","dicke":133,"von":[6670,4701],"bis":[7733,5764],"flucht":"mitte","verlaengerung":50,"hoehe":"decke","notiz":"Schrägwand Ankleide / Flur, rund 13 cm (Plan), Flurseite 1,5725 m"},{"id":"eg.ankleide-ost","geschoss":"EG","typ":"IW175","von":["x.ankO",5700],"bis":["x.ankO","z.wohnN"],"flucht":"links","hoehe":"decke"},{"id":"eg.bad-ankleide","geschoss":"EG","typ":"IW115","von":["x.badO","z.ankN"],"bis":["x.badO","z.ankS"],"flucht":"links","hoehe":"decke"},{"id":"eg.ankleide-wohnen","geschoss":"EG","typ":"IW115","von":["x.badOa","z.ankS"],"bis":["x.ankO","z.ankS"],"flucht":"oben","hoehe":"decke"},{"id":"eg.flur-wohnen","geschoss":"EG","typ":"IW175","von":["x.flurW","z.flurS"],"bis":["x.wohnO","z.flurS"],"flucht":"oben","hoehe":"decke","oeffnungen":[{"art":"durchgang","ab":175,"breite":885,"hoehe":2190,"notiz":"Durchgang Flur / Wohnen"}]},{"id":"eg.flur-naehzimmer","geschoss":"EG","typ":"IW115","von":["x.naehW","z.flurS"],"bis":["x.Oi","z.flurS"],"flucht":"oben","hoehe":"decke","oeffnungen":[{"art":"durchgang","ab":750,"breite":885,"hoehe":2190,"notiz":"Tür Nähzimmer"}]},{"id":"eg.wohnen-naehzimmer-west","geschoss":"EG","typ":"IW175","von":["x.wohnO","z.flurS"],"bis":["x.wohnO","z.kuecheN"],"flucht":"links","hoehe":"decke","notiz":"Wand zwischen Wohnen / Küche und Nähzimmer / Speisekammer"},{"id":"eg.naehzimmer-speis","geschoss":"EG","typ":"IW115","von":["x.naehW","z.ZS"],"bis":["x.Oi","z.ZS"],"flucht":"oben","hoehe":"decke","notiz":"Anker von Treppe und Treppenöffnung (Nordseite)"},{"id":"eg.speis-kueche","geschoss":"EG","typ":"IW175","von":["x.wohnO","z.speisS"],"bis":["x.Oi","z.speisS"],"flucht":"oben","hoehe":"decke","oeffnungen":[{"art":"durchgang","ab":2055,"breite":760,"hoehe":2190,"notiz":"Tür Speisekammer"}]},{"id":"dg.kniewand-nord","geschoss":"DG","typ":"TB-DG","von":["x.dgW","z.dgN"],"bis":["x.dgO","z.dgN"],"flucht":"oben","hoehe":{"max":1000}},{"id":"dg.kniewand-sued","geschoss":"DG","typ":"TB-DG","von":["x.dgW","z.dgS"],"bis":["x.dgO","z.dgS"],"flucht":"unten","hoehe":{"max":1000}},{"id":"dg.kniewand-west","geschoss":"DG","typ":"TB-DG","von":["x.dgW","z.dgN"],"bis":["x.dgW","z.dgS"],"flucht":"links","hoehe":{"max":1000}},{"id":"dg.kniewand-ost-nord","geschoss":"DG","typ":"TB-DG","von":["x.dgO","z.dgN"],"bis":["x.dgO","z.HN"],"flucht":"rechts","hoehe":{"max":1000},"notiz":"bis hinter das Treppengeländer verlängert"},{"id":"dg.kniewand-ost-sued","geschoss":"DG","typ":"TB-DG","von":["x.dgO","z.ZS"],"bis":["x.dgO","z.dgS"],"flucht":"rechts","hoehe":{"max":1000}},{"id":"dg.querwand","geschoss":"DG","typ":"TB-DG","von":["x.dgW","z.QZ"],"bis":["x.twO","z.QZ"],"flucht":"mitte","dach":"B","notiz":"Pias Zimmer / Arbeitszimmer; die Oberkante folgt der B-Dachschräge bis zur 1-m-Kniewand"},{"id":"dg.trennwand","geschoss":"DG","typ":"TB-DG","von":["x.tw","z.qN"],"bis":["x.tw","z.dgS"],"flucht":"mitte","notiz":"Arbeitszimmer / Abstellkammer","oeffnungen":[{"art":"durchgang","ab":"z.tuerN","breite":860,"hoehe":2000,"quelle":"nutzer","notiz":"Tür zum Arbeitszimmer hz 8,55–9,41, 86 / 200 cm (Angabe des Nutzers vom 11.10.2026); im Modell ohne Türblatt"}]},{"id":"dg.schraegwand-treppe","geschoss":"DG","typ":"TB-DG","von":["x.dgO","z.HN"],"bis":["x.treppeO","z.HN"],"flucht":"unten","freiesEnde":true,"notiz":"nördlich der Treppenöffnung, von der Kniewand bis zur Hauskante; das Ende an der Hauskante ist frei"},{"id":"dg.treppenwand-nord","geschoss":"DG","typ":"TB-DG","von":["x.treppeW","z.tN"],"bis":["x.dgO","z.tN"],"flucht":"unten","notiz":"behält die Seite zur Treppe (1,60 m lichter Abstand); westlich schließt die Wand zu Pias Zimmer an"},{"id":"dg.treppenwand-sued","geschoss":"DG","typ":"TB-DG","von":["x.treppeW","z.ZS"],"bis":["x.treppeO","z.ZS"],"flucht":"oben","freiesEnde":true,"notiz":"südlich der Treppenöffnung; westlich schließt die Wand zur Abstellkammer an, das Ende an der Hauskante ist frei"},{"id":"dg.wand-pia-flur","geschoss":"DG","typ":"TB-DG","von":["x.twO","z.tN"],"bis":["x.treppeW","z.tN"],"flucht":"unten","notiz":"Wand Pias Zimmer / Flur westlich der Treppenwand Nord (Flucht wie diese), mit Tür in Pias Zimmer","oeffnungen":[{"art":"durchgang","ab":21.25,"breite":860,"hoehe":2000,"quelle":"nutzer","notiz":"Tür Pias Zimmer 86 / 200 cm (Angabe des Nutzers vom 11.10.2026). Die Lage ist angenommen: mittig in der 90-cm-Lücke zwischen Trennwand und Treppenwand. Im Modell ohne Türblatt."}]},{"id":"dg.wand-flur-abstell","geschoss":"DG","typ":"TB-DG","von":["x.twO","z.ZS"],"bis":["x.treppeW","z.ZS"],"flucht":"oben","notiz":"Wand Flur / Abstellkammer westlich der Treppenwand Süd (Flucht wie diese), mit Tür in die Abstellkammer","oeffnungen":[{"art":"durchgang","ab":71.25,"breite":760,"hoehe":1950,"quelle":"nutzer","notiz":"Tür Abstellkammer 76 / 195 cm (Angabe des Nutzers vom 11.10.2026). Die Lage ist angenommen: mittig in der 90-cm-Lücke zwischen Trennwand und Treppenwand. Im Modell ohne Türblatt."}]}],"trennlinien":[{"id":"eg.wohnen-kueche","geschoss":"EG","von":["x.wohnO","z.kuecheN"],"bis":["x.wohnO","z.Si"],"notiz":"Raumgrenze ohne Wand: die Küche geht offen in Wohnen / Essen über"}],"raeume":[{"id":"eltern","name":"Eltern","geschoss":"EG","boden":"holz","notiz":"mit Vorraum (Bad- und Ankleidetür)","stempel":[3010,1940]},{"id":"har","name":"HAR","geschoss":"EG","boden":"beton","stempel":[6220,1860]},{"id":"kind2","name":"Julians Zimmer","geschoss":"EG","boden":"holz","stempel":[9260,1710]},{"id":"dbad","name":"D-Bad","geschoss":"EG","boden":"fliese","stempel":[11520,3340]},{"id":"bad","name":"Bad (Eltern)","geschoss":"EG","boden":"fliese","stempel":[1840,4960]},{"id":"ankleide","name":"Ankleide","geschoss":"EG","boden":"holz","stempel":[4710,5590]},{"id":"flur","name":"Flur / Diele","geschoss":"EG","boden":"fliese-hell","stempel":[8740,5360]},{"id":"kind1","name":"Nähzimmer","geschoss":"EG","boden":"holz","notiz":"mit offener Treppe; die Treppenfläche zählt zum Nähzimmer","stempel":[10780,8050]},{"id":"speis","name":"Speisekammer","geschoss":"EG","boden":"fliese","stempel":[9810,10390]},{"id":"wohnen","name":"Wohnen / Essen","geschoss":"EG","boden":"holz","stempel":[6440,9060]},{"id":"kueche","name":"Küche","geschoss":"EG","boden":"fliese","stempel":[10530,12720]},{"id":"pia","name":"Pias Zimmer","geschoss":"DG","boden":"dg","stempel":[8400,4560]},{"id":"arbeit","name":"Arbeitszimmer","geschoss":"DG","boden":"dg","stempel":[6750,8800]},{"id":"abstell","name":"Abstellkammer","geschoss":"DG","boden":"dg","stempel":[9700,11170]},{"id":"treppe","name":"Treppe und Flur (DG)","geschoss":"DG","boden":"dg","stempel":[8770,8400]}]};
+var PRUEFMASSE = {"putz_cm":[-1,4],"kante_cm":2,"masse":[{"raum":"eltern","richtung":"z","bei":2.0,"cm":300,"was":"Eltern, Tiefe"},{"raum":"eltern","kante_bei":[4.57,2.0],"cm":314,"was":"Eltern, Wand zum HAR","notiz":"erst 287 ??? notiert, nachgemessen 314; Wandlänge bis zur Ecke am Vorraum"},{"raum":"har","richtung":"x","bei":1.5,"cm":300,"was":"HAR, Breite"},{"raum":"har","richtung":"z","bei":6.0,"cm":295,"was":"HAR, Tiefe"},{"raum":"kind2","richtung":"x","bei":1.0,"cm":464,"was":"Julians Zimmer, Breite"},{"raum":"kind2","richtung":"z","bei":12.0,"cm":188,"was":"Julians Zimmer, Tiefe vor dem D-Bad"},{"raum":"dbad","richtung":"x","bei":3.0,"cm":200,"was":"D-Bad, Breite","notiz":"erst 204 notiert, nachgemessen 200"},{"raum":"dbad","richtung":"z","bei":11.5,"cm":189,"was":"D-Bad, Tiefe"},{"raum":"bad","richtung":"x","bei":6.0,"cm":339,"was":"Bad, Breite"},{"raum":"bad","richtung":"z","bei":1.0,"cm":288,"was":"Bad, Tiefe"},{"raum":"ankleide","richtung":"x","bei":6.0,"cm":374,"was":"Ankleide, Breite an der Südwand"},{"raum":"flur","richtung":"x","bei":5.95,"cm":471,"was":"Flur / Diele, Breite Ankleide bis Ostwand","notiz":"erst 484 notiert, gemessen bis zur Scheibe neben der Haustür"},{"raum":"flur","richtung":"z","bei":8.94,"cm":195,"was":"Flur / Diele, Tiefe West"},{"raum":"flur","richtung":"z","bei":11.2,"cm":196,"was":"Flur / Diele, Tiefe Ost"},{"raum":"kind1","richtung":"x","bei":9.0,"cm":339,"was":"Nähzimmer, Breite"},{"raum":"kind1","richtung":"z","bei":9.6,"cm":320,"was":"Nähzimmer, Tiefe"},{"raum":"speis","richtung":"z","bei":12.0,"cm":125,"was":"Speisekammer, Tiefe"},{"raum":"wohnen","richtung":"z","bei":6.0,"cm":776,"was":"Wohnen, Tiefe"}]};
 /* polygon-clipping 0.15.7
 The MIT License (MIT)
 
@@ -2050,7 +2076,7 @@ var schnittLinien, schnittAbleiten, ansichtAbleiten, schnittSvg;
 
 
 var Aendern = (function () {
-  var TOL = 1e-6, GESCHOSSE = ['EG', 'DG'];
+  var TOL = 1e-6, RANG_DELTA = 10, GESCHOSSE = ['EG', 'DG'];
   var ARTEN = { mass: ['mass', 'wert', 'bewegt', 'einzeln', 'quelle'], achse: ['achse', 'wert', 'quelle'], wandtyp: ['wandtyp', 'wert', 'quelle'], wandende: ['wandende', 'wert'], oeffnung: ['oeffnung', 'feld', 'wert', 'quelle'] };
   var QUELLEN = ['plan', 'aufmass', 'nutzer', 'annahme'];
   var OEFFNUNGSFELDER = ['ab', 'breite', 'hoehe', 'bruestung'];
@@ -2301,7 +2327,11 @@ var Aendern = (function () {
     m = massSuchen(D, name);
     if (!m) throw fehler('Maß unbekannt: ' + name + ' (Namen stehen im Grundriss beim Anklicken eines Maßes)');
     var seg = m.seg, vorher = seg.laenge, delta = ziel - vorher;
-    if (Math.abs(delta) < TOL) return { art: 'mass', ziel: name, von: vorher, nach: ziel, unveraendert: true, parameter: null, text: 'Maß ' + name + ' ist bereits ' + mmText(vorher) + ' – unverändert' };
+    /* Gleicher Wert mit Herkunftsangabe (Aufmaß bestätigt den Wert): der Wert bleibt, die Herkunft des Parameters wird gesetzt, den die Änderung bewegen würde.
+       Zur Wahl des Parameters wird dazu eine Änderung um RANG_DELTA durchgerechnet. */
+    var bestaetigen = Math.abs(delta) < TOL && !!ae.quelle, rd = bestaetigen ? RANG_DELTA : delta;
+    if (Math.abs(delta) < TOL && !bestaetigen) return { art: 'mass', ziel: name, von: vorher, nach: ziel, unveraendert: true, parameter: null, text: 'Maß ' + name + ' ist bereits ' + mmText(vorher) + ' – unverändert' };
+    if (bestaetigen && seg.art === 'pfeiler') throw fehler('Die Herkunft eines Pfeilers lässt sich nicht für sich setzen; die angrenzende Öffnung (' + name.replace(/\.pfeiler\d+$/, '') + '.oeff<k>) oder die Wand angeben');
     if (ae.einzeln && seg.art !== 'wand') throw fehler('einzeln gilt nur für Wanddicken (wand:<id>)');
     if (seg.schraeg) throw fehler('Das Maß ' + name + ' ist schräg gemessen und lässt sich nicht ändern; die Schrägwand über ihre Achsen ändern');
     if (seg.art === 'pfeiler') return pfeilerAendern(S, ae, seg, delta, opt);
@@ -2315,7 +2345,8 @@ var Aendern = (function () {
       var sgw = { pfad: ['waende', wi, 'dicke'], name: seg.ids[0], bezeichnung: 'Dicke der Wand ' + seg.ids[0], wert: vorher };
       parameterSetzen(S, sgw, ziel);
       return herkunft(S, { art: 'mass', ziel: name, von: vorher, nach: ziel, parameter: { art: 'wanddicke', name: sgw.name, bezeichnung: sgw.bezeichnung, von: vorher, nach: ziel }, betroffeneWaende: 1,
-               text: name + ': ' + mmText(vorher) + ' → ' + mmText(ziel) + ' (nur diese Wand, ' + sgw.bezeichnung + ')' }, sgw.pfad, ae, sgw.bezeichnung);
+               text: bestaetigen ? name + ': Herkunft von ' + sgw.bezeichnung + ' gesetzt, Wert bleibt ' + mmText(vorher) : name + ': ' + mmText(vorher) + ' → ' + mmText(ziel) + ' (nur diese Wand, ' + sgw.bezeichnung + ')',
+               unveraendert: bestaetigen }, sgw.pfad, ae, sgw.bezeichnung);
     }
 
     /* Kandidaten sammeln */
@@ -2349,9 +2380,9 @@ var Aendern = (function () {
 
     /* bewerten: jeden Kandidaten anwenden, neu ableiten, Auswirkung zählen */
     var bewertet = kand.map(function (c) {
-      var h2 = anwendenKandidat(S.haus, c, delta, c.k), D1;
+      var h2 = anwendenKandidat(S.haus, c, rd, c.k), D1;
       try { D1 = ableiten(h2); } catch (e) { return { c: c, ungueltig: true }; }
-      var m1 = massSuchen(D1, name), erreicht = !!m1 && Math.abs(m1.seg.laenge - ziel) < 1e-3;
+      var m1 = massSuchen(D1, name), erreicht = !!m1 && Math.abs(m1.seg.laenge - (vorher + rd)) < 1e-3;
       var fehlerNeu = befundeVergleichen(D, D1).neu.filter(function (b) { return b.stufe === 'fehler'; }).length;
       return { c: c, ungueltig: !erreicht, wertung: [fehlerNeu, raeumeGeaendert(D, D1), waendeVerschoben(D, D1), c.fest ? 1 : 0, -c.k, c.name] };
     }).filter(function (b) { return !b.ungueltig; });
@@ -2366,8 +2397,9 @@ var Aendern = (function () {
     return herkunft(S, {
       art: 'mass', ziel: name, von: vorher, nach: ziel,
       parameter: { art: gewaehlt.pfad[2] === 'wert' ? 'achse' : gewaehlt.typ ? 'wandtyp' : 'achse', name: gewaehlt.name, bezeichnung: gewaehlt.bezeichnung, pfad: gewaehlt.pfad, von: gewaehlt.wert, nach: Math.round(neuerWert * 1e6) / 1e6 },
-      betroffeneWaende: betroffeneWaende(S.haus, gewaehlt), alternativen: alternativen,
-      text: name + ': ' + mmText(vorher) + ' → ' + mmText(ziel) + ' (bewegt: ' + gewaehlt.bezeichnung + ' ' + mmText(gewaehlt.wert) + ' → ' + mmText(neuerWert) + ')' +
+      betroffeneWaende: betroffeneWaende(S.haus, gewaehlt), alternativen: alternativen, unveraendert: bestaetigen,
+      text: bestaetigen ? name + ': Herkunft von ' + gewaehlt.bezeichnung + ' gesetzt, Wert bleibt ' + mmText(vorher) + (gewaehlt.typ ? ' (gilt für ' + betroffeneWaende(S.haus, gewaehlt) + ' Wände dieses Typs)' : '') :
+            name + ': ' + mmText(vorher) + ' → ' + mmText(ziel) + ' (bewegt: ' + gewaehlt.bezeichnung + ' ' + mmText(gewaehlt.wert) + ' → ' + mmText(neuerWert) + ')' +
             (gewaehlt.typ ? ', gilt für ' + betroffeneWaende(S.haus, gewaehlt) + ' Wände dieses Typs' : '')
     }, gewaehlt.pfad, ae, gewaehlt.bezeichnung);
   }
@@ -2474,7 +2506,12 @@ var Aendern = (function () {
     var feld = ae.feld, achsName = typeof ae.wert === 'string' && achseDef(S.haus, ae.wert), ziel;
     if (feld === 'ab' && achsName) ziel = ae.wert; else ziel = einheitParsen(ae.wert);
     var vorher = o[feld];
-    if (JSON.stringify(vorher) === JSON.stringify(ziel)) return { art: 'oeffnung', ziel: ae.oeffnung + '.' + feld, von: vorher, nach: ziel, unveraendert: true, parameter: null, text: 'Öffnung ' + ae.oeffnung + ' (' + feld + ') ist bereits ' + (typeof vorher === 'number' ? mmText(vorher) : vorher) + ' – unverändert' };
+    if (JSON.stringify(vorher) === JSON.stringify(ziel)) {
+      var gleich = { art: 'oeffnung', ziel: urname || ae.oeffnung + '.' + feld, von: vorher, nach: ziel, unveraendert: true, parameter: null, text: 'Öffnung ' + ae.oeffnung + ' (' + feld + ') ist bereits ' + (typeof vorher === 'number' ? mmText(vorher) : vorher) + ' – unverändert' };
+      if (!ae.quelle) return gleich;
+      gleich.text = 'Öffnung ' + ae.oeffnung + ' (' + feld + '): Herkunft gesetzt, Wert bleibt ' + (typeof vorher === 'number' ? mmText(vorher) : vorher); // Aufmaß bestätigt den Wert
+      return herkunft(S, gleich, ['waende', wi, 'oeffnungen', k, feld], ae, 'Öffnung ' + ae.oeffnung);
+    }
     setzen(S, ['waende', wi, 'oeffnungen', k, feld], ziel);
     return herkunft(S, { art: 'oeffnung', ziel: urname || ae.oeffnung + '.' + feld, von: vorher, nach: ziel, parameter: { art: 'oeffnung', name: ae.oeffnung, bezeichnung: 'Öffnung ' + ae.oeffnung + ' (' + feld + ')', von: vorher, nach: ziel },
              text: 'Öffnung ' + ae.oeffnung + ', ' + feld + ': ' + (typeof vorher === 'number' ? mmText(vorher) : vorher) + ' → ' + (typeof ziel === 'number' ? mmText(ziel) : ziel) }, ['waende', wi, 'oeffnungen', k, feld], ae, 'Öffnung ' + ae.oeffnung);
@@ -2665,7 +2702,7 @@ var Aendern = (function () {
       res.kanten = kantenAus(S);
       res.haus = S.haus;
       res.ok = true;
-      if (res.schritte.every(function (s) { return s.unveraendert; })) res.meldungen.push('Alles unverändert.');
+      if (res.schritte.every(function (s) { return s.unveraendert; }) && !res.kanten.length) res.meldungen.push('Alles unverändert.');
       return res;
     } catch (e) {
       if (e.nummer) res.meldungen.push('Änderung ' + e.nummer + ' (' + e.kurz + '): ' + e.message);
@@ -2798,6 +2835,203 @@ var Aendern = (function () {
   }
 
   return { aendern: aendern, einheitParsen: einheitParsen, stand: stand, listeErzeugen: listeErzeugen, listeLesen: listeLesen, textPatchen: textPatchen, auswirkungenText: auswirkungenText, vergleichSvg: vergleichSvg, vergleichUeberlagerung: vergleichUeberlagerung, ableiten: ableiten, aenderungPruefen: aenderungPruefen };
+})();
+
+
+/* Aufmaß: vergleicht gemessene Werte (Prüfmaße, src/data/pruefmasse.json) mit dem Modell. Ohne Three.js, in Node und in der Seite lauffähig.
+   Plan docs/plan-parametrisches-modell.md, Abschnitt 3.9 und 9 (Phase 6). Gemessen wird in cm, gerechnet in Millimetern.
+
+     Aufmass.auswerten(D, pruefmasse)        → { zeilen, gemessen, auffaellig, unbekannt }   D = Aendern.ableiten(haus)
+     Aufmass.beschreibung(D, maßname)        „Speisekammer, Tiefe“ für ein Raummaß, sonst der Maßname
+     Aufmass.cmParsen(text)                  "125", "125,5", "1,255m", "1255mm" → cm; ohne Einheit sind es cm
+     Aufmass.listeErzeugen(D, messungen)     Export der Seite: { format: "haus-aufmass", version: 1, eintraege }
+     Aufmass.listeLesen(text oder Objekt, D) prüft eine Messliste und gibt die Messungen zurück (wirft bei Fehlern)
+     Aufmass.eintragen(text, messungen)      schreibt Messungen in den Text von pruefmasse.json, nur die betroffenen Zeilen ändern sich
+     Aufmass.bericht(ergebnis)               Textbericht für Befehlszeile und Test
+
+   Ein Prüfmaß ist genau eines von
+     { mass: "raum:speis.tiefe", cm }                          ein benanntes Maß aus Grundriss, Schnitt oder Ansicht (Namen zeigt die Seite beim Anklicken)
+     { raum: "wohnen", richtung: "z", bei: 6.0, cm }           Länge der Linie durch den Raum (richtung x: waagerecht bei hz = bei, z: senkrecht bei hx = bei, Meter)
+     { raum: "eltern", kante_bei: [4.57, 2.0], cm }            Länge der Raumkante, die dem Punkt (hx, hz in Metern) am nächsten liegt
+   mit optional was (Beschriftung), datum (JJJJ-MM-TT) und notiz. Die Werte der beiden letzten Arten stammen aus dem ersten Aufmaß des EG; die Seite
+   erfasst Messungen als Maß ("mass").
+
+   Das Aufmaß misst fertige Oberflächen (Putz, Belag), das Modell Rohbaumaße. Abweichung = Modell − Aufmaß. Erwartet ist sie bei lichten Raummaßen
+   zwischen putz_cm[0] und putz_cm[1], bei Wandlängen (kante_bei) innerhalb von ±kante_cm. Für andere Maße (Wanddicken, Öffnungen, Gesamtmaße, Höhen)
+   gibt es keine Erwartung: die Abweichung wird nur angezeigt (Status "offen"). Das Modell wird nie von selbst angepasst; ob und wie, entscheidet der Nutzer
+   (node tools/aendern.js, dort mit --quelle aufmass die Herkunft setzen). */
+var Aufmass = (function () {
+  var TOL = 1e-6;
+  var FELDER = ['mass', 'cm', 'was', 'datum', 'notiz'];
+
+  function fehler(text) { var e = new Error(text); e.aufmass = true; return e; }
+  function klon(o) { return JSON.parse(JSON.stringify(o)); }
+  function de(v, d) { return (Math.round(v * Math.pow(10, d)) / Math.pow(10, d)).toFixed(d).replace('.', ','); }
+
+  /* ---------- Werte ---------- */
+  function cmParsen(w) {
+    if (typeof w === 'number') { if (!isFinite(w) || w <= 0) throw fehler('Der Wert muss größer als 0 sein'); return w; }
+    var m = /^\s*(-?\d+(?:[.,]\d+)?)\s*(mm|cm|m)?\s*$/i.exec(String(w));
+    if (!m) throw fehler('Wert nicht lesbar: "' + w + '" (erwartet z. B. 125, 125,5, 1,255m oder 1255mm)');
+    var v = parseFloat(m[1].replace(',', '.'));
+    if (!(v > 0)) throw fehler('Der Wert muss größer als 0 sein: "' + String(w).trim() + '"');
+    if (!m[2] && v < 10) throw fehler('Einheit fehlt bei "' + String(w).trim() + '": ohne Einheit gilt cm, ein so kleiner Wert ist vermutlich in Metern gemeint (z. B. 1,26m)');
+    var f = { mm: 0.1, cm: 1, m: 100 }[(m[2] || 'cm').toLowerCase()];
+    return Math.round(v * f * 1000) / 1000;
+  }
+
+  /* ---------- Modellwerte finden ---------- */
+  function segmentSuchen(D, name) {
+    var treffer = null;
+    D.geschosse.forEach(function (g) {
+      if (treffer) return;
+      D.plan(g).ketten.forEach(function (k) { k.segmente.forEach(function (s) { if (!treffer && s.name === name) treffer = { seg: s, geschoss: g }; }); });
+    });
+    return treffer;
+  }
+  function raumSuchen(D, id) { return D.abl.raeume.filter(function (r) { return r.id === id; })[0] || null; }
+  function spanne(ring, richtung, at) { // längste Strecke der Linie durch den Ring (mm)
+    var ts = [], i, a, b, ca, cb, ua, ub;
+    for (i = 0; i < ring.length; i++) {
+      a = ring[i]; b = ring[(i + 1) % ring.length];
+      if (richtung === 'x') { ca = a[1]; cb = b[1]; ua = a[0]; ub = b[0]; } else { ca = a[0]; cb = b[0]; ua = a[1]; ub = b[1]; }
+      if (((ca - at) * (cb - at) < 0 || (ca === at) !== (cb === at)) && ca !== cb) ts.push(ua + (ub - ua) * (at - ca) / (cb - ca));
+    }
+    ts.sort(function (p, q) { return p - q; });
+    var best = 0; for (i = 0; i + 1 < ts.length; i += 2) best = Math.max(best, ts[i + 1] - ts[i]);
+    return best;
+  }
+  function kantenLaenge(ring, q) { // Länge der Kante, die dem Punkt am nächsten liegt (mm)
+    var best = Infinity, len = 0, i, a, b, vx, vz, L2, t, dd;
+    for (i = 0; i < ring.length; i++) {
+      a = ring[i]; b = ring[(i + 1) % ring.length]; vx = b[0] - a[0]; vz = b[1] - a[1]; L2 = vx * vx + vz * vz;
+      if (!L2) continue;
+      t = Math.max(0, Math.min(1, ((q[0] - a[0]) * vx + (q[1] - a[1]) * vz) / L2));
+      dd = Math.hypot(q[0] - a[0] - t * vx, q[1] - a[1] - t * vz);
+      if (dd < best) { best = dd; len = Math.sqrt(L2); }
+    }
+    return len;
+  }
+  /* → { art, modell (mm), geschoss, erwartet: 'raum' | 'kante' | null } oder null, wenn das Modell die Stelle nicht kennt */
+  function modellWert(D, e) {
+    var s, h, r;
+    if (e.mass != null) {
+      s = segmentSuchen(D, e.mass);
+      if (s) return { art: s.seg.art === 'raum' ? 'raum' : 'mass', modell: s.seg.laenge, geschoss: s.geschoss, erwartet: s.seg.art === 'raum' ? 'raum' : null };
+      h = D.hoehen()[e.mass];
+      if (h) return { art: 'hoehe', modell: h.wert, geschoss: null, erwartet: null };
+      return null;
+    }
+    r = raumSuchen(D, e.raum);
+    if (!r || !r.ring || !r.ring.length) return null;
+    if (e.kante_bei) return { art: 'kante', modell: kantenLaenge(r.ring, [e.kante_bei[0] * 1000, e.kante_bei[1] * 1000]), geschoss: r.geschoss, erwartet: 'kante' };
+    return { art: 'raum', modell: spanne(r.ring, e.richtung, e.bei * 1000), geschoss: r.geschoss, erwartet: 'raum' };
+  }
+
+  /* ---------- Auswertung ---------- */
+  function auswerten(D, pm) {
+    var putz = (pm.putz_cm || [-1, 4]).map(function (v) { return v * 10; }), kante = (pm.kante_cm != null ? pm.kante_cm : 2) * 10;
+    var zeilen = (pm.masse || []).map(function (e, i) {
+      var w = modellWert(D, e), gemessen = e.cm * 10, z = {
+        nr: i + 1, was: e.was || (e.mass != null ? beschreibung(D, e.mass) : e.raum), art: w ? w.art : (e.mass != null ? 'mass' : 'raum'), mass: e.mass != null ? e.mass : null, raum: e.raum || null,
+        geschoss: w ? w.geschoss : null, gemessen: gemessen, modell: w ? w.modell : null, abweichung: null, erwartet: null, status: 'unbekannt', datum: e.datum || null, notiz: e.notiz || null
+      };
+      if (!w) return z;
+      z.abweichung = w.modell - gemessen;
+      z.erwartet = w.erwartet === 'raum' ? putz.slice() : w.erwartet === 'kante' ? [-kante, kante] : null;
+      z.status = !z.erwartet ? 'offen' : z.abweichung >= z.erwartet[0] - TOL && z.abweichung <= z.erwartet[1] + TOL ? 'ok' : 'auffaellig';
+      return z;
+    });
+    return {
+      zeilen: zeilen, gemessen: zeilen.length,
+      auffaellig: zeilen.filter(function (z) { return z.status === 'auffaellig'; }).length,
+      unbekannt: zeilen.filter(function (z) { return z.status === 'unbekannt'; }).length
+    };
+  }
+  function beschreibung(D, name) {
+    var m = /^raum:([^.@]+)\.(breite|tiefe)(?:@.*)?$/.exec(name), r = m && raumSuchen(D, m[1]);
+    return r ? r.name + ', ' + (m[2] === 'breite' ? 'Breite' : 'Tiefe') : name;
+  }
+
+  /* ---------- Messung prüfen, Messliste ---------- */
+  function eintragPruefen(e, D) {
+    if (!e || typeof e !== 'object' || Array.isArray(e)) throw fehler('Eine Messung muss ein Objekt sein');
+    Object.keys(e).forEach(function (k) { if (FELDER.indexOf(k) < 0) throw fehler('Unbekanntes Feld "' + k + '" in der Messung (erlaubt: ' + FELDER.join(', ') + ')'); });
+    if (typeof e.mass !== 'string' || !e.mass) throw fehler('Das Feld "mass" (Name des Maßes) fehlt');
+    if (typeof e.cm !== 'number' || !isFinite(e.cm) || e.cm <= 0) throw fehler('Bei ' + e.mass + ' muss "cm" eine Zahl größer als 0 sein (gemessener Wert in cm)');
+    if ('datum' in e) {
+      var d = typeof e.datum === 'string' && /^(\d{4})-(\d{2})-(\d{2})$/.exec(e.datum), t = d && new Date(Date.UTC(+d[1], +d[2] - 1, +d[3]));
+      if (!d || t.getUTCFullYear() !== +d[1] || t.getUTCMonth() !== +d[2] - 1 || t.getUTCDate() !== +d[3]) throw fehler('Bei ' + e.mass + ' muss das Datum die Form JJJJ-MM-TT haben (z. B. 2026-10-12)');
+    }
+    ['was', 'notiz'].forEach(function (k) { if (k in e && typeof e[k] !== 'string') throw fehler('Bei ' + e.mass + ' muss "' + k + '" ein Text sein'); });
+    if (D && !modellWert(D, e)) throw fehler('Maß unbekannt: ' + e.mass + ' (Namen stehen im Plan beim Anklicken eines Maßes)');
+  }
+  function listeErzeugen(D, messungen) {
+    if (!Array.isArray(messungen) || !messungen.length) throw fehler('Keine Messung zum Exportieren');
+    messungen.forEach(function (e) { eintragPruefen(e, D); });
+    return { format: 'haus-aufmass', version: 1, eintraege: klon(messungen) };
+  }
+  function listeLesen(quelle, D) {
+    var o = quelle;
+    if (typeof quelle === 'string') { try { o = JSON.parse(quelle); } catch (e) { throw fehler('Messliste nicht lesbar (kein gültiges JSON): ' + e.message); } }
+    if (!o || typeof o !== 'object' || Array.isArray(o) || o.format !== 'haus-aufmass') throw fehler('Das ist keine Messliste (Format "haus-aufmass" erwartet)');
+    if (o.version !== 1) throw fehler('Version der Messliste nicht unterstützt: ' + o.version + ' (erwartet 1)');
+    var extra = Object.keys(o).filter(function (k) { return ['format', 'version', 'eintraege'].indexOf(k) < 0; });
+    if (extra.length) throw fehler('Unbekannte Felder in der Messliste: ' + extra.join(', '));
+    if (!Array.isArray(o.eintraege) || !o.eintraege.length) throw fehler('Die Messliste enthält keine Messung');
+    return o.eintraege.map(function (e, i) {
+      try { eintragPruefen(e, D); } catch (x) { throw fehler('Messung ' + (i + 1) + ': ' + x.message); }
+      var k = klon(e);
+      if (!k.was) k.was = beschreibung(D, k.mass);
+      return k;
+    });
+  }
+
+  /* ---------- Text von pruefmasse.json fortschreiben ---------- */
+  function zeileVon(e) {
+    var teile = ['mass', 'cm', 'was', 'datum', 'notiz'].filter(function (k) { return k in e; }).map(function (k) { return JSON.stringify(k) + ': ' + JSON.stringify(e[k]); });
+    return '{ ' + teile.join(', ') + ' }';
+  }
+  function eintragen(text, messungen) {
+    if (!Array.isArray(messungen) || !messungen.length) throw fehler('Keine Messung einzutragen');
+    messungen.forEach(function (e) { eintragPruefen(e); });
+    var lines = text.split('\n'), start = -1, ende = -1, i, erwartet;
+    for (i = 0; i < lines.length; i++) if (/^\s*"masse"\s*:\s*\[\s*$/.test(lines[i])) { start = i; break; }
+    if (start < 0) throw fehler('Format von pruefmasse.json nicht erwartet: die Zeile `"masse": [` fehlt');
+    for (i = start + 1; i < lines.length; i++) if (/^\s*\]/.test(lines[i])) { ende = i; break; }
+    if (ende < 0) throw fehler('Format von pruefmasse.json nicht erwartet: das Ende der Liste "masse" fehlt');
+    var einzug = (/^(\s*)/.exec(lines[start + 1] || '') || ['', '    '])[1] || '    ';
+    var koerper = lines.slice(start + 1, ende), eintraege = koerper.map(function (l) {
+      var s = l.replace(/,\s*$/, '');
+      try { return { zeile: s, obj: JSON.parse(s) }; } catch (x) { throw fehler('Format von pruefmasse.json nicht erwartet: ein Eintrag steht nicht auf einer Zeile: ' + l.trim().slice(0, 60)); }
+    });
+    var ersetzt = [], neu = [];
+    messungen.forEach(function (e) {
+      var k = {}; FELDER.forEach(function (f) { if (f in e) k[f] = e[f]; });
+      var idx = -1, j;
+      for (j = 0; j < eintraege.length; j++) if (eintraege[j].obj.mass === k.mass) idx = j;
+      if (idx >= 0) { ersetzt.push(eintraege[idx].obj); eintraege[idx] = { zeile: einzug + zeileVon(k), obj: k }; }
+      else { neu.push(k); eintraege.push({ zeile: einzug + zeileVon(k), obj: k }); }
+    });
+    var ergebnis = lines.slice(0, start + 1).concat(eintraege.map(function (e, j) { return e.zeile + (j < eintraege.length - 1 ? ',' : ''); }), lines.slice(ende)).join('\n');
+    erwartet = eintraege.map(function (e) { return e.obj; });
+    var gelesen;
+    try { gelesen = JSON.parse(ergebnis); } catch (x) { throw fehler('Interner Fehler: pruefmasse.json wäre danach kein gültiges JSON (' + x.message + ')'); }
+    if (JSON.stringify(gelesen.masse) !== JSON.stringify(erwartet)) throw fehler('Interner Fehler: pruefmasse.json hätte danach nicht den berechneten Inhalt');
+    return { text: ergebnis, neu: neu, ersetzt: ersetzt };
+  }
+
+  /* ---------- Bericht ---------- */
+  function bericht(res, pm) {
+    var p = (pm && pm.putz_cm) || [-1, 4], k = pm && pm.kante_cm != null ? pm.kante_cm : 2;
+    var kopf = 'Prüfmaße: Aufmaß (fertig) ↔ Modell (Rohbau) in cm, erwartet Modell − Aufmaß = ' + p[0] + ' … +' + p[1] + ' (Putz) bei lichten Raummaßen, ±' + k + ' bei Wandlängen; ! = auffällig, ? = Maß nicht gefunden';
+    return [kopf].concat(res.zeilen.map(function (z) {
+      var mk = z.status === 'auffaellig' ? '!' : z.status === 'unbekannt' ? '?' : ' ';
+      return '  ' + mk + ' ' + z.was.padEnd(42) + de(z.gemessen / 10, 1).padStart(7) + (z.modell == null ? '' : de(z.modell / 10, 1).padStart(8) + '  ' + (z.abweichung >= 0 ? '+' : '') + de(z.abweichung / 10, 1)) + (z.datum ? '  ' + z.datum : '');
+    })).join('\n');
+  }
+
+  return { auswerten: auswerten, beschreibung: beschreibung, cmParsen: cmParsen, listeErzeugen: listeErzeugen, listeLesen: listeLesen, eintragen: eintragen, eintragPruefen: eintragPruefen, bericht: bericht };
 })();
 
 
@@ -4499,11 +4733,14 @@ function buildModel(THREE, haus) {
 <script>
 /* Plan 2D: zeigt den Grundriss (src/grundriss.js) in der Seite, mit Verschieben, Zoomen und Auswahl von Maßen, Räumen und Befunden.
    Läuft nur im Browser. Die Seite speichert nichts. Umschalten zwischen 3D, den Grundrissen, den Schnitten und den Ansichten über die Schaltflächen
-   „Darstellung“ (data-modus: 3d, EG, DG, sch:A, sch:B, sch:frei, an:N, an:O, an:S, an:W; Schnitte und Ansichten zeichnet src/schnitt.js). */
+   „Darstellung“ (data-modus: 3d, EG, DG, sch:A, sch:B, sch:frei, an:N, an:O, an:S, an:W; Schnitte und Ansichten zeichnet src/schnitt.js).
+   Aufmaß (Phase 6): Die Prüfmaße (PRUEFMASSE, src/data/pruefmasse.json) erscheinen mit Abweichung im Plan und in der Liste; neue Messungen werden
+   erfasst und als Messliste exportiert (src/aufmass.js), die Seite speichert nichts. */
 (function () {
   'use strict';
   var shell = document.getElementById('shell'), host = document.getElementById('plan2d'), box = document.getElementById('planSvg'), info = document.getElementById('planInfo'), panel = document.getElementById('panel');
   if (!host || !box || typeof grundrissAbleiten !== 'function' || typeof schnittSvg !== 'function') return;
+  var MIT_AUFMASS = typeof Aufmass !== 'undefined' && typeof PRUEFMASSE !== 'undefined';
   var D = null, markName = null, geschoss = null, frei = null, zeichnen = null, svg = null, vb = null, vb0 = null, aus = null, auswahlRaum = null;
   var probe = { an: false, liste: [], res: null, mass: null }; // Probiermodus: Änderungen auf einer Kopie der Daten, die Seite speichert nichts
   var opt = { massketten: true, raeume: true, oeffnungen: true, marken: true };
@@ -4554,6 +4791,7 @@ function buildModel(THREE, haus) {
       if (el) { aus = el; el.classList.add('on'); hervorheben(el); }
     }
     if (auswahlRaum) markiereRaum(auswahlRaum);
+    aufmassMarkieren();
   }
   function zeige(g, neu) {
     var wechsel = g !== geschoss;
@@ -4633,8 +4871,9 @@ function buildModel(THREE, haus) {
     hervorheben(el);
     var wert = Number(el.getAttribute('data-wert')), q = el.getAttribute('data-quelle');
     probeMass(el);
+    aufmassMass(el);
     info.textContent = el.getAttribute('data-name') + ' · ' + mass(wert) + ' (' + fmt(wert, wert % 1 ? 1 : 0) + ' mm) · Herkunft: ' + HERKUNFT[q] +
-      (el.getAttribute('data-fest') === '1' ? ' · gesperrt (Außenmaß)' : '') + (el.getAttribute('data-schraeg') ? ' · schräg gemessen' : '') + (el.getAttribute('data-abgeleitet') ? ' · abgeleitet, nicht änderbar' : '');
+      (el.getAttribute('data-fest') === '1' ? ' · gesperrt (Außenmaß)' : '') + (el.getAttribute('data-schraeg') ? ' · schräg gemessen' : '') + (el.getAttribute('data-abgeleitet') ? ' · abgeleitet, nicht änderbar' : '') + aufmassHinweis(el.getAttribute('data-name'));
   }
   function markiereRaum(id) {
     auswahlRaum = id;
@@ -4733,6 +4972,16 @@ function buildModel(THREE, haus) {
   host.addEventListener('pointerup', ende); host.addEventListener('pointercancel', ende);
 
   /* ---------- Probiermodus ---------- */
+  function herunterladen(dateiname, text) { // im Artifact über die Fähigkeit „downloads“, sonst als Link; der Text steht in jedem Fall im Feld zum Kopieren
+    if (window.claude && typeof window.claude.use === 'function') {
+      return window.claude.use('downloads').then(function (d) { if (d) return d.save({ filename: dateiname, data: text }); throw new Error('keine Downloads'); });
+    }
+    return new Promise(function (ok) {
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = dateiname;
+      document.body.appendChild(a); a.click(); document.body.removeChild(a); ok();
+    });
+  }
   var pm = {};
   ['an', 'box', 'mass', 'wert', 'ok', 'einzeln-l', 'einzeln', 'quelle', 'aussen', 'fehler', 'liste', 'aus', 'export', 'reset', 'text'].forEach(function (k) { pm[k] = document.getElementById('pm-' + k); });
   function pmWert(mm) { return fmt(mm / 1000, 3).replace(/,?0+$/, '') + 'm'; }
@@ -4812,19 +5061,120 @@ function buildModel(THREE, haus) {
       var text;
       try { text = JSON.stringify(Aendern.listeErzeugen(HAUS, probe.liste), null, 2) + '\n'; } catch (e) { pm.fehler.textContent = e.message; return; }
       pm.text.value = text; pm.text.hidden = false; pm.text.focus({ preventScroll: true }); pm.text.select();
-      var speichern = function () { // im Artifact über die Fähigkeit „downloads“, sonst als Link; der Text steht in jedem Fall im Feld zum Kopieren
-        if (window.claude && typeof window.claude.use === 'function') {
-          return window.claude.use('downloads').then(function (d) { if (d) return d.save({ filename: 'aenderungen.json', data: text }); throw new Error('keine Downloads'); });
-        }
-        return new Promise(function (ok) {
-          var a = document.createElement('a');
-          a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = 'aenderungen.json';
-          document.body.appendChild(a); a.click(); document.body.removeChild(a); ok();
-        });
-      };
+      var speichern = function () { return herunterladen('aenderungen.json', text); };
       try { speichern().catch(function () { /* abgelehnt oder nicht möglich: der Text steht im Feld */ }); } catch (e) { /* dito */ }
     });
     probeAnzeigen();
+  }
+
+  /* ---------- Aufmaß ---------- */
+  var am = { an: false, neu: [], mass: null }, amE = {};
+  ['an', 'box', 'summe', 'liste', 'mass', 'wert', 'datum', 'notiz', 'ok', 'fehler', 'neu', 'export', 'reset', 'text'].forEach(function (k) { amE[k] = document.getElementById('am-' + k); });
+  function heuteIso() { var d = new Date(), z = function (n) { return (n < 10 ? '0' : '') + n; }; return d.getFullYear() + '-' + z(d.getMonth() + 1) + '-' + z(d.getDate()); }
+  function aufmassAlle() { // Prüfmaße aus dem Repository und die in dieser Sitzung erfassten, gegen das gerade gezeigte Haus (auch im Probiermodus)
+    var rep = PRUEFMASSE.masse || [], res = Aufmass.auswerten(daten(), { putz_cm: PRUEFMASSE.putz_cm, kante_cm: PRUEFMASSE.kante_cm, masse: rep.concat(am.neu) });
+    res.zeilen.forEach(function (z, i) { z.neu = i >= rep.length; z.index = i - rep.length; });
+    return res;
+  }
+  function cmText(mm, vorzeichen) { var t = fmt(mm / 10, 1); return (vorzeichen && mm > 0 ? '+' : '') + t; }
+  function abweichungText(z) {
+    if (z.status === 'unbekannt') return 'Maß im Modell nicht gefunden';
+    var t = 'gemessen ' + cmText(z.gemessen) + ' · Modell ' + cmText(z.modell) + ' · Modell − Aufmaß ' + cmText(z.abweichung, true) + ' cm';
+    if (z.status === 'auffaellig') t += ' · erwartet ' + cmText(z.erwartet[0], true) + ' … ' + cmText(z.erwartet[1], true);
+    return t + (z.datum ? ' · ' + z.datum.split('-').reverse().join('.') : '');
+  }
+  function aufmassHinweis(name) { // Zusatz zur Infozeile eines angeklickten Maßes: letzte Messung dazu
+    if (!MIT_AUFMASS) return '';
+    var z = aufmassAlle().zeilen.filter(function (q) { return q.mass === name; }).pop();
+    return z ? ' · Aufmaß: ' + abweichungText(z) + (z.status === 'auffaellig' ? ' (auffällig)' : z.status === 'ok' ? ' (im erwarteten Rahmen)' : '') : '';
+  }
+  function aufmassMarkieren() { // Maße mit Messung im Plan kennzeichnen (grün umrandet, bei auffälliger Abweichung gelb); danach Listen auffrischen
+    if (!MIT_AUFMASS) return;
+    var res = aufmassAlle(), stand = {};
+    res.zeilen.forEach(function (z) { if (z.mass) stand[z.mass] = z; }); // spätere Messung desselben Maßes gilt
+    if (svg) [].forEach.call(svg.querySelectorAll('.hit[data-name]'), function (h) {
+      var z = stand[h.getAttribute('data-name')];
+      h.classList.toggle('gem', !!z && z.status !== 'unbekannt');
+      h.classList.toggle('abw', !!z && z.status === 'auffaellig');
+    });
+    aufmassListen(res);
+  }
+  function aufmassZeile(z, mitWeg) {
+    var li = document.createElement('li'), t = document.createElement('button');
+    li.className = z.status === 'auffaellig' ? 'auffaellig' : z.status === 'unbekannt' ? 'unbekannt' : z.status === 'ok' ? 'ok' : 'offen';
+    t.type = 'button'; t.className = 'sprung';
+    var b = document.createElement('b'), kl = document.createElement('small');
+    b.textContent = z.was; kl.textContent = abweichungText(z) + (z.notiz ? ' · ' + z.notiz : '');
+    t.appendChild(b); t.appendChild(kl);
+    t.addEventListener('click', function () { aufmassSpringen(z); });
+    li.appendChild(t);
+    if (mitWeg) {
+      var x = document.createElement('button');
+      x.type = 'button'; x.className = 'weg'; x.textContent = '×'; x.setAttribute('aria-label', 'Messung ' + z.was + ' entfernen');
+      x.addEventListener('click', function () { am.neu.splice(z.index, 1); aufmassMarkieren(); });
+      li.appendChild(x);
+    }
+    return li;
+  }
+  function aufmassListen(res) {
+    var rep = res.zeilen.filter(function (z) { return !z.neu; }), neu = res.zeilen.filter(function (z) { return z.neu; });
+    amE.summe.textContent = 'Prüfmaße im Repository: ' + rep.length + ', davon ' + rep.filter(function (z) { return z.status === 'auffaellig'; }).length + ' auffällig. ' + (neu.length ? neu.length + ' neu erfasst, noch nicht exportiert.' : '');
+    amE.liste.innerHTML = '';
+    rep.forEach(function (z) { amE.liste.appendChild(aufmassZeile(z, false)); });
+    amE.neu.innerHTML = '';
+    if (!neu.length) { var l0 = document.createElement('li'); l0.className = 'leer'; l0.textContent = 'Noch keine Messung erfasst.'; amE.neu.appendChild(l0); }
+    neu.forEach(function (z) { amE.neu.appendChild(aufmassZeile(z, true)); });
+    amE.export.disabled = !neu.length; amE.reset.disabled = !neu.length;
+  }
+  function aufmassSpringen(z) { // zur Messung im Plan: Maß anwählen, bei Raumprüfmaßen den Raum
+    if (z.mass) {
+      if (!z.geschoss) { info.textContent = z.was + ' (' + z.mass + '): ' + abweichungText(z) + ' – im Schnitt oder in der Ansicht anklicken.'; return; }
+      if (z.geschoss !== geschoss) setModus(z.geschoss);
+      var el = [].filter.call(svg.querySelectorAll('.hit[data-name]'), function (e) { return e.getAttribute('data-name') === z.mass; })[0];
+      if (el) { waehleMass(el); var bb = el.getBBox(), r = box.getBoundingClientRect(), br = 6000, h = br * r.height / Math.max(1, r.width); vb = [bb.x + bb.width / 2 - br / 2, bb.y + bb.height / 2 - h / 2, br, h]; setVB(); }
+    } else if (z.raum) { window.__plan2d.zeigeRaum(z.raum); info.textContent = z.was + ' · ' + abweichungText(z); }
+  }
+  function aufmassMass(el) { // ein Maß im Plan wurde angeklickt (Aufmaß erfassen)
+    if (!MIT_AUFMASS || !am.an) return;
+    var wert = Number(el.getAttribute('data-wert'));
+    am.mass = { name: el.getAttribute('data-name'), wert: wert };
+    amE.mass.textContent = am.mass.name + ' · Modell ' + mass(wert);
+    amE.fehler.textContent = '';
+    if (panel.classList.contains('closed')) { var tg = document.getElementById('togglePanel'); if (tg) tg.click(); } // das Eingabefeld liegt im Menü
+    amE.mass.scrollIntoView({ block: 'nearest' });
+    amE.wert.focus({ preventScroll: true }); amE.wert.select();
+  }
+  function aufmassEintragen() {
+    if (!am.mass) { amE.fehler.textContent = 'Zuerst ein Maß im Plan anklicken.'; return; }
+    var e;
+    try {
+      e = { mass: am.mass.name, cm: Aufmass.cmParsen(amE.wert.value), was: Aufmass.beschreibung(daten(), am.mass.name), datum: amE.datum.value || heuteIso() };
+      if (amE.notiz.value.trim()) e.notiz = amE.notiz.value.trim();
+      Aufmass.eintragPruefen(e, daten());
+    } catch (x) { amE.fehler.textContent = x.message; return; }
+    amE.fehler.textContent = '';
+    am.neu = am.neu.filter(function (q) { return q.mass !== e.mass; }).concat([e]); // eine zweite Messung desselben Maßes ersetzt die erste
+    markName = e.mass;
+    aufmassMarkieren();
+    var z = aufmassAlle().zeilen.filter(function (q) { return q.mass === e.mass; }).pop();
+    info.textContent = 'Erfasst: ' + z.was + ' · ' + abweichungText(z) + (z.status === 'auffaellig' ? ' – auffällig' : '');
+    am.mass = null; amE.mass.textContent = 'Kein Maß gewählt.'; amE.wert.value = ''; amE.notiz.value = '';
+  }
+  if (MIT_AUFMASS && amE.an) {
+    amE.datum.value = heuteIso();
+    amE.an.addEventListener('change', function () { am.an = amE.an.checked; amE.box.hidden = !am.an; if (!am.an) { am.mass = null; amE.fehler.textContent = ''; } });
+    amE.ok.addEventListener('click', aufmassEintragen);
+    amE.wert.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); aufmassEintragen(); } });
+    amE.reset.addEventListener('click', function () { am.neu = []; amE.text.hidden = true; amE.fehler.textContent = ''; aufmassMarkieren(); });
+    amE.export.addEventListener('click', function () {
+      var text;
+      try { text = JSON.stringify(Aufmass.listeErzeugen(daten(), am.neu), null, 2) + '\n'; } catch (e) { amE.fehler.textContent = e.message; return; }
+      amE.text.value = text; amE.text.hidden = false; amE.text.focus({ preventScroll: true }); amE.text.select();
+      try { herunterladen('aufmass.json', text).catch(function () { /* abgelehnt oder nicht möglich: der Text steht im Feld */ }); } catch (e) { /* dito */ }
+    });
+  } else {
+    var sec = document.getElementById('aufmass');
+    if (sec) sec.hidden = true;
   }
 
   /* ---------- Schnittstelle zur Seite ---------- */
@@ -4838,6 +5188,7 @@ function buildModel(THREE, haus) {
       waehleRaum(id);
     },
     probe: function () { return probe; },
+    aufmass: function () { return { an: am.an, neu: am.neu.slice(), res: MIT_AUFMASS ? aufmassAlle() : null }; },
     zeigeBefund: function (b) { // Befund aus der Liste: Geschoss wechseln, Stelle heranholen
       if (!b.ort) return;
       var g = b.geschoss || geschoss;
