@@ -31,4 +31,5 @@ Die Arbeitsliste dieses Projekts, **von Anfang an** geführt und nicht nachträg
 
 - 2026-10-11: Soll es ein Glossar für Fachbegriffe und Raumnamen geben (bisher nur in `AGENTS.md`)?
 - 2026-10-11: Soll es eine Architekturdatei (arc42) und ADRs geben, oder reicht `docs/plan-parametrisches-modell.md`?
-- 2026-10-11: Wohnflächenberechnung: Umsetzung und Berechnungsgrundlage (z. B. Anrechnung nach Höhenzonen im Dachgeschoss) sind offen. Der Plan nennt sie nur unter „danach“.
+- 2026-10-12: Wohnfläche: Soll die Terrasse angerechnet werden (WoFlV: zu einem Viertel, höchstens zur Hälfte)? Sie liegt bisher nur in `model.js`, nicht in `haus.json`.
+- 2026-10-12: Wohnfläche: Ist der HAR (Betonboden) Wohnraum oder Zubehörraum (z. B. Haustechnik)? Bisher zählt er voll; ein Zubehörraum bekommt `zubehoer: true` in `haus.json`.

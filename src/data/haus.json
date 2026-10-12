@@ -109,6 +109,8 @@
   },
   "pruefwerte": { "firstNN": 149080, "quelle": "plan", "notiz": "First 149,08 m ü. NN laut Plan; das Modell berechnet ihn aus Traufe und Neigung" },
 
+  "wohnflaeche": { "putzabzug": 0.03, "quelle": "annahme", "notiz": "Wohnflächenverordnung (WoFlV): Die Maße im Modell sind Rohbaumaße, daher 3 % Putzabzug (§ 4 Nr. 2); 0 bei fertigen Maßen. Höhenzonen im Dachausbau: ab 2 m Raumhöhe voll, 1–2 m zur Hälfte, darunter nicht (§ 4 Nr. 1), Raumhöhe = Dachhaut − dg.wandAbstandDachhaut − DG-Boden. Zubehörräume bekommen am Raum zubehoer: true." },
+
   "dg": {
     "ausbauflaeche": [["x.dgW", "z.dgN"], ["x.dgO", "z.dgN"], ["x.dgO", "z.HN"], ["x.treppeW", "z.HN"], ["x.treppeW", "z.ZS"], ["x.dgO", "z.ZS"], ["x.dgO", "z.dgS"], ["x.dgW", "z.dgS"]],
     "treppenoeffnung": [["x.treppeW", "z.HN"], ["x.treppeO", "z.HN"], ["x.treppeO", "z.ZS"], ["x.treppeW", "z.ZS"]],

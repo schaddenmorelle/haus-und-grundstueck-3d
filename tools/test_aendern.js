@@ -58,6 +58,11 @@ const speis = lauf([{ mass: 'raum:speis.tiefe', wert: '1,30m' }]);
   check(masz(speis, 'raum:kueche.tiefe') && masz(speis, 'raum:kueche.tiefe').vorher === 3075 && masz(speis, 'raum:kueche.tiefe').nachher === 3035, 'Beispiel: Maß Küche 3075 → 3035');
   check(speis.auswirkungen.oeffnungen.some(o => o.name === 'eg.speis-kueche.oeff1' && o.art === 'verschoben'), 'Beispiel: der Durchgang in der Wand wandert mit');
   check(speis.befunde.neu.length === 0, 'Beispiel: keine neuen Befunde, aber ' + speis.befunde.neu.map(b => b.text));
+  // Wohnfläche (Phase 7): die Speisekammer gewinnt 0,04 × 3,385 m², die Küche verliert 0,04 × 3,56 m²; beide EG, 3 % Putzabzug auf die Differenz
+  const wf = speis.auswirkungen.wohnflaeche;
+  check(wf && nahe(wf.nachher.gesamt - wf.vorher.gesamt, 0.040 * (3.385 - 3.560) * 0.97, 1e-6), 'Beispiel: Wohnfläche ändert sich um 0,04 × (3,385 − 3,56) × 0,97 m², nicht ' + JSON.stringify(wf));
+  const wz = /Wohnfläche \(WoFlV\): ([\d,]+) → ([\d,]+) m²/.exec(A.auswirkungenText(speis));
+  check(wz && wz[1] !== wz[2], 'Beispiel: Ausgabe nennt die Wohnfläche, und der Unterschied (7 cm²-Bruchteile) bleibt sichtbar, nicht ' + (wz && wz[0]));
   const text = A.auswirkungenText(speis);
   check(/Speisekammer/.test(text) && /Küche/.test(text) && /z\.speisS/.test(text), 'Beispiel: Ausgabe nennt Räume und Parameter');
 }
@@ -356,6 +361,7 @@ const speis = lauf([{ mass: 'raum:speis.tiefe', wert: '1,30m' }]);
   check(hw(r, 'hoehe:dg.deckenaufbau') && hw(r, 'hoehe:dg.deckenaufbau').nachher === 571, 'Auswirkung Deckenaufbau 446 → 571');
   check(r.befunde.neu.filter(b => b.stufe === 'fehler').length === 0, 'lichte Höhe 2,40 m: keine neuen Fehler: ' + r.befunde.neu.map(b => b.text));
   check(/Höhen/.test(A.auswirkungenText(r)), 'Ausgabe nennt die Höhen');
+  check(r.auswirkungen.wohnflaeche == null, 'lichte Höhe 2,40 m ändert die Wohnfläche nicht (WoFlV kennt im EG nur ≥ 2 m): ' + JSON.stringify(r.auswirkungen.wohnflaeche));
   check(haus.geschosse.EG.lichteHoehe === 2525, 'Eingabedaten dürfen nicht verändert werden');
 }
 { // Die Haustür ist 2,375 m hoch: bei 2,30 m lichter Höhe liegt ihr Sturz über der Decke (Regel 12)

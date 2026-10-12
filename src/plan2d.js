@@ -10,12 +10,12 @@
   var MIT_AUFMASS = typeof Aufmass !== 'undefined' && typeof PRUEFMASSE !== 'undefined';
   var D = null, markName = null, geschoss = null, frei = null, zeichnen = null, svg = null, vb = null, vb0 = null, aus = null, auswahlRaum = null;
   var probe = { an: false, liste: [], res: null, mass: null }; // Probiermodus: Änderungen auf einer Kopie der Daten, die Seite speichert nichts
-  var opt = { massketten: true, raeume: true, oeffnungen: true, marken: true };
+  var opt = { massketten: true, raeume: true, oeffnungen: true, marken: true, zonen: false };
   var HERKUNFT = { plan: 'Plan', aufmass: 'Aufmaß', nutzer: 'Angabe des Nutzers', annahme: 'Annahme', ohne: 'ohne Herkunftsangabe' };
   var HINWEIS = 'Ein Maß, einen Raum oder eine Markierung anklicken.';
   var HINWEIS_SCHNITT = 'Ein Maß oder eine Wand anklicken. Die Höhen lassen sich im Probiermodus ändern.';
   var modusBtns = [].slice.call(document.querySelectorAll('[data-modus]'));
-  var boxen = { massketten: 'p-mass', raeume: 'p-raeume', oeffnungen: 'p-oeff', marken: 'p-marken' };
+  var boxen = { massketten: 'p-mass', raeume: 'p-raeume', oeffnungen: 'p-oeff', marken: 'p-marken', zonen: 'p-zonen' };
 
   function fmt(n, d) { return n.toLocaleString('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d }); }
   function mass(mm) { return mm >= 1000 ? fmt(mm / 1000, 3).replace(/,?0+$/, '') + ' m' : fmt(mm / 10, 1).replace(/,0$/, '') + ' cm'; }

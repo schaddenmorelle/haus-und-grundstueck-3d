@@ -104,5 +104,27 @@
    "level": "dg",
    "area": 2.61
   }
+ },
+ "wohnflaeche": {
+  "EG": 126.71,
+  "DG": 42.64,
+  "gesamt": 169.35,
+  "raeume": {
+   "eltern": 15.81,
+   "har": 8.61,
+   "kind2": 12.85,
+   "dbad": 3.66,
+   "bad": 8.53,
+   "ankleide": 5.47,
+   "flur": 11.56,
+   "kind1": 7.09,
+   "speis": 3.97,
+   "wohnen": 38.54,
+   "kueche": 10.62,
+   "pia": 24.71,
+   "arbeit": 10.54,
+   "abstell": 5.25,
+   "treppe": 2.14
+  }
  }
 }

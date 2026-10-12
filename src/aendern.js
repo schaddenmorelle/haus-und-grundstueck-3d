@@ -28,7 +28,7 @@
    Auswirkung (zuerst weniger neue Fehler, dann weniger veränderte Räume, dann weniger verschobene Wände); bei Gleichstand das hintere Ende
    (Ost bzw. Süd). `bewegt` gibt den Parameter vor. Gesperrte Parameter (fest: true) bewegt nur optionen.aussenmass. Entstehen neue Fehler,
    bricht alles ab (haus: null), außer mit optionen.trotzdem. */
-if (typeof require !== 'undefined') { var werteAufloesen = require('./werte.js').werteAufloesen, raeumeAbleiten = require('./raeume.js').raeumeAbleiten, dachAbleiten = require('./dach.js').dachAbleiten, pruefen = require('./pruefen.js').pruefen, treppeAbleiten = require('./treppe.js').treppeAbleiten, treppeKopfhoehe = require('./treppe.js').treppeKopfhoehe, schnittLinien = require('./schnitt.js').schnittLinien, schnittAbleiten = require('./schnitt.js').schnittAbleiten, ansichtAbleiten = require('./schnitt.js').ansichtAbleiten, grundrissAbleiten = require('./grundriss.js').grundrissAbleiten, grundrissSvg = require('./grundriss.js').grundrissSvg, polygonClipping = require('polygon-clipping'); }
+if (typeof require !== 'undefined') { var werteAufloesen = require('./werte.js').werteAufloesen, raeumeAbleiten = require('./raeume.js').raeumeAbleiten, dachAbleiten = require('./dach.js').dachAbleiten, pruefen = require('./pruefen.js').pruefen, treppeAbleiten = require('./treppe.js').treppeAbleiten, treppeKopfhoehe = require('./treppe.js').treppeKopfhoehe, wohnflaecheAbleiten = require('./wohnflaeche.js').wohnflaecheAbleiten, schnittLinien = require('./schnitt.js').schnittLinien, schnittAbleiten = require('./schnitt.js').schnittAbleiten, ansichtAbleiten = require('./schnitt.js').ansichtAbleiten, grundrissAbleiten = require('./grundriss.js').grundrissAbleiten, grundrissSvg = require('./grundriss.js').grundrissSvg, polygonClipping = require('polygon-clipping'); }
 
 var Aendern = (function () {
   var TOL = 1e-6, RANG_DELTA = 10, GESCHOSSE = ['EG', 'DG'];
@@ -125,7 +125,7 @@ var Aendern = (function () {
 
   /* ---------- Ableitung ---------- */
   function ableiten(haus) {
-    var WV = werteAufloesen(haus), abl = raeumeAbleiten(haus, WV), dach = dachAbleiten(haus, WV), befunde = pruefen(haus, WV, abl, dach), plaene = {}, schnitte = {}, ansichten = {}, hoehen = null;
+    var WV = werteAufloesen(haus), abl = raeumeAbleiten(haus, WV), dach = dachAbleiten(haus, WV), befunde = pruefen(haus, WV, abl, dach), plaene = {}, schnitte = {}, ansichten = {}, hoehen = null, wohn = null;
     var D = {
       haus: haus, WV: WV, abl: abl, dach: dach, befunde: befunde,
       plan: function (g) { if (!plaene[g]) plaene[g] = grundrissAbleiten(haus, WV, abl, dach, befunde, g); return plaene[g]; },
@@ -139,7 +139,8 @@ var Aendern = (function () {
         return schnitte[id];
       },
       ansicht: function (seite) { if (!ansichten[seite]) ansichten[seite] = ansichtAbleiten(haus, WV, abl, dach, seite); return ansichten[seite]; },
-      hoehen: function () { if (!hoehen) hoehen = hoehenWerte(D); return hoehen; }
+      hoehen: function () { if (!hoehen) hoehen = hoehenWerte(D); return hoehen; },
+      wohnflaeche: function () { if (!wohn) wohn = wohnflaecheAbleiten(haus, WV, abl, dach, haus.treppe && haus.treppe.steigungen && haus.treppe.anker ? treppeAbleiten(haus, WV) : null); return wohn; }
     };
     return D;
   }
@@ -561,7 +562,7 @@ var Aendern = (function () {
 
   /* ---------- Auswirkungen ---------- */
   function auswirkungenBerechnen(D0, D1) {
-    var A = { raeume: [], masse: [], waende: [], oeffnungen: [], dach: [], hoehen: [] };
+    var A = { raeume: [], masse: [], waende: [], oeffnungen: [], dach: [], hoehen: [], wohnflaeche: null };
     function lichte(D, id) { var r = null; D.geschosse.forEach(function (g) { D.plan(g).raeume.forEach(function (q) { if (q.id === id) r = q; }); }); return r; }
     var alt = {};
     D0.abl.raeume.forEach(function (r) { alt[r.id] = r; });
@@ -610,6 +611,9 @@ var Aendern = (function () {
     }
     var d0 = dachWerte(D0), d1 = dachWerte(D1);
     Object.keys(d1).forEach(function (n) { if (n in d0 && Math.abs(d0[n] - d1[n]) > TOL) A.dach.push({ name: n, vorher: d0[n], nachher: d1[n] }); });
+    var wf0 = D0.wohnflaeche(), wf1 = D1.wohnflaeche();
+    function wfSumme(w) { var o = { gesamt: w.summe.wohnflaeche / 1e6 }; Object.keys(w.geschosse).forEach(function (g) { o[g] = w.geschosse[g].wohnflaeche / 1e6; }); return o; }
+    if (Math.abs(wf0.summe.wohnflaeche - wf1.summe.wohnflaeche) > 1 || Object.keys(wf1.geschosse).some(function (g) { return wf0.geschosse[g] && Math.abs(wf0.geschosse[g].wohnflaeche - wf1.geschosse[g].wohnflaeche) > 1; })) A.wohnflaeche = { vorher: wfSumme(wf0), nachher: wfSumme(wf1) };
     var h0 = D0.hoehen(), h1 = D1.hoehen();
     Object.keys(h1).forEach(function (n) { if (n in h0 && Math.abs(h0[n].wert - h1[n].wert) > 1e-6) A.hoehen.push({ name: n, text: h1[n].text, vorher: h0[n].wert, nachher: h1[n].wert }); });
     return A;
@@ -618,7 +622,7 @@ var Aendern = (function () {
   /* ---------- Hauptfunktion ---------- */
   function aendern(haus, aenderungen, optionen) {
     var opt = optionen || {};
-    var res = { ok: false, haus: null, vorschauHaus: null, kanten: [], schritte: [], meldungen: [], auswirkungen: { raeume: [], masse: [], waende: [], oeffnungen: [], dach: [], hoehen: [] }, befunde: { neu: [], behoben: [], fehlerNeu: [], alle: [] } };
+    var res = { ok: false, haus: null, vorschauHaus: null, kanten: [], schritte: [], meldungen: [], auswirkungen: { raeume: [], masse: [], waende: [], oeffnungen: [], dach: [], hoehen: [], wohnflaeche: null }, befunde: { neu: [], behoben: [], fehlerNeu: [], alle: [] } };
     var S = null;
     try {
       if (!Array.isArray(aenderungen) || !aenderungen.length) throw fehler('Keine Änderungen angegeben.');
@@ -754,6 +758,11 @@ var Aendern = (function () {
     var z = [], A = res.auswirkungen;
     res.meldungen.forEach(function (m) { z.push(m); });
     if (A.raeume.length) { z.push('Räume:'); A.raeume.forEach(function (r) { z.push('  ' + raumText(r)); }); } else if (res.vorschauHaus) z.push('Räume: keine Änderung');
+    if (A.wohnflaeche) {
+      var wv = A.wohnflaeche.vorher, wn = A.wohnflaeche.nachher;
+      var dz = Math.abs(wv.gesamt - wn.gesamt) < 0.05 ? 3 : 2; // eine Änderung unter 0,05 m² bliebe bei zwei Stellen oft unsichtbar
+      z.push('Wohnfläche (WoFlV): ' + de(wv.gesamt, dz) + ' → ' + de(wn.gesamt, dz) + ' m²' + ['EG', 'DG'].filter(function (g) { return wv[g] != null && Math.abs(wv[g] - wn[g]) > 1e-6; }).map(function (g) { return ' (' + g + ' ' + de(wv[g], dz) + ' → ' + de(wn[g], dz) + ')'; }).join(''));
+    }
     if (A.masse.length) { z.push('Maße (' + A.masse.length + '):'); A.masse.forEach(function (m) { z.push('  ' + m.name + ': ' + de(m.vorher, 1) + ' → ' + de(m.nachher, 1) + ' mm'); }); }
     if (A.waende.length) {
       z.push('Wände (' + A.waende.length + '):');

@@ -229,6 +229,41 @@
     }
   }
 
+  /* ---------- Wohnfläche (src/wohnflaeche.js) ---------- */
+  var wfTab = document.getElementById('wohnfl'), wfNote = document.getElementById('wohnflNote');
+  function m2(v) { return fmt(v / 1e6, 2); }
+  function wfZeile(tab, zellen, klasse) {
+    var tr = document.createElement('tr');
+    if (klasse) tr.className = klasse;
+    zellen.forEach(function (z) {
+      var td = document.createElement('td');
+      td.textContent = z.t;
+      if (z.leer) td.className = 'leer';
+      if (z.span) td.colSpan = z.span;
+      tr.appendChild(td);
+    });
+    tab.appendChild(tr);
+  }
+  function baueWohnflaeche() {
+    var w = model.wohnflaeche, kopf = document.createElement('thead'), tr = document.createElement('tr');
+    wfTab.innerHTML = '';
+    ['Raum', 'Grundfl. m²', 'Abzug m²', '1–2 m hoch m²', 'Wohnfl. m²'].forEach(function (t) { var th = document.createElement('th'); th.scope = 'col'; th.textContent = t; tr.appendChild(th); });
+    kopf.appendChild(tr); wfTab.appendChild(kopf);
+    var body = document.createElement('tbody');
+    wfTab.appendChild(body);
+    ['EG', 'DG'].forEach(function (g) {
+      if (!w.geschosse[g]) return;
+      w.raeume.filter(function (r) { return r.geschoss === g; }).forEach(function (r) {
+        var ab = r.abzuege.kamin + r.abzuege.treppe;
+        wfZeile(body, [{ t: r.name + (r.zubehoer ? ' (Zubehör)' : '') }, { t: m2(r.grundflaeche) }, { t: ab ? m2(ab) : '–', leer: !ab }, { t: r.zonen.halb ? m2(r.zonen.halb) : '–', leer: !r.zonen.halb }, { t: m2(r.wohnflaeche) }]);
+      });
+      wfZeile(body, [{ t: 'Summe ' + g }, { t: m2(w.geschosse[g].grundflaeche) }, { t: '' }, { t: '' }, { t: m2(w.geschosse[g].wohnflaeche) }], 'gs');
+    });
+    wfZeile(body, [{ t: 'Wohnfläche gesamt' }, { t: m2(w.summe.grundflaeche) }, { t: '' }, { t: '' }, { t: m2(w.summe.wohnflaeche) }], 'sum');
+    wfNote.textContent = 'Nach der Wohnflächenverordnung (WoFlV): Die Maße sind Rohbaumaße, daher ' + fmt(w.putzabzug * 100, 0) + ' % Putzabzug. Im Dachausbau zählt die Fläche mit mehr als 2 m Raumhöhe voll, zwischen 1 und 2 m zur Hälfte, darunter gar nicht (Raumhöhe = Dachhaut minus 22 cm Sparren). Abgezogen sind der Kamin und die Treppe. Die Terrasse ist nicht angerechnet.';
+  }
+  baueWohnflaeche();
+
   /* ---------- Prüfung (Befunde aus src/pruefen.js) ---------- */
   var befList = document.getElementById('befunde'), befSumme = document.getElementById('befundSumme');
   var STUFE = { fehler: 'Fehler', warnung: 'Warnung', hinweis: 'Hinweis' };
@@ -376,7 +411,7 @@
     selectRoom(null); clearMeasure();
     scene.remove(model.root); freeModel(model.root);
     model = neu; scene.add(model.root); gebaut = haus;
-    paintTerrain(); applyState(); baueRaumliste(); baueBefunde(); baueTags(); setzeKennzahlen();
+    paintTerrain(); applyState(); baueRaumliste(); baueWohnflaeche(); baueBefunde(); baueTags(); setzeKennzahlen();
     return performance.now() - t0;
   }
 

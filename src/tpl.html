@@ -34,6 +34,7 @@ section{padding-top:14px;margin-top:14px;border-top:1px solid var(--rule)}
 .chk small{color:var(--muted);margin-left:auto}
 #sun{width:100%;accent-color:var(--on)}
 .row{display:flex;justify-content:space-between;gap:8px;align-items:center;font-variant-numeric:tabular-nums}
+.wf{width:100%;border-collapse:collapse;font-size:12.5px;font-variant-numeric:tabular-nums}.wf th,.wf td{padding:3px 4px;text-align:right;border-bottom:1px dotted var(--rule)}.wf th:first-child,.wf td:first-child{text-align:left}.wf th{color:var(--muted);font-weight:500;font-size:11.5px}.wf tr.gs td,.wf tr.sum td{font-weight:600;border-bottom:1px solid var(--rule)}.wf tr.gs td:first-child{padding-top:6px}.wf td.leer{color:var(--muted)}
 #rooms{list-style:none;margin:0;padding:0;display:grid;gap:2px}
 #rooms button{width:100%;display:flex;justify-content:space-between;gap:8px;align-items:center;border:0;background:transparent;color:var(--ink);padding:7px 8px;border-radius:4px;font:inherit;text-align:left;cursor:pointer;border-bottom:1px dotted var(--rule)}
 #rooms button:hover{background:var(--chip)}
@@ -176,6 +177,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
       <label class="chk"><input id="p-raeume" type="checkbox" checked>Raumstempel mit Fläche</label>
       <label class="chk"><input id="p-oeff" type="checkbox" checked>Maße der Öffnungen</label>
       <label class="chk"><input id="p-marken" type="checkbox" checked>Befunde der Prüfung</label>
+      <label class="chk"><input id="p-zonen" type="checkbox">Raumhöhen im Dachgeschoss (Wohnfläche)</label>
       <p class="note">Ziehen verschiebt, Mausrad oder zwei Finger zoomen. Ein Maß anklicken zeigt Name, Wert und Herkunft; die zugehörige Wand, der Ausschnitt oder die Raumlinie leuchtet rot auf.</p>
       <div class="btns zwei"><button id="sl-neu" class="btn" type="button">Schnittlinie legen</button></div>
       <p class="note">Schnitt A–A und B–B stehen als rote Linien im Grundriss; ein Klick darauf öffnet den Schnitt. „Schnittlinie legen“: zwei Punkte im Grundriss anklicken, der Blick geht nach links von der Laufrichtung. Schnitte und Ansichten zeigen Höhen ab OKFF EG (142,80 m ü. NN); die Höhen lassen sich im Probiermodus ändern.</p>
@@ -221,6 +223,10 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
       <p id="readout" aria-live="polite"></p>
     </section>
     <section><h2>Räume</h2><ul id="rooms"></ul></section>
+    <section><h2>Wohnfläche</h2>
+      <table class="wf" id="wohnfl" aria-describedby="wohnflNote"></table>
+      <p class="note" id="wohnflNote"></p>
+    </section>
     <section><h2>Prüfung</h2>
       <p id="befundSumme" class="note" aria-live="polite"></p>
       <ul id="befunde"></ul>
@@ -237,7 +243,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
     </section>
     <section><h2>Grundlagen und Annahmen</h2>
       <p class="note"><b>Aus den Plänen und Angaben:</b> Grundstücksgrenzen, Hausmaße, alle Wände, Türen und Fenster des Erdgeschosses nach dem bemaßten Grundriss und Ihrem Aufmaß (Außenwand 18,5 cm Poroton plus 20 cm Dämmung; mittlere Fenster zweigeteilt, das breite im Wohnzimmer dreigeteilt), First- und Traufhöhe, Dachfenster (Typen Roto WDF 07/14, Roto WSA 11/14 und Velux GGU CK04 mit den Größen laut Herstellerdatenblatt), nicht ausgebaute Randzonen im Dach, kein Keller, Geschosshöhe 2,971 m und die Treppe (15 Steigungen, Wendelung an der Ostwand) nach der Treppenplanung und Ihren Aufmaßen (Wandabstand im Dachgeschoss 1,60 m, Treppenlauf 90 cm, Geländer 15 cm, Nische 54 cm), außerdem aus dem Binderplan Dachneigung 35°, Dachüberstand 23,5 cm und die Sparrenachsen, aus dem Plan der Balkenlage der Kamin und der Stützpfosten an der Terrassenecke, nach Ihren Angaben die Terrasse auf Fußbodenhöhe und die Pergola (3 × 5 m, 2,525 m hoch).</p>
-      <p class="note"><b>Angenommen:</b> Geländehöhen im Grundstück (±15 cm), Raumhöhe 2,525 m, Kaminhöhe (bis 149,60 m ü. NN), Größe und Lage der Solarkollektoren, PV-Module und der Satellitenschüssel auf dem Dach (nach Luftbild geschätzt), Fensterhöhen außer den bemaßten, Wanddicken im Dachausbau einheitlich 12,5 cm, Lage von Pool, Carport und Gartenelementen nach Luftbild, Zaun 15 cm innerhalb der Grenzlinie, Hecke 40 cm tief, Spritzschutzstreifen 40 cm breit, Maße und Lage von Spielturm, Schaukel und Trampolin nach Fotos und Luftbild geschätzt, Sträucher an der Ostseite nach Satellitenbild (Größen und Verteilung angenommen). Die Flächen im Dachausbau sind Grundflächen zwischen den Kniewänden, keine Wohnfläche. Die Wand von Pias Zimmer zur Treppe ist gegenüber dem Dachausbauplan um etwa 14 cm in den Raum gerückt, damit Treppe (90 cm), Geländer (15 cm) und Nische (54 cm) zwischen die Wände passen.</p>
+      <p class="note"><b>Angenommen:</b> Geländehöhen im Grundstück (±15 cm), Raumhöhe 2,525 m, Kaminhöhe (bis 149,60 m ü. NN), Größe und Lage der Solarkollektoren, PV-Module und der Satellitenschüssel auf dem Dach (nach Luftbild geschätzt), Fensterhöhen außer den bemaßten, Wanddicken im Dachausbau einheitlich 12,5 cm, Lage von Pool, Carport und Gartenelementen nach Luftbild, Zaun 15 cm innerhalb der Grenzlinie, Hecke 40 cm tief, Spritzschutzstreifen 40 cm breit, Maße und Lage von Spielturm, Schaukel und Trampolin nach Fotos und Luftbild geschätzt, Sträucher an der Ostseite nach Satellitenbild (Größen und Verteilung angenommen). Die Flächen der Räume im Dachausbau sind Grundflächen zwischen den Kniewänden; die Wohnfläche steht im eigenen Abschnitt (Raumhöhe unter der Dachschräge = Dachhaut minus 22 cm Sparren, 3 % Putzabzug auf die Rohbaumaße). Die Wand von Pias Zimmer zur Treppe ist gegenüber dem Dachausbauplan um etwa 14 cm in den Raum gerückt, damit Treppe (90 cm), Geländer (15 cm) und Nische (54 cm) zwischen die Wände passen.</p>
     </section>
   </div>
   <div id="fallback" hidden><p>Der Browser kann das 3D-Modell nicht darstellen (WebGL fehlt).</p></div>
@@ -252,6 +258,7 @@ var PRUEFMASSE = /*PRUEFMASSE*/;
 /*RAEUME*/
 /*DACH*/
 /*TREPPE*/
+/*WOHNFLAECHE*/
 /*PRUEFEN*/
 /*GRUNDRISS*/
 /*SCHNITT*/

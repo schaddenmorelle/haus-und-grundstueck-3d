@@ -231,7 +231,7 @@ function xmlOk(svg) { // Tags sind ausgeglichen (kleiner Prüfer, genügt für s
   // docs/plaene/*.svg wird vom Build geschrieben; hier nur der Hinweis, wenn sie nicht mehr zur Quelle passen
   ['EG', 'DG'].forEach(g => {
     const f = path.join(__dirname, '..', 'docs', 'plaene', 'grundriss-' + g.toLowerCase() + '.svg');
-    if (fs.existsSync(f) && fs.readFileSync(f, 'utf8').trimEnd() !== grundrissSvg(g === 'EG' ? eg : dg, { standalone: true, schnittlinien: schnittLinien(A.h, A.WV) })) console.log('Hinweis: docs/plaene/grundriss-' + g.toLowerCase() + '.svg ist nicht aktuell (npm run build)');
+    if (fs.existsSync(f) && fs.readFileSync(f, 'utf8').trimEnd() !== grundrissSvg(g === 'EG' ? eg : dg, { standalone: true, schnittlinien: schnittLinien(A.h, A.WV), zonen: g === 'DG' })) console.log('Hinweis: docs/plaene/grundriss-' + g.toLowerCase() + '.svg ist nicht aktuell (npm run build)');
   });
 }
 
@@ -248,6 +248,20 @@ function xmlOk(svg) { // Tags sind ausgeglichen (kleiner Prüfer, genügt für s
   check(!/data-schnitt/.test(svgEG), 'SVG ohne Schnittlinien zeichnet keine');
   const vb = s => s.match(/viewBox="([^"]+)"/)[1].split(' ').map(Number);
   check(vb(mit)[0] + vb(mit)[2] >= 13350, 'Die Schnittlinie liegt im sichtbaren Ausschnitt: viewBox ' + vb(mit));
+}
+
+/* ---------- Höhenzonen im Dachgeschoss (Phase 7): Bereiche mit 1–2 m und unter 1 m Raumhöhe, für die Wohnfläche ---------- */
+{
+  const { wohnflaecheAbleiten } = require('../src/wohnflaeche.js');
+  const dgp = plan('DG'), egp = plan('EG'), w = wohnflaecheAbleiten(A.h, A.WV, A.abl, A.dach, null), flaeche = mp => mp.reduce((a, p) => a + p.reduce((b, r, i) => { let t = 0; for (let k = 0; k < r.length - 1; k++) t += r[k][0] * r[k + 1][1] - r[k + 1][0] * r[k][1]; return b + (i ? -1 : 1) * Math.abs(t) / 2; }, 0), 0);
+  const halb = w.raeume.filter(r => r.geschoss === 'DG').reduce((a, r) => a + r.zonen.halb, 0);
+  check(dgp.zonen && Math.abs(flaeche(dgp.zonen.halb) - halb) < 2, 'DG: Zone 1–2 m im Plan hat ' + (dgp.zonen && flaeche(dgp.zonen.halb)) + ' mm², die Wohnfläche rechnet ' + halb);
+  check(egp.zonen == null, 'EG hat keine Höhenzonen (lichte Höhe überall gleich)');
+  const mit = grundrissSvg(dgp, { standalone: true, zonen: true }), ohne = grundrissSvg(dgp, { standalone: true });
+  check(/class="hoehenzonen"/.test(mit) && /class="zone-halb"/.test(mit), 'SVG mit zonen: true zeichnet die Höhenzonen');
+  check(!/class="hoehenzonen"/.test(ohne), 'SVG ohne Option zeichnet sie nicht');
+  check(!/NaN|undefined/.test(mit), 'SVG mit Höhenzonen ohne NaN');
+  check(!/class="hoehenzonen"/.test(grundrissSvg(egp, { standalone: true, zonen: true })), 'im EG gibt es nichts zu zeichnen');
 }
 
 if (fails.length) { console.log('FEHLER:\n  ' + fails.join('\n  ')); process.exit(1); }

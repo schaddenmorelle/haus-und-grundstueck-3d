@@ -5,7 +5,7 @@
    aufgelöst mit werteAufloesen() aus src/werte.js. Die Räume leitet raeumeAbleiten() aus den Wänden ab (src/raeume.js), die Dachhöhe
    dachAbleiten() (src/dach.js), die Prüfregeln pruefen() (src/pruefen.js) liefern die Befunde. Außenanlagen, Gelände und Ausstattung
    stehen noch als Zahlen in diesem Code. */
-if (typeof require !== 'undefined') { var werteAufloesen = require('./werte.js').werteAufloesen, wandLinie = require('./raeume.js').wandLinie, raeumeAbleiten = require('./raeume.js').raeumeAbleiten, dachAbleiten = require('./dach.js').dachAbleiten, treppeAbleiten = require('./treppe.js').treppeAbleiten, pruefen = require('./pruefen.js').pruefen; }
+if (typeof require !== 'undefined') { var werteAufloesen = require('./werte.js').werteAufloesen, wandLinie = require('./raeume.js').wandLinie, raeumeAbleiten = require('./raeume.js').raeumeAbleiten, dachAbleiten = require('./dach.js').dachAbleiten, treppeAbleiten = require('./treppe.js').treppeAbleiten, wohnflaecheAbleiten = require('./wohnflaeche.js').wohnflaecheAbleiten, pruefen = require('./pruefen.js').pruefen; }
 function buildModel(THREE, haus) {
   if (!haus) throw new Error('buildModel: Hausdaten (src/data/haus.json) fehlen');
   var WV = werteAufloesen(haus);
@@ -358,6 +358,7 @@ function buildModel(THREE, haus) {
   })();
 
   var ABL = raeumeAbleiten(haus, WV), DACH = dachAbleiten(haus, WV), BEFUNDE = pruefen(haus, WV, ABL, DACH); // Räume, Dachhöhe und Prüfbefunde aus den Daten
+  var WOHNFL = wohnflaecheAbleiten(haus, WV, ABL, DACH, haus.treppe && haus.treppe.steigungen && haus.treppe.anker ? treppeAbleiten(haus, WV) : null);
   var HW = axM('x.O') - axM('x.W'), HD = axM('z.S') - axM('z.N'), XL = axM('x.V') - axM('x.W'), ZU = axM('z.U') - axM('z.N');
   function P(x, z) { return [F.x0 + x, F.z0 + z]; }
   var ZS = axM('z.ZS');                                 // Nordseite Wand Nähzimmer / Speisekammer (Anker der Treppe)
@@ -1286,7 +1287,7 @@ function buildModel(THREE, haus) {
     root: root, groups: { house: gHouse, inner: gInner, dg: gDG, rafters: gRaf, deck: gDeck, roof: gRoof, garden: gGarden, terrain: gTerrain, marks: gMarks },
     terrain: root.userData.terrain, pickables: pickables, tags: tags, rooms: roomsOut, zones: zones, info: info,
     groundY: groundY, pflasterE: pflasterE, bounds: BOUNDS, north: NORTH, H: H, datum: DATUM, levels: { eg: yF, dg: yD }, sunDir: sunDir, roofH: roofH,
-    befunde: BEFUNDE, abgeleitet: ABL, dach: DACH, toWorld: P
+    befunde: BEFUNDE, abgeleitet: ABL, dach: DACH, wohnflaeche: WOHNFL, toWorld: P
   };
 }
 if (typeof module !== 'undefined') module.exports = { buildModel: buildModel };

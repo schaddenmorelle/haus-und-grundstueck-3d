@@ -15,7 +15,7 @@ const dir = path.join(__dirname, '..', 'docs', 'plaene');
 fs.mkdirSync(dir, { recursive: true });
 ['EG', 'DG'].forEach(g => {
   const f = path.join(dir, 'grundriss-' + g.toLowerCase() + '.svg');
-  fs.writeFileSync(f, grundrissSvg(grundrissAbleiten(haus, WV, abl, dach, befunde, g), { standalone: true, schnittlinien: schnittLinien(haus, WV) }) + '\n');
+  fs.writeFileSync(f, grundrissSvg(grundrissAbleiten(haus, WV, abl, dach, befunde, g), { standalone: true, schnittlinien: schnittLinien(haus, WV), zonen: g === 'DG' }) + '\n');
   console.log('geschrieben: ' + path.relative(process.cwd(), f));
 });
 schnittLinien(haus, WV).forEach(l => {
