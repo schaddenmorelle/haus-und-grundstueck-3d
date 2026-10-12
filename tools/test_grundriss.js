@@ -53,6 +53,45 @@ const plan = g => grundrissAbleiten(A.h, A.WV, A.abl, A.dach, A.befunde, g);
   check(k1.segmente[2].name === 'wand:eg.eltern-har', 'Maßname der Wand: ' + k1.segmente[2].name);
 }
 
+/* ---------- Markierung beim Anklicken eines Maßes (bereiche) ----------
+   Wandmaß: die ganze Wand, Pfeiler: das Wandstück zwischen den Öffnungen, Öffnung: der Ausschnitt, Gesamtmaß: die Außenwände dazwischen.
+   Sollwerte aus dem gedruckten Plan (Achsen und Wanddicken), nicht aus dem Modell. */
+{
+  const bb = r => { const x = r.map(p => p[0]), z = r.map(p => p[1]); return [Math.min(...x), Math.min(...z), Math.max(...x), Math.max(...z)]; };
+  const segs = g => plan(g).ketten.reduce((a, k) => a.concat(k.segmente.map(s => ({ s, k }))), []);
+  const finde = (g, name) => (segs(g).filter(x => x.s.name === name)[0] || {}).s;
+  // Wand Speisekammer / Küche: Nordseite bei 11,02 m (Plan), 17,5 cm dick, von der Wand zum Nähzimmer (9,005) bis zur Innenseite Ostwand (12,565)
+  const w = finde('EG', 'wand:eg.speis-kueche');
+  check(w && w.bereiche && w.bereiche.length === 1 && w.bereiche[0].id === 'eg.speis-kueche' && gleich(bb(w.bereiche[0].ring), [9005, 11020, 12565, 11195]), 'Wandmaß markiert die ganze Wand: ' + JSON.stringify(w && w.bereiche && w.bereiche.map(b => [b.id, bb(b.ring)])));
+  // Pfeiler der Südwand: West-Ecke bis Terrassentür (3,5 bis 3,885 m) und Tür bis Ost-Ecke (6,895 bis 12,95 m); Wand 38,5 cm, Außenkante 14,655 m
+  const p1 = finde('EG', 'eg.aw.sued.pfeiler1'), p2 = finde('EG', 'eg.aw.sued.pfeiler2');
+  check(p1 && p1.bereiche && p1.bereiche.length === 1 && gleich(bb(p1.bereiche[0].ring), [3500, 14270, 3885, 14655]), 'Pfeiler 1 markiert nur sein Wandstück: ' + JSON.stringify(p1 && p1.bereiche && p1.bereiche.map(b => bb(b.ring))));
+  check(p2 && p2.bereiche && gleich(bb(p2.bereiche[0].ring), [6895, 14270, 12950, 14655]), 'Pfeiler 2 markiert nur sein Wandstück');
+  // Öffnung: der Ausschnitt (Terrassentür 3,885 bis 6,895 m)
+  const o = finde('EG', 'eg.aw.sued.oeff1');
+  check(o && o.bereiche && o.bereiche.length === 1 && gleich(bb(o.bereiche[0].ring), [3885, 14270, 6895, 14655]), 'Öffnung markiert den Ausschnitt: ' + JSON.stringify(o && o.bereiche && o.bereiche.map(b => bb(b.ring))));
+  // Gesamtmaße: die Außenwände zwischen den Endpunkten
+  const ids = s => (s.bereiche || []).map(b => b.id).sort().join();
+  const eg = plan('EG');
+  const gN = eg.ketten.filter(k => k.typ === 'gesamt' && k.seite === 'N')[0].segmente, gS = eg.ketten.filter(k => k.typ === 'gesamt' && k.seite === 'S')[0].segmente;
+  const gW = eg.ketten.filter(k => k.typ === 'gesamt' && k.seite === 'W')[0].segmente, gO = eg.ketten.filter(k => k.typ === 'gesamt' && k.seite === 'O')[0].segmente;
+  check(ids(gN[0]) === 'eg.aw.nord', 'Gesamtmaß Nord markiert die Nordwand: ' + ids(gN[0]));
+  check(ids(gO[0]) === 'eg.aw.ost', 'Gesamtmaß Ost markiert die Ostwand: ' + ids(gO[0]));
+  check(ids(gS[0]) === 'eg.aw.sued-west' && ids(gS[1]) === 'eg.aw.sued', 'Gesamtmaß Süd (3,5 | 9,45): ' + ids(gS[0]) + ' | ' + ids(gS[1]));
+  check(ids(gW[0]) === 'eg.aw.west' && ids(gW[1]) === 'eg.aw.west-wohnen', 'Gesamtmaß West (6,78 | 7,875): ' + ids(gW[0]) + ' | ' + ids(gW[1]));
+  // Raummaße behalten die rote Linie über die Schnittlinie und markieren keine Wand
+  const r = segs('EG').filter(x => x.s.art === 'raum')[0].s;
+  check(!r.bereiche || r.bereiche.length === 0, 'Raummaß markiert keine Wand: ' + JSON.stringify(r.bereiche));
+  // Im DG: Gesamtmaß Nord liegt auf der Nord-Kniewand
+  const dgN = plan('DG').ketten.filter(k => k.typ === 'gesamt' && k.seite === 'N')[0].segmente[0];
+  check(ids(dgN) === 'dg.kniewand-nord', 'DG Gesamtmaß Nord markiert die Nord-Kniewand: ' + ids(dgN));
+  // Beschriftungen an den Öffnungen sind anklickbar und tragen den Namen der Öffnung (auch an Innenwänden, die keine Maßkette haben)
+  const svg = grundrissSvg(plan('EG'), {});
+  const hits = (svg.match(/<(?:path|rect) class="hit"[^>]*data-art="oeffnung"[^>]*>/g) || []);
+  check(plan('EG').oeffnungen.every(op => hits.some(h => h.indexOf('data-name="' + op.name + '"') >= 0 && /data-wert="[\d.]+"/.test(h))), 'Jede Öffnung hat ein anklickbares Ziel mit Namen und Wert: ' + hits.length + ' Ziele für ' + plan('EG').oeffnungen.length + ' Öffnungen');
+  check(grundrissSvg(plan('EG'), { oeffnungen: false }).indexOf('data-art="oeffnung"') >= 0, 'Öffnungsmaße der Ketten bleiben klickbar, auch wenn die Beschriftungen aus sind');
+}
+
 /* ---------- Herkunft und gesperrte Maße ---------- */
 {
   // HAR 2,95 m tief: Maß aus dem Aufmaß (z.harSi = z.Ni + 2950, quelle aufmass); die Außenwanddicke hebt sich in der Differenz auf

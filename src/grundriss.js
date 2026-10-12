@@ -314,6 +314,43 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
   function mass(mm) { return mm >= 1000 ? zahl(mm / 1000, 3) : zahl(mm / 10, 1); } // wie im gedruckten Plan: ab 1 m in Metern, darunter in Zentimetern
   function qm(mm2) { return zahl(mm2 / 1e6, 2) + ' m²'; }
 
+  /* ---------- Markierung beim Anklicken: welche Flächen gehören zu einem Maß? ----------
+     Jedes Segment einer Kette bekommt `bereiche` = [{ id, ring }] (Ringe in mm): Wandmaß = die ganze Wand (bei zusammengefassten Wänden alle),
+     Pfeiler = das Wandstück zwischen den Öffnungen, Öffnung = der Ausschnitt, Gesamtmaß = die Außenwände zwischen den Endpunkten.
+     Raummaße haben keine Bereiche (sie zeigen die Schnittlinie). */
+  function markieren(K, g, infos, ring, ketten, oel) {
+    var kanten = huellenKanten(K, g, ring), byId = {}, opByName = {};
+    infos.forEach(function (i) { byId[i.id] = i; });
+    oel.forEach(function (o) { opByName[o.name] = o; });
+    ketten.forEach(function (k) {
+      k.segmente.forEach(function (s) {
+        var b = [], i, o;
+        if (s.art === 'wand') s.ids.forEach(function (id) { if (byId[id]) b.push({ id: id, ring: byId[id].w.ring }); });
+        else if (s.art === 'pfeiler') {
+          i = byId[s.ids[0]];
+          if (i && i.orth) {
+            var h = i.orth === 'h', c = h ? i.ln.a[1] : i.ln.a[0], d = i.ln.t / 2;
+            b.push({ id: s.name, ring: h ? [[s.von, c - d], [s.bis, c - d], [s.bis, c + d], [s.von, c + d]] : [[c - d, s.von], [c + d, s.von], [c + d, s.bis], [c - d, s.bis]] });
+          }
+        } else if (s.art === 'oeffnung') { o = opByName[s.name]; if (o) b.push({ id: s.name, ring: o.ring }); }
+        else if (s.art === 'gesamt') {
+          var horiz = k.seite === 'N' || k.seite === 'S';
+          var edges = kanten.filter(function (e) { return e.seite === k.seite && Math.min(e.bis, s.bis) - Math.max(e.von, s.von) > TOL; });
+          var aussen = edges.reduce(function (m, e) { return m == null ? e.koord : (k.seite === 'N' || k.seite === 'W' ? Math.min(m, e.koord) : Math.max(m, e.koord)); }, null);
+          edges = edges.filter(function (e) { return Math.abs(e.koord - aussen) < 0.5; }); // nur die äußerste Kante zählt (die Treppenöffnung im DG liegt dahinter)
+          infos.forEach(function (w) {
+            if (w.orth !== (horiz ? 'h' : 'v')) return;
+            var lo = horiz ? w.x0 : w.z0, hi = horiz ? w.x1 : w.z1;
+            if (Math.min(hi, s.bis) - Math.max(lo, s.von) <= TOL) return;
+            var face = k.seite === 'N' ? w.z0 : k.seite === 'S' ? w.z1 : k.seite === 'W' ? w.x0 : w.x1;
+            if (edges.some(function (e) { return Math.abs(e.koord - face) < 0.5; })) b.push({ id: w.id, ring: w.w.ring });
+          });
+        }
+        s.bereiche = b;
+      });
+    });
+  }
+
   /* ---------- Grundriss ableiten ---------- */
   function eindeutigeNamen(ketten) {
     var wert = {};
@@ -344,6 +381,8 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
     });
     ketten = ketten.concat(gesamtKetten(K, g, ring));
     eindeutigeNamen(ketten);
+    var oel = oeffnungsListe(K, g, infos);
+    markieren(K, g, infos, ring, ketten, oel);
     var waende = infos.map(function (i) { return { id: i.id, typ: i.w.wand.typ, dicke: i.ln.t, ring: i.w.ring, quelle: i.q, freiesEnde: !!i.w.wand.freiesEnde }; });
     var daemmung = [];
     infos.forEach(function (i) { // erste Schicht eines Wandtyps (z. B. Dämmung der Außenwand) liegt auf der Flucht-Seite
@@ -362,7 +401,7 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
     });
     var plan = {
       geschoss: g, grenzen: grenzen, huelle: ring, waende: waende, waendeUnion: gs.wandUnion || [], daemmung: daemmung,
-      oeffnungen: oeffnungsListe(K, g, infos), raeume: raeume, ketten: ketten,
+      oeffnungen: oel, raeume: raeume, ketten: ketten,
       trennlinien: gs.waende.filter(function (w) { return w.trennlinie; }).map(function (w) { return { id: w.id, von: w.linie.a, bis: w.linie.b }; }),
       treppe: null, treppenoeffnung: null,
       marken: (befunde || []).filter(function (b) { return b.ort && b.geschoss === g; }).map(function (b) { return { regel: b.regel, stufe: b.stufe, text: b.text, ort: b.ort, elemente: b.elemente }; })
@@ -394,7 +433,7 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
     '.plan .olabel{font-size:105px;text-anchor:middle;fill:var(--pm)}.plan .dim{font-size:' + FS + 'px}.plan .dim text{stroke:none}',
     '.plan .ql{stroke-width:14;fill:none}.plan .tick{stroke:var(--pi);stroke-width:12}.plan .ext{stroke:var(--pm);stroke-width:7;opacity:.7}.plan .leit{stroke:var(--pm);stroke-width:6}',
     '.plan .scan{stroke:var(--pm);stroke-width:6;stroke-dasharray:20 90;opacity:.35;fill:none}.plan .hit{fill:transparent;stroke:none;cursor:pointer}.plan .hit:hover{fill:color-mix(in srgb,var(--pi) 12%,transparent)}',
-    '.plan .hit.on{fill:color-mix(in srgb,var(--pe) 22%,transparent);stroke:var(--pe);stroke-width:8}.plan .hl{stroke:var(--pe);stroke-width:34;fill:none;stroke-linecap:round}',
+    '.plan .hit.on{fill:color-mix(in srgb,var(--pe) 22%,transparent);stroke:var(--pe);stroke-width:8}.plan .hl{stroke:var(--pe);stroke-width:34;fill:none;stroke-linecap:round}.plan .hlf{fill:var(--pe);fill-opacity:.4;stroke:var(--pe);stroke-width:26;stroke-linejoin:round;pointer-events:none}',
     '.plan .q-plan{fill:var(--qp);stroke:var(--qp)}.plan .q-aufmass{fill:var(--qa);stroke:var(--qa)}.plan .q-nutzer{fill:var(--qn);stroke:var(--qn)}',
     '.plan .q-annahme{fill:var(--qx);stroke:var(--qx)}.plan .q-ohne{fill:var(--qo);stroke:var(--qo)}.plan .dim text.q-plan,.plan .dim text.q-aufmass,.plan .dim text.q-nutzer,.plan .dim text.q-annahme,.plan .dim text.q-ohne{stroke:none}',
     '.plan .ql.q-annahme{stroke-dasharray:90 40}.plan .ql.q-ohne{stroke-dasharray:30 40}.plan .schloss{fill:none;stroke:var(--pi);stroke-width:14}.plan .schloss rect{fill:var(--pi)}',
@@ -470,8 +509,12 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
     }).join('');
     var oeffText = zeigeO ? plan.oeffnungen.map(function (op) {
       var vert = op.richtung === 'z', x = op.mitte[0], z = op.mitte[1];
-      if (vert) return '<text class="olabel halo" transform="rotate(-90 ' + f(x) + ' ' + f(z) + ')" x="' + f(x) + '" y="' + f(z + 35) + '">' + esc(op.beschriftung) + '</text>';
-      return '<text class="olabel halo" x="' + f(x) + '" y="' + f(z + 35) + '">' + esc(op.beschriftung) + '</text>';
+      var text = vert ? '<text class="olabel halo" transform="rotate(-90 ' + f(x) + ' ' + f(z) + ')" x="' + f(x) + '" y="' + f(z + 35) + '">' + esc(op.beschriftung) + '</text>'
+                      : '<text class="olabel halo" x="' + f(x) + '" y="' + f(z + 35) + '">' + esc(op.beschriftung) + '</text>';
+      var quer = Math.max(op.dicke, 260), bw = vert ? quer : op.breite, bh = vert ? op.breite : quer; // anklickbar: der Ausschnitt, mindestens so breit wie die Beschriftung hoch ist
+      var lo = (vert ? z : x) - op.breite / 2;
+      var attr = ' data-name="' + esc(op.name) + '" data-wert="' + f(op.breite) + '" data-quelle="' + op.quelle + '" data-fest="0" data-art="oeffnung" data-richtung="' + op.richtung + '" data-von="' + f(lo) + '" data-bis="' + f(lo + op.breite) + '"';
+      return text + '<rect class="hit"' + attr + ' x="' + f(x - bw / 2) + '" y="' + f(z - bh / 2) + '" width="' + f(bw) + '" height="' + f(bh) + '"><title>' + esc(op.name + ': ' + mass(op.breite)) + '</title></rect>';
     }).join('') : '';
 
     /* Treppe, Treppenöffnung, Trennlinien */

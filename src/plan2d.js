@@ -4,7 +4,7 @@
   'use strict';
   var shell = document.getElementById('shell'), host = document.getElementById('plan2d'), box = document.getElementById('planSvg'), info = document.getElementById('planInfo'), panel = document.getElementById('panel');
   if (!host || !box || typeof grundrissAbleiten !== 'function') return;
-  var D = null, geschoss = null, svg = null, vb = null, vb0 = null, aus = null, auswahlRaum = null;
+  var D = null, markName = null, geschoss = null, svg = null, vb = null, vb0 = null, aus = null, auswahlRaum = null;
   var probe = { an: false, liste: [], res: null, mass: null }; // Probiermodus: Änderungen auf einer Kopie der Daten, die Seite speichert nichts
   var opt = { massketten: true, raeume: true, oeffnungen: true, marken: true };
   var HERKUNFT = { plan: 'Plan', aufmass: 'Aufmaß', nutzer: 'Angabe des Nutzers', annahme: 'Annahme', ohne: 'ohne Herkunftsangabe' };
@@ -34,6 +34,10 @@
     if (neu || !vb) { vb0 = n; vb = n.slice(); }
     setVB();
     aus = null;
+    if (markName) { // gewähltes Maß nach dem Neuzeichnen (Probiermodus, Schalter) wieder hervorheben
+      var el = [].filter.call(svg.querySelectorAll('[data-name]'), function (e) { return e.getAttribute('data-name') === markName; })[0];
+      if (el) { aus = el; el.classList.add('on'); hervorheben(el); }
+    }
     if (auswahlRaum) markiereRaum(auswahlRaum);
   }
   function zeige(g, neu) {
@@ -41,7 +45,7 @@
     geschoss = g;
     layout();
     darstellen(wechsel || neu);
-    if (wechsel) { auswahlRaum = null; info.textContent = HINWEIS; }
+    if (wechsel) { auswahlRaum = null; markName = null; info.textContent = HINWEIS; }
   }
   function setModus(m) {
     var an = m !== '3d';
@@ -60,18 +64,42 @@
 
   /* ---------- Auswahl ---------- */
   function zeile(h, q) { return '<b>' + h + '</b> ' + q; }
-  function waehleMass(el) {
-    if (aus) aus.classList.remove('on');
-    [].forEach.call(svg.querySelectorAll('.hl'), function (l) { l.parentNode.removeChild(l); });
-    aus = el; el.classList.add('on');
-    var wert = Number(el.getAttribute('data-wert')), q = el.getAttribute('data-quelle'), bei = el.getAttribute('data-bei');
-    if (bei != null) { // Schnittlinie, entlang der das Maß gemessen ist
+  var SVGNS = 'http://www.w3.org/2000/svg';
+  function ringPfad(r) { return 'M' + r.map(function (p) { return Math.round(p[0] * 10) / 10 + ' ' + Math.round(p[1] * 10) / 10; }).join('L') + 'Z'; }
+  function bereicheVon(el) { // Flächen, die zu einem Maß gehören (src/grundriss.js, markieren): Wand, Pfeiler, Ausschnitt, Außenwände
+    var name = el.getAttribute('data-name'), art = el.getAttribute('data-art'), p = plan(geschoss), out = [];
+    if (art === 'oeffnung') { p.oeffnungen.forEach(function (o) { if (o.name === name) out.push(o.ring); }); return out; }
+    var von = Number(el.getAttribute('data-von')), bis = Number(el.getAttribute('data-bis')), ri = el.getAttribute('data-richtung');
+    p.ketten.forEach(function (k) {
+      if (out.length || k.richtung !== ri) return;
+      k.segmente.forEach(function (s) {
+        if (!out.length && s.name === name && Math.abs(s.von - von) < 1 && Math.abs(s.bis - bis) < 1) (s.bereiche || []).forEach(function (b) { out.push(b.ring); });
+      });
+    });
+    return out;
+  }
+  function hervorheben(el) { // Raummaß: rote Linie über die Schnittlinie; alles andere: die zugehörige Fläche im Plan rot
+    [].forEach.call(svg.querySelectorAll('.hl, .hlf'), function (l) { l.parentNode.removeChild(l); });
+    var bei = el.getAttribute('data-bei'), art = el.getAttribute('data-art');
+    if (bei != null && art === 'raum') { // Schnittlinie, entlang der das Maß gemessen ist
       var von = Number(el.getAttribute('data-von')), bis = Number(el.getAttribute('data-bis')), b = Number(bei), h = el.getAttribute('data-richtung') === 'x';
-      var l = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      var l = document.createElementNS(SVGNS, 'line');
       l.setAttribute('class', 'hl');
       l.setAttribute('x1', h ? von : b); l.setAttribute('y1', h ? b : von); l.setAttribute('x2', h ? bis : b); l.setAttribute('y2', h ? b : bis);
       svg.appendChild(l);
     }
+    bereicheVon(el).forEach(function (r) {
+      var pf = document.createElementNS(SVGNS, 'path');
+      pf.setAttribute('class', 'hlf'); pf.setAttribute('d', ringPfad(r));
+      svg.appendChild(pf);
+    });
+  }
+  function waehleMass(el) {
+    if (aus) aus.classList.remove('on');
+    aus = el; el.classList.add('on');
+    markName = el.getAttribute('data-name');
+    hervorheben(el);
+    var wert = Number(el.getAttribute('data-wert')), q = el.getAttribute('data-quelle');
     probeMass(el);
     info.textContent = el.getAttribute('data-name') + ' · ' + mass(wert) + ' (' + fmt(wert, wert % 1 ? 1 : 0) + ' mm) · Herkunft: ' + HERKUNFT[q] +
       (el.getAttribute('data-fest') === '1' ? ' · gesperrt (Außenmaß)' : '') + (el.getAttribute('data-schraeg') ? ' · schräg gemessen' : '');
