@@ -62,6 +62,8 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
 #plan2d svg.plan{width:100%;height:100%;display:block;user-select:none;-webkit-user-select:none}
 #planTools{position:absolute;right:12px;top:12px;z-index:3;display:flex;gap:6px}
 #planTools .btn{width:40px;height:40px;font-size:18px;padding:0;background:var(--panel);box-shadow:var(--shadow)}
+#pm3d{position:absolute;left:376px;bottom:12px;z-index:3;margin:0;max-width:calc(100% - 392px);padding:6px 12px;border:1px solid var(--red);border-radius:6px;background:var(--panel);color:var(--ink);font-size:13px;box-shadow:var(--shadow)}
+#pm3d[hidden]{display:none}
 #planInfo{position:absolute;left:0;right:0;bottom:0;z-index:3;margin:0;padding:8px 14px;min-height:38px;background:color-mix(in srgb,var(--panel) 92%,transparent);border-top:1px solid var(--rule);font-size:13px;font-variant-numeric:tabular-nums;pointer-events:none}
 .modus2d #fallback{display:none}
 .modus2d #gl,.modus2d #tags,.modus2d #hud,.modus2d #measTag{display:none}
@@ -87,6 +89,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
  #togglePanel{left:8px;top:8px}
  #hud{right:8px;top:8px}
  #planTools{right:8px;top:8px}
+ #pm3d{left:8px;right:8px;bottom:auto;top:56px;max-width:none}
  #planInfo{bottom:auto;top:0;padding:8px 120px 8px 100px;min-height:56px}
 }
 </style>
@@ -99,6 +102,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
       <div id="planTools"><button id="planPlus" class="btn" type="button" aria-label="Vergrößern">+</button><button id="planMinus" class="btn" type="button" aria-label="Verkleinern">−</button><button id="planFit" class="btn" type="button" aria-label="Ganzer Plan">⤢</button></div>
       <p id="planInfo" aria-live="polite"></p>
     </div>
+    <p id="pm3d" aria-live="polite" hidden></p>
     <div id="hud">
       <svg viewBox="0 0 60 60" role="img" aria-label="Kompass"><circle cx="30" cy="30" r="26" fill="none" stroke="currentColor" stroke-opacity=".25"/><g id="needle"><polygon points="30,7 35,31 25,31" fill="#c8321e"/><polygon points="30,53 35,31 25,31" fill="#8a8f96"/></g><text x="30" y="19" font-size="9" text-anchor="middle" fill="currentColor" style="display:none">N</text></svg>
     </div>
@@ -117,7 +121,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
     <section class="nur2d" id="probe"><h2>Probiermodus</h2>
       <label class="chk"><input id="pm-an" type="checkbox">Maße ausprobieren</label>
       <div id="pm-box" hidden>
-        <p class="note">Ein Maß im Grundriss anklicken und den neuen Wert mit Einheit eingeben (1,30m, 12,5cm, 885mm). Der Nachbarraum gibt nach, gesperrte Außenmaße bleiben stehen. Die Seite speichert nichts: Die Änderungsliste wird exportiert und im Repository mit <b>node tools/aendern.js --liste</b> geprüft und eingespielt. Das 3D-Modell zeigt weiter den eingecheckten Stand.</p>
+        <p class="note">Ein Maß im Grundriss anklicken und den neuen Wert mit Einheit eingeben (1,30m, 12,5cm, 885mm). Der Nachbarraum gibt nach, gesperrte Außenmaße bleiben stehen. Die Seite speichert nichts: Die Änderungsliste wird exportiert und im Repository mit <b>node tools/aendern.js --liste</b> geprüft und eingespielt. Beim Wechsel zu 3D wird das Haus mit den geänderten Daten neu aufgebaut.</p>
         <p id="pm-mass" class="note" aria-live="polite">Kein Maß gewählt.</p>
         <div class="pm-zeile"><input id="pm-wert" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="z. B. 1,30m" aria-label="Neuer Wert mit Einheit"><button id="pm-ok" class="btn" type="button">Anwenden</button></div>
         <label class="chk" id="pm-einzeln-l" hidden><input id="pm-einzeln" type="checkbox">Nur diese Wand (statt des Wandtyps)</label>

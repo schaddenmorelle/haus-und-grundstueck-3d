@@ -48,7 +48,7 @@
   new MutationObserver(applyTheme).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
 
   /* ---------- Bodentextur aus den Planflächen ---------- */
-  (function paint() {
+  function paintTerrain() {
     var B = model.bounds, ppm = 36, W = Math.round((B.x1 - B.x0) * ppm), Hh = Math.round((B.z1 - B.z0) * ppm);
     var cv = document.createElement('canvas'); cv.width = W; cv.height = Hh;
     var c = cv.getContext('2d'), Z = model.zones;
@@ -97,7 +97,8 @@
     model.terrain.material.map = tex;
     model.terrain.material.color.set(0xffffff);
     model.terrain.material.needsUpdate = true;
-  })();
+  }
+  paintTerrain();
 
   /* ---------- Kamera ---------- */
   var camera = new THREE.PerspectiveCamera(42, 1, 0.2, 700);
@@ -198,14 +199,18 @@
 
   /* ---------- Räume ---------- */
   var list = document.getElementById('rooms'), selected = null;
-  model.rooms.forEach(function (r) {
-    var li = document.createElement('li'), btn = document.createElement('button');
-    btn.type = 'button'; btn.dataset.id = r.id;
-    var n = document.createElement('span'); n.textContent = r.name;
-    var a = document.createElement('span'); a.className = 'num'; a.textContent = fmt(r.area, 1) + ' m²';
-    btn.appendChild(n); btn.appendChild(a); li.appendChild(btn); list.appendChild(li);
-    btn.addEventListener('click', function () { selectRoom(selected === r.id ? null : r.id, true); });
-  });
+  function baueRaumliste() {
+    list.innerHTML = ''; selected = null;
+    model.rooms.forEach(function (r) {
+      var li = document.createElement('li'), btn = document.createElement('button');
+      btn.type = 'button'; btn.dataset.id = r.id;
+      var n = document.createElement('span'); n.textContent = r.name;
+      var a = document.createElement('span'); a.className = 'num'; a.textContent = fmt(r.area, 1) + ' m²';
+      btn.appendChild(n); btn.appendChild(a); li.appendChild(btn); list.appendChild(li);
+      btn.addEventListener('click', function () { selectRoom(selected === r.id ? null : r.id, true); });
+    });
+  }
+  baueRaumliste();
   function selectRoom(id, fly) {
     if (id && window.__plan2d && window.__plan2d.aktiv()) { selected = id; window.__plan2d.zeigeRaum(id); return; } // im Grundriss: Raum dort auswählen
     selected = id;
@@ -226,41 +231,50 @@
 
   /* ---------- Prüfung (Befunde aus src/pruefen.js) ---------- */
   var befList = document.getElementById('befunde'), befSumme = document.getElementById('befundSumme');
-  var STUFE = { fehler: 'Fehler', warnung: 'Warnung', hinweis: 'Hinweis' }, zaehl = { fehler: 0, warnung: 0, hinweis: 0 };
-  model.befunde.forEach(function (b) {
-    zaehl[b.stufe]++;
-    var li = document.createElement('li'), btn = document.createElement('button');
-    btn.type = 'button'; btn.className = 'bef ' + b.stufe;
-    var k = document.createElement('b'); k.textContent = STUFE[b.stufe] + ' · Regel ' + b.regel;
-    var t = document.createElement('span'); t.textContent = b.text;
-    btn.appendChild(k); btn.appendChild(t); li.appendChild(btn); befList.appendChild(li);
-    btn.disabled = !b.ort;
-    btn.addEventListener('click', function () {
-      if (!b.ort) return;
-      if (window.__plan2d && window.__plan2d.aktiv()) { window.__plan2d.zeigeBefund(b); return; }
-      var q = model.toWorld(b.ort[0] / 1000, b.ort[1] / 1000), dg = b.geschoss === 'DG', y = dg ? model.levels.dg : model.levels.eg;
-      state.roof = false; state.rafters = false; state.rooms = true; state.dg = dg; applyState();
-      viewBtns.forEach(function (v) { v.classList.remove('on'); v.setAttribute('aria-pressed', 'false'); });
-      flyTo([q[0] - 3, y + 6, q[1] + 5], [q[0], y, q[1]], 800);
-    });
-  });
+  var STUFE = { fehler: 'Fehler', warnung: 'Warnung', hinweis: 'Hinweis' };
   function anz(n, eins, viele) { return n + ' ' + (n === 1 ? eins : viele); }
-  befSumme.textContent = model.befunde.length ? anz(zaehl.fehler, 'Fehler', 'Fehler') + ', ' + anz(zaehl.warnung, 'Warnung', 'Warnungen') + ', ' + anz(zaehl.hinweis, 'Hinweis', 'Hinweise') : 'Keine Befunde: Wände, Räume, Öffnungen, Höhen und Dachausbau sind stimmig.';
+  function baueBefunde() {
+    var zaehl = { fehler: 0, warnung: 0, hinweis: 0 };
+    befList.innerHTML = '';
+    model.befunde.forEach(function (b) {
+      zaehl[b.stufe]++;
+      var li = document.createElement('li'), btn = document.createElement('button');
+      btn.type = 'button'; btn.className = 'bef ' + b.stufe;
+      var k = document.createElement('b'); k.textContent = STUFE[b.stufe] + ' · Regel ' + b.regel;
+      var t = document.createElement('span'); t.textContent = b.text;
+      btn.appendChild(k); btn.appendChild(t); li.appendChild(btn); befList.appendChild(li);
+      btn.disabled = !b.ort;
+      btn.addEventListener('click', function () {
+        if (!b.ort) return;
+        if (window.__plan2d && window.__plan2d.aktiv()) { window.__plan2d.zeigeBefund(b); return; }
+        var q = model.toWorld(b.ort[0] / 1000, b.ort[1] / 1000), dg = b.geschoss === 'DG', y = dg ? model.levels.dg : model.levels.eg;
+        state.roof = false; state.rafters = false; state.rooms = true; state.dg = dg; applyState();
+        viewBtns.forEach(function (v) { v.classList.remove('on'); v.setAttribute('aria-pressed', 'false'); });
+        flyTo([q[0] - 3, y + 6, q[1] + 5], [q[0], y, q[1]], 800);
+      });
+    });
+    befSumme.textContent = model.befunde.length ? anz(zaehl.fehler, 'Fehler', 'Fehler') + ', ' + anz(zaehl.warnung, 'Warnung', 'Warnungen') + ', ' + anz(zaehl.hinweis, 'Hinweis', 'Hinweise') : 'Keine Befunde: Wände, Räume, Öffnungen, Höhen und Dachausbau sind stimmig.';
+  }
+  baueBefunde();
 
   /* ---------- Beschriftungen ---------- */
   var tagBox = document.getElementById('tags'), tagEls = [];
-  model.tags.forEach(function (t) {
-    var d = document.createElement('div');
-    d.className = 'tag ' + t.kind;
-    if (t.kind === 'room') {
-      var b = document.createElement('b'); b.textContent = t.name;
-      var s = document.createElement('span'); s.textContent = fmt(t.area, 1) + ' m²';
-      d.appendChild(b); d.appendChild(s);
-    } else d.textContent = t.text;
-    d.style.display = 'none';
-    tagBox.appendChild(d);
-    tagEls.push({ el: d, t: t, v: new THREE.Vector3(t.pos[0], t.pos[1], t.pos[2]) });
-  });
+  function baueTags() {
+    tagBox.innerHTML = ''; tagEls = [];
+    model.tags.forEach(function (t) {
+      var d = document.createElement('div');
+      d.className = 'tag ' + t.kind;
+      if (t.kind === 'room') {
+        var b = document.createElement('b'); b.textContent = t.name;
+        var s = document.createElement('span'); s.textContent = fmt(t.area, 1) + ' m²';
+        d.appendChild(b); d.appendChild(s);
+      } else d.textContent = t.text;
+      d.style.display = 'none';
+      tagBox.appendChild(d);
+      tagEls.push({ el: d, t: t, v: new THREE.Vector3(t.pos[0], t.pos[1], t.pos[2]) });
+    });
+  }
+  baueTags();
   var tmp = new THREE.Vector3();
   function updateTags() {
     var w = app.clientWidth, h = app.clientHeight;
@@ -336,15 +350,38 @@
   });
 
   /* ---------- Kennzahlen ---------- */
-  var I = model.info;
-  document.getElementById('k-plot').textContent = fmt(I.plotArea, 0) + ' m²';
-  document.getElementById('k-foot').textContent = fmt(I.footArea, 0) + ' m²';
-  document.getElementById('k-ridge').textContent = fmt(model.H.RIDGE, 2) + ' m (+' + fmt(I.ridgeAbove, 2) + ' m)';
-  document.getElementById('k-eave').textContent = fmt(model.H.EAVE, 2) + ' m (+' + fmt(I.eaveAbove, 2) + ' m)';
-  document.getElementById('k-pitch').textContent = fmt(I.pitchDeg, 1) + '°';
+  function setzeKennzahlen() {
+    var I = model.info;
+    document.getElementById('k-plot').textContent = fmt(I.plotArea, 0) + ' m²';
+    document.getElementById('k-foot').textContent = fmt(I.footArea, 0) + ' m²';
+    document.getElementById('k-ridge').textContent = fmt(model.H.RIDGE, 2) + ' m (+' + fmt(I.ridgeAbove, 2) + ' m)';
+    document.getElementById('k-eave').textContent = fmt(model.H.EAVE, 2) + ' m (+' + fmt(I.eaveAbove, 2) + ' m)';
+    document.getElementById('k-pitch').textContent = fmt(I.pitchDeg, 1) + '°';
+  }
+  setzeKennzahlen();
+
+  /* ---------- Neuaufbau mit geänderten Daten (Probiermodus) ----------
+     Das Modell entsteht komplett neu (Gelände und Außenanlagen hängen an derselben Berechnung); die alten Geometrien, Materialien und Texturen
+     werden freigegeben, Ebenen, Kamera und Sonne bleiben. Aufgerufen vom Grundriss (src/plan2d.js), wenn zu 3D zurückgeschaltet wird. */
+  function freeModel(root) {
+    root.traverse(function (o) {
+      if (o.geometry) o.geometry.dispose();
+      var m = o.material;
+      if (m) (Array.isArray(m) ? m : [m]).forEach(function (x) { if (x.map) x.map.dispose(); x.dispose(); });
+    });
+  }
+  var gebaut = HAUS;
+  function neuAufbauen(haus) {
+    var t0 = performance.now(), neu = buildModel(THREE, haus); // wirft bei unbrauchbaren Daten, das alte Modell bleibt dann stehen
+    selectRoom(null); clearMeasure();
+    scene.remove(model.root); freeModel(model.root);
+    model = neu; scene.add(model.root); gebaut = haus;
+    paintTerrain(); applyState(); baueRaumliste(); baueBefunde(); baueTags(); setzeKennzahlen();
+    return performance.now() - t0;
+  }
 
   /* ---------- Schleife ---------- */
-  window.__m3d = { camera: camera, controls: controls };
+  window.__m3d = { camera: camera, controls: controls, neuAufbauen: neuAufbauen, haus: function () { return gebaut; }, modell: function () { return model; }, speicher: function () { return renderer.info.memory; } };
   setView('sw', 0);
   var shell = document.getElementById('shell');
   function frame(now) {

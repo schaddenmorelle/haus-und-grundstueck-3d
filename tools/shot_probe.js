@@ -29,6 +29,16 @@ const G = (process.argv[2] || 'EG').toUpperCase(), paare = process.argv.slice(3)
   if (!(await pg.getAttribute('#pm-aus', 'hidden') !== null)) console.log('Auswirkungen:\n' + (await pg.textContent('#pm-aus')));
   if (process.env.EXPORT) { await pg.click('#pm-export'); fs.writeFileSync(process.env.EXPORT, await pg.inputValue('#pm-text')); console.log('Export: ' + process.env.EXPORT); }
   await pg.screenshot({ path: (process.env.OUT || '.') + '/probe_' + G + '.png' });
+  if (process.env.VIEW3D) { // zurück in 3D: das Modell wird mit den geänderten Daten neu aufgebaut
+    const vor = await pg.evaluate(() => { const m = window.__m3d.speicher(); return { geometrien: m.geometries, texturen: m.textures }; });
+    await pg.evaluate(() => document.querySelector('[data-modus="3d"]').click());
+    await pg.waitForTimeout(1500);
+    await pg.evaluate(() => document.querySelector('[data-view="inside"]').click());
+    await pg.waitForTimeout(1500);
+    const nach = await pg.evaluate(() => { const m = window.__m3d.speicher(); return { geometrien: m.geometries, texturen: m.textures, raeume: [].map.call(document.querySelectorAll('#rooms button'), b => b.textContent), banner: document.getElementById('pm3d').hidden ? '' : document.getElementById('pm3d').textContent, befunde: document.getElementById('befundSumme').textContent }; });
+    console.log('3D vor dem Neuaufbau: ' + JSON.stringify(vor) + '\n3D danach: ' + JSON.stringify(nach));
+    await pg.screenshot({ path: (process.env.OUT || '.') + '/probe3d_' + G + '.png' });
+  }
   console.log(errs.join('\n') || 'no page errors');
   await b.close();
 })();

@@ -53,6 +53,17 @@
     shell.classList.toggle('modus2d', an);
     modusBtns.forEach(function (b) { var on = b.getAttribute('data-modus') === m; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
     if (an) { daten(); zeige(m, false); if (!info.textContent) info.textContent = HINWEIS; }
+    else probe3d();
+  }
+  /* Zurück in 3D: Stimmt das Modell nicht mit den Daten des Probiermodus überein, wird es neu aufgebaut (src/app.js, neuAufbauen) */
+  function probe3d() {
+    var b = document.getElementById('pm3d'), m3 = window.__m3d, h = aktuellesHaus();
+    if (!b || !m3 || !m3.neuAufbauen) return;
+    b.hidden = true;
+    if (m3.haus() !== h) {
+      try { m3.neuAufbauen(h); } catch (e) { b.textContent = '3D-Modell konnte mit den geänderten Daten nicht aufgebaut werden (' + e.message + '); es zeigt den vorigen Stand.'; b.hidden = false; return; }
+    }
+    if (h !== HAUS) { b.textContent = 'Probiermodus: Das 3D-Modell zeigt den geänderten Stand (' + probe.liste.length + (probe.liste.length === 1 ? ' Änderung' : ' Änderungen') + '), nicht den eingecheckten.'; b.hidden = false; }
   }
   modusBtns.forEach(function (b) { b.addEventListener('click', function () { setModus(b.getAttribute('data-modus')); }); });
   Object.keys(boxen).forEach(function (k) {

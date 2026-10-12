@@ -19,8 +19,6 @@ Die Arbeitsliste dieses Projekts, **von Anfang an** geführt und nicht nachträg
 
 <!-- Beschlossen und begründet, aber noch nicht angefangen. -->
 
-- [ ] 3D im Probiermodus (Plan Abschnitt 9, „Phase 4 umgesetzt“): Wird im Grundriss ein Maß geändert, zeigt die 3D-Ansicht noch den eingecheckten Stand. Fertig, wenn die Seite nach Änderungen im Probiermodus das Haus in 3D mit den geänderten Daten neu aufbaut (alte Geometrien mit `dispose()` freigeben, Gelände und Garten bleiben), Raumliste, Beschriftungen und Befundliste stimmen und ein Screenshot der geänderten Ansicht im Test oder in `tools/` nachvollziehbar ist.
-
 ## Irgendwann
 
 <!-- Ideen und Annehmlichkeiten. Hier darf etwas liegenbleiben, ohne zu stören —
