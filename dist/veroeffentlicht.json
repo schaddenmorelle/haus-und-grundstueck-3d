@@ -1,6 +1,6 @@
 {
- "hash": "3e22353b59999570f6ed95a9bfbe7bdc4398505db7ae3f442e0072a5c3ae3588",
- "commit": "b7482fa",
+ "hash": "266d1d8cc99f002e798c315c9cd3c7e502fff8a1fa06a6e9ea0b6e83a8414f0f",
+ "commit": "4c632b6",
  "datum": "2026-10-12",
  "hinweis": "SHA-256 der zuletzt veröffentlichten Seite ohne die Hülle des Dienstes; schreibt tools/live_pruefen.js fort"
 }
