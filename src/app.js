@@ -259,8 +259,12 @@
       });
       wfZeile(body, [{ t: 'Summe ' + g }, { t: m2(w.geschosse[g].grundflaeche) }, { t: '' }, { t: '' }, { t: m2(w.geschosse[g].wohnflaeche) }], 'gs');
     });
-    wfZeile(body, [{ t: 'Wohnfläche gesamt' }, { t: m2(w.summe.grundflaeche) }, { t: '' }, { t: '' }, { t: m2(w.summe.wohnflaeche) }], 'sum');
-    wfNote.textContent = 'Nach der Wohnflächenverordnung (WoFlV): Die Maße sind Rohbaumaße, daher ' + fmt(w.putzabzug * 100, 0) + ' % Putzabzug. Im Dachausbau zählt die Fläche mit mehr als 2 m Raumhöhe voll, zwischen 1 und 2 m zur Hälfte, darunter gar nicht (Raumhöhe = Dachhaut minus 22 cm Sparren). Abgezogen sind der Kamin und die Treppe. Die Terrasse ist nicht angerechnet.';
+    wfZeile(body, [{ t: 'Räume zusammen' }, { t: m2(w.summe.grundflaeche) }, { t: '' }, { t: '' }, { t: m2(w.summe.wohnflaeche) }], 'gs');
+    w.terrassen.forEach(function (t) {
+      wfZeile(body, [{ t: t.name + (t.ueberdacht ? ' (teils überdacht)' : '') + ', ' + fmt(t.anteil * 100, 0) + ' %' }, { t: m2(t.grundflaeche) }, { t: '' }, { t: '' }, { t: m2(t.wohnflaeche) }]);
+    });
+    wfZeile(body, [{ t: 'Wohnfläche gesamt' }, { t: '' }, { t: '' }, { t: '' }, { t: m2(w.summe.gesamt) }], 'sum');
+    wfNote.textContent = 'Nach der Wohnflächenverordnung (WoFlV): Die Maße sind Rohbaumaße, daher ' + fmt(w.putzabzug * 100, 0) + ' % Putzabzug. Im Dachausbau zählt die Fläche mit mehr als 2 m Raumhöhe voll, zwischen 1 und 2 m zur Hälfte, darunter gar nicht (Raumhöhe = Dachhaut minus 22 cm Sparren). Abgezogen sind der Kamin und die Treppe. Zubehörräume (HAR als Technik- und Waschraum) zählen nicht, die Terrasse zu einem Viertel (§ 4 Nr. 4).';
   }
   baueWohnflaeche();
 

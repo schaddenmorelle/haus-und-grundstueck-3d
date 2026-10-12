@@ -207,6 +207,44 @@ const raum = (w, id) => w.raeume.filter(r => r.id === id)[0];
   check(nahe(b.geschosse.EG.wohnflaeche, a.geschosse.EG.wohnflaeche), 'das Dach ändert die Wohnfläche im EG nicht');
 }
 
+/* ---------- Terrassen (WoFlV § 4 Nr. 4): Balkone, Loggien, Dachgärten und Terrassen in der Regel zu einem Viertel, höchstens zur Hälfte ----------
+   Eine Terrasse 2000 × 3000 mm (6 m²): Viertel 1,5 m², Hälfte 3 m². Ob überdacht oder offen, ändert die Regel nicht (gedeckte Freisitze zählen dazu).
+   Kein Putzabzug, die Fläche ist nicht verputzt. Die Summe der Räume bleibt unberührt, `gesamt` addiert die Terrasse. */
+{
+  const h = basis();
+  const ohneT = rechne(h);
+  check(ohneT.terrassen.length === 0 && nahe(ohneT.summe.gesamt, ohneT.summe.wohnflaeche), 'ohne Terrasse: gesamt = Räume');
+  h.terrasse = { name: 'Terrasse', polygon: [[0, 0], [2000, 0], [2000, 3000], [0, 3000]], ueberdacht: true };
+  const w = rechne(h), t = w.terrassen[0];
+  check(w.terrassen.length === 1 && t.name === 'Terrasse' && nahe(t.grundflaeche, 6e6), 'Terrasse: Grundfläche ' + (t && t.grundflaeche) + ' statt 6 000 000 mm²');
+  check(nahe(t.anteil, 0.25) && nahe(t.wohnflaeche, 1.5e6), 'Terrasse ohne Angabe: ein Viertel = 1 500 000 mm², nicht ' + (t && t.wohnflaeche));
+  check(nahe(w.summe.wohnflaeche, ohneT.summe.wohnflaeche) && nahe(w.summe.gesamt, ohneT.summe.wohnflaeche + 1.5e6), 'Summe der Räume unverändert, gesamt + 1,5 m²');
+  h.terrasse.anteil = 0.5;
+  check(nahe(rechne(h).terrassen[0].wohnflaeche, 3e6), 'Anteil 0,5 (hochwertig, besonders nutzbar): die Hälfte');
+  h.terrasse.anteil = 0.6;
+  let geworfen = false; try { rechne(h); } catch (e) { geworfen = /Hälfte|0,5/.test(e.message); }
+  check(geworfen, 'ein Anteil über der Hälfte ist nach WoFlV nicht zulässig und wird abgelehnt');
+  h.terrasse.anteil = 0.25; h.terrasse.ueberdacht = false;
+  check(nahe(rechne(h).terrassen[0].wohnflaeche, 1.5e6), 'offene Terrasse: dieselbe Regel (ein Viertel)');
+  h.terrasse.polygon = [[{ ref: 'x.dgW', plus: 50 }, 'z.dgN'], ['x.dgO', 'z.dgN'], ['x.dgO', 'z.dgS'], [{ ref: 'x.dgW', plus: 50 }, 'z.dgS']]; // Achsen und Ausdrücke wie überall in haus.json
+  check(nahe(rechne(h).terrassen[0].grundflaeche, 3950 * 2000), 'Terrasse aus Achsen: 3950 × 2000 mm');
+  const txt = wohnflaecheText(rechne(h));
+  check(/Terrasse/.test(txt) && /25 %/.test(txt) && /gesamt/i.test(txt), 'Tabelle nennt die Terrasse mit Anteil und die Gesamtsumme: ' + txt);
+}
+
+/* ---------- Echte Daten: Terrasse und HAR ----------
+   Terrasse: Platte 3,40 m breit (hx 0,05–3,45) von der Südkante des Westbaus (hz 6,78) bis zur Südwand (hz 14,655) = 3,40 × 7,875 m (Angaben des Nutzers, AGENTS.md);
+   ein Viertel = 6,69375 m². HAR: dient als Technikraum (Heizung, Lüftung, Stromkasten) und Waschraum (Waschmaschine, Trockner, Wäscheleine), Angabe des Nutzers vom
+   12.10.2026; beides sind Zubehörräume nach § 2 Abs. 3 Nr. 1 (Heizungsraum, Waschküche, Trockenraum) und zählen nicht zur Wohnfläche. */
+{
+  const w = rechne(klon(echt)), t = w.terrassen[0], har = raum(w, 'har');
+  check(t && nahe(t.grundflaeche, 3400 * 7875, 1) && nahe(t.wohnflaeche, 3400 * 7875 / 4, 1), 'Terrasse: ' + (t && t.grundflaeche) + ' mm², angerechnet ' + (t && t.wohnflaeche) + ' statt 3,40 × 7,875 m und einem Viertel');
+  check(har.zubehoer === true && har.wohnflaeche === 0 && har.grundflaeche > 8e6, 'HAR ist Zubehörraum: Wohnfläche ' + har.wohnflaeche + ', Grundfläche bleibt ' + har.grundflaeche);
+  const eg = w.raeume.filter(r => r.geschoss === 'EG' && r.id !== 'har').reduce((a, r) => a + r.wohnflaeche, 0);
+  check(nahe(w.geschosse.EG.wohnflaeche, eg), 'Summe EG ohne den HAR');
+  check(nahe(w.summe.gesamt, w.summe.wohnflaeche + t.wohnflaeche), 'gesamt = Räume + Terrasse');
+}
+
 /* ---------- Befehlszeile tools/wohnflaeche.js: Tabelle auf die Konsole, mit --datei als Markdown ---------- */
 {
   const { spawnSync } = require('child_process'), os = require('os'), path = require('path');

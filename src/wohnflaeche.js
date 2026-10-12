@@ -1,10 +1,11 @@
 /* Wohnfläche: berechnet die Wohnfläche je Raum nach der Wohnflächenverordnung (WoFlV §§ 2–4) aus den abgeleiteten Räumen, dem Dach und der Treppe.
    Ohne Three.js, in Node testbar. Alle Flächen in mm², alle Maße in Millimetern, hausrelativ (hx nach Osten, hz nach Süden).
 
-     wohnflaecheAbleiten(haus, WV, abl, dach, T)  → { putzabzug, raeume[], geschosse{EG, DG}, summe }
+     wohnflaecheAbleiten(haus, WV, abl, dach, T)  → { putzabzug, raeume[], terrassen[], geschosse{EG, DG}, summe }
         Raum:     { id, name, geschoss, zubehoer, grundflaeche, abzuege: { kamin, treppe }, zonen: { voll, halb, keine },
                     zonenPolygone: { voll, halb, keine } (MultiPolygone in mm), anrechenbar, wohnflaeche }
-        Geschoss/Summe: { grundflaeche, anrechenbar, wohnflaeche }
+        Terrasse: { name, ueberdacht, grundflaeche, anteil, wohnflaeche }
+        Geschoss: { grundflaeche, anrechenbar, wohnflaeche };  summe: dasselbe für alle Räume, dazu terrassen (angerechnete Terrassenfläche) und gesamt = Räume + Terrassen
      wohnflaecheText(w)                           die Tabelle als Text (m², Dezimalkomma)
 
    Regeln (ausführbar in diesem Modul, Nachweis in tools/test_wohnflaeche.js):
@@ -19,15 +20,18 @@
    - Putzabzug (§ 4 Nr. 2): Die Maße sind Rohbaumaße, also 3 % Abzug (haus.wohnflaeche.putzabzug; 0 bei fertigen Maßen).
    - Zubehörräume (haus.raeume[].zubehoer: true; z. B. Keller, Abstellraum außerhalb der Wohnung, Heizungsraum) zählen nicht zur Wohnfläche
      (§ 2 Abs. 3 Nr. 1), bleiben aber in der Ausgabe.
-   Nicht berücksichtigt: Terrasse (zu einem Viertel, höchstens zur Hälfte), Türnischen und Wandnischen, Mauervorlagen außer dem Kamin. */
+   - Terrasse (§ 4 Nr. 4: Balkone, Loggien, Dachgärten und Terrassen in der Regel zu einem Viertel, höchstens zur Hälfte): haus.terrasse { polygon, anteil (Standard 0,25,
+     höchstens 0,5, sonst Fehler), ueberdacht }. Überdacht oder offen gilt dieselbe Regel; ein Putzabzug entfällt, die Fläche ist nicht verputzt. Sie steht gesondert in
+     terrassen[] und in summe.gesamt, nicht in summe.wohnflaeche (Räume).
+   Nicht berücksichtigt: Türnischen und Wandnischen, Mauervorlagen außer dem Kamin. */
 if (typeof require !== 'undefined') { var polygonClipping = require('polygon-clipping'); var RA = require('./raeume.js'); }
 
-var WOFLV = { putzabzug: 0.03, zonen: [{ ab: 2000, anteil: 1 }, { ab: 1000, anteil: 0.5 }], schornsteinMin: 100000, schornsteinHoehe: 1500, treppeSteigungen: 3 };
+var WOFLV = { putzabzug: 0.03, zonen: [{ ab: 2000, anteil: 1 }, { ab: 1000, anteil: 0.5 }], schornsteinMin: 100000, schornsteinHoehe: 1500, treppeSteigungen: 3, terrasseAnteil: 0.25, terrasseMax: 0.5 };
 
 function wohnflaecheAbleiten(haus, WV, abl, dach, T) {
-  var R = typeof RA !== 'undefined' ? RA : { multiFlaeche: multiFlaeche, vereinigen: vereinigen };
+  var R = typeof RA !== 'undefined' ? RA : { multiFlaeche: multiFlaeche, vereinigen: vereinigen, ringFlaeche: ringFlaeche };
   var cfg = haus.wohnflaeche || {}, putz = cfg.putzabzug != null ? cfg.putzabzug : WOFLV.putzabzug;
-  var G = haus.geschosse, out = { putzabzug: putz, raeume: [], geschosse: {}, summe: { grundflaeche: 0, anrechenbar: 0, wohnflaeche: 0 } };
+  var G = haus.geschosse, out = { putzabzug: putz, raeume: [], terrassen: [], geschosse: {}, summe: { grundflaeche: 0, anrechenbar: 0, wohnflaeche: 0, terrassen: 0, gesamt: 0 } };
   function ring(pts) { return pts.concat([pts[0]]); }
   function rechteck(x0, z0, x1, z1) { return [[[x0, z0], [x1, z0], [x1, z1], [x0, z1], [x0, z0]]]; }
   function flaeche(mp) { return mp.length ? R.multiFlaeche(mp) : 0; }
@@ -89,6 +93,14 @@ function wohnflaecheAbleiten(haus, WV, abl, dach, T) {
       [sum, out.summe].forEach(function (s) { s.grundflaeche += grund; s.anrechenbar += zub ? 0 : anrechenbar; s.wohnflaeche += wohn; });
     });
   });
+  if (haus.terrasse && haus.terrasse.polygon) {
+    var tr = haus.terrasse, anteil = tr.anteil != null ? tr.anteil : WOFLV.terrasseAnteil;
+    if (!(anteil >= 0) || anteil > WOFLV.terrasseMax) throw new Error('Terrasse: Anteil ' + anteil + ' nicht zulässig, nach WoFlV § 4 Nr. 4 höchstens die Hälfte (0,5)');
+    var tg = R.ringFlaeche(tr.polygon.map(function (q) { return [WV.mm(q[0]), WV.mm(q[1])]; }));
+    out.terrassen.push({ name: tr.name || 'Terrasse', ueberdacht: !!tr.ueberdacht, grundflaeche: tg, anteil: anteil, wohnflaeche: tg * anteil });
+    out.summe.terrassen += tg * anteil;
+  }
+  out.summe.gesamt = out.summe.wohnflaeche + out.summe.terrassen;
   return out;
 }
 
@@ -107,7 +119,11 @@ function wohnflaecheText(w) {
     });
     z.push(sp('  Summe ' + g, 26, true) + sp(m2(w.geschosse[g].grundflaeche), 9) + sp('', 7 + 8 + 8 + 8 + 8) + sp(m2(w.geschosse[g].wohnflaeche), 9));
   });
-  z.push(sp('Summe Wohnfläche', 26, true) + sp(m2(w.summe.grundflaeche), 9) + sp('', 7 + 8 + 8 + 8 + 8) + sp(m2(w.summe.wohnflaeche), 9));
+  z.push(sp('Summe Wohnfläche (Räume)', 26, true) + sp(m2(w.summe.grundflaeche), 9) + sp('', 7 + 8 + 8 + 8 + 8) + sp(m2(w.summe.wohnflaeche), 9));
+  w.terrassen.forEach(function (t) {
+    z.push(sp(t.name + (t.ueberdacht ? ' (überdacht)' : '') + ', ' + (Math.round(t.anteil * 1000) / 10).toString().replace('.', ',') + ' %', 26, true) + sp(m2(t.grundflaeche), 9) + sp('', 7 + 8 + 8 + 8 + 8) + sp(m2(t.wohnflaeche), 9));
+  });
+  if (w.terrassen.length) z.push(sp('Wohnfläche gesamt', 26, true) + sp('', 9 + 7 + 8 + 8 + 8 + 8) + sp(m2(w.summe.gesamt), 9));
   return z.join('\n');
 }
 if (typeof module !== 'undefined') module.exports = { wohnflaecheAbleiten: wohnflaecheAbleiten, wohnflaecheText: wohnflaecheText, WOFLV: WOFLV };

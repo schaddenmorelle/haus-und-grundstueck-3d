@@ -111,6 +111,10 @@
 
   "wohnflaeche": { "putzabzug": 0.03, "quelle": "annahme", "notiz": "Wohnflächenverordnung (WoFlV): Die Maße im Modell sind Rohbaumaße, daher 3 % Putzabzug (§ 4 Nr. 2); 0 bei fertigen Maßen. Höhenzonen im Dachausbau: ab 2 m Raumhöhe voll, 1–2 m zur Hälfte, darunter nicht (§ 4 Nr. 1), Raumhöhe = Dachhaut − dg.wandAbstandDachhaut − DG-Boden. Zubehörräume bekommen am Raum zubehoer: true." },
 
+  "terrasse": { "name": "Terrasse", "ueberdacht": true, "anteil": 0.25, "quelle": "annahme",
+    "polygon": [[{ "ref": "x.W", "plus": 50 }, "z.U"], [{ "ref": "x.V", "minus": 50 }, "z.U"], [{ "ref": "x.V", "minus": 50 }, "z.S"], [{ "ref": "x.W", "plus": 50 }, "z.S"]],
+    "notiz": "Terrassenplatte 3,40 m breit von der Südkante des Westbaus bis zur Südwand (wie in model.js; teils überdacht, teils mit Pergola). WoFlV § 4 Nr. 4: Terrassen in der Regel zu einem Viertel (anteil), höchstens zur Hälfte (0,5), überdacht oder offen." },
+
   "dg": {
     "ausbauflaeche": [["x.dgW", "z.dgN"], ["x.dgO", "z.dgN"], ["x.dgO", "z.HN"], ["x.treppeW", "z.HN"], ["x.treppeW", "z.ZS"], ["x.dgO", "z.ZS"], ["x.dgO", "z.dgS"], ["x.dgW", "z.dgS"]],
     "treppenoeffnung": [["x.treppeW", "z.HN"], ["x.treppeO", "z.HN"], ["x.treppeO", "z.ZS"], ["x.treppeW", "z.ZS"]],
@@ -257,7 +261,8 @@
   "raeume": [
     { "id": "eltern", "name": "Eltern", "geschoss": "EG", "boden": "holz", "notiz": "mit Vorraum (Bad- und Ankleidetür)",
       "stempel": [3010, 1940] },
-    { "id": "har", "name": "HAR", "geschoss": "EG", "boden": "beton",
+    { "id": "har", "name": "HAR", "geschoss": "EG", "boden": "beton", "zubehoer": true,
+      "notiz": "Technikraum (Heizung, Lüftung, Stromkasten) und Waschraum (Waschmaschine, Trockner, Wäscheleine), Angabe des Nutzers vom 12.10.2026: Zubehörraum nach WoFlV § 2 Abs. 3 Nr. 1, zählt nicht zur Wohnfläche",
       "stempel": [6220, 1860] },
     { "id": "kind2", "name": "Julians Zimmer", "geschoss": "EG", "boden": "holz",
       "stempel": [9260, 1710] },

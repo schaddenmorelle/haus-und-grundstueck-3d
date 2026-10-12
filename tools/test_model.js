@@ -35,7 +35,7 @@ const cur = {
   rooms: {}
 };
 m.befunde.forEach(b => { cur.befunde[b.stufe]++; });
-cur.wohnflaeche = { EG: r2(m.wohnflaeche.geschosse.EG.wohnflaeche / 1e6), DG: r2(m.wohnflaeche.geschosse.DG.wohnflaeche / 1e6), gesamt: r2(m.wohnflaeche.summe.wohnflaeche / 1e6), raeume: {} };
+cur.wohnflaeche = { EG: r2(m.wohnflaeche.geschosse.EG.wohnflaeche / 1e6), DG: r2(m.wohnflaeche.geschosse.DG.wohnflaeche / 1e6), gesamt: r2(m.wohnflaeche.summe.wohnflaeche / 1e6), terrasse: r2(m.wohnflaeche.summe.terrassen / 1e6), mitTerrasse: r2(m.wohnflaeche.summe.gesamt / 1e6), raeume: {} };
 m.wohnflaeche.raeume.forEach(r => { cur.wohnflaeche.raeume[r.id] = r2(r.wohnflaeche / 1e6); });
 m.rooms.forEach(r => { cur.rooms[r.id] = { name: r.name, level: r.level, area: r2(r.area) }; });
 console.log({ meshes: cur.meshes, tris: cur.tris, nonFinite: bad, ridge: cur.ridge });

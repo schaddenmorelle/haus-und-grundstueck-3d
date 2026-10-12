@@ -33,7 +33,9 @@ const md = [
   '- Wohnflächenverordnung (WoFlV) §§ 2–4. Der Putzabzug von 3 % gilt, weil die Maße Rohbaumaße sind (§ 4 Nr. 2); `wohnflaeche.putzabzug` in `haus.json`.',
   '- Abgezogen werden der Kamin (Schornstein über 0,1 m² und höher als 1,50 m) und die Stufen der Treppe im EG (mehr als drei Steigungen), § 3 Abs. 2.',
   '- Raumhöhe im Dachausbau: lotrecht von der Oberkante des Fußbodens bis zur Unterkante der Sparren (Dachhaut minus 22 cm, `dg.wandAbstandDachhaut`). Das ist eine Annahme zur Dämmung und Bekleidung.',
-  '- Nicht enthalten: Terrasse (zu einem Viertel, höchstens zur Hälfte), Türnischen und Wandnischen. Zubehörräume bekommen `zubehoer: true` am Raum in `haus.json`; bisher ist keiner so eingestuft.',
+  '- Zubehörräume (§ 2 Abs. 3 Nr. 1: Keller, Abstellräume außerhalb der Wohnung, Waschküchen, Trockenräume, Heizungsräume, Garagen) zählen nicht zur Wohnfläche: `zubehoer: true` am Raum in `haus.json`. Der HAR dient als Technikraum (Heizung, Lüftung, Stromkasten) und Waschraum (Waschmaschine, Trockner) und ist deshalb eingestuft (Angabe des Nutzers vom 12.10.2026). Wäre er ein Hauswirtschaftsraum innerhalb der Wohnung, zählte er voll.',
+  '- Terrasse (§ 4 Nr. 4): Balkone, Loggien, Dachgärten und Terrassen in der Regel zu einem Viertel, höchstens zur Hälfte; überdacht oder offen gilt dieselbe Regel. `terrasse` in `haus.json` (Anteil 0,25). Kein Putzabzug.',
+  '- Nicht enthalten: Türnischen und Wandnischen.',
   ''
 ].join('\n');
 fs.mkdirSync(path.dirname(path.resolve(process.argv[i + 1])), { recursive: true });
