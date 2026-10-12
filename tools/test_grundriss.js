@@ -11,6 +11,7 @@ const { raeumeAbleiten } = require('../src/raeume.js');
 const { dachAbleiten } = require('../src/dach.js');
 const { pruefen } = require('../src/pruefen.js');
 const { grundrissAbleiten, kettenSchnitt, grundrissSvg } = require('../src/grundriss.js');
+const { schnittLinien } = require('../src/schnitt.js');
 const haus = require('../src/data/haus.json');
 
 const fails = [];
@@ -230,7 +231,7 @@ function xmlOk(svg) { // Tags sind ausgeglichen (kleiner Prüfer, genügt für s
   // docs/plaene/*.svg wird vom Build geschrieben; hier nur der Hinweis, wenn sie nicht mehr zur Quelle passen
   ['EG', 'DG'].forEach(g => {
     const f = path.join(__dirname, '..', 'docs', 'plaene', 'grundriss-' + g.toLowerCase() + '.svg');
-    if (fs.existsSync(f) && fs.readFileSync(f, 'utf8').trimEnd() !== grundrissSvg(g === 'EG' ? eg : dg, { standalone: true })) console.log('Hinweis: docs/plaene/grundriss-' + g.toLowerCase() + '.svg ist nicht aktuell (npm run build)');
+    if (fs.existsSync(f) && fs.readFileSync(f, 'utf8').trimEnd() !== grundrissSvg(g === 'EG' ? eg : dg, { standalone: true, schnittlinien: schnittLinien(A.h, A.WV) })) console.log('Hinweis: docs/plaene/grundriss-' + g.toLowerCase() + '.svg ist nicht aktuell (npm run build)');
   });
 }
 
