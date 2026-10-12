@@ -258,6 +258,27 @@ const speis = lauf([{ mass: 'raum:speis.tiefe', wert: '1,30m' }]);
   check(/data-geschoss="EG"/.test(svg), 'Vergleichs-SVG: Geschoss');
 }
 
+/* ---------- Herkunft des neuen Werts ---------- */
+{
+  // z.harSi trägt quelle "aufmass": ohne Angabe bleibt sie stehen, die Ausgabe weist darauf hin
+  const o = lauf([{ mass: 'raum:har.tiefe', wert: '3,05m' }]);
+  check(o.ok && o.schritte[0].herkunft && o.schritte[0].herkunft.quelle === 'aufmass' && o.schritte[0].herkunft.gesetzt === false, 'Herkunft bleibt "aufmass": ' + JSON.stringify(o.schritte[0].herkunft));
+  check(o.meldungen.some(m => /Herkunft/.test(m) && /aufmass/.test(m)), 'Hinweis auf die stehen gebliebene Herkunft fehlt: ' + kurz(o));
+  const q = lauf([{ mass: 'raum:har.tiefe', wert: '3,05m', quelle: 'nutzer' }]);
+  check(q.ok && q.kanten.length === 2 && q.kanten.some(k => JSON.stringify(k.pfad) === JSON.stringify(['achsen', 'z.harSi', 'quelle']) && k.wert === 'nutzer'), 'Herkunft setzen: quelle = nutzer erwartet, ' + JSON.stringify(q.kanten));
+  check(q.ok && !q.meldungen.some(m => /Hinweis/.test(m)), 'Herkunft gesetzt: kein Hinweis mehr');
+  const t = A.textPatchen(HAUS_TEXT, q.kanten), z = t.split('\n').filter(l => /"z\.harSi"/.test(l))[0];
+  check(/"plus": 3050, "quelle": "nutzer"/.test(z), 'Text: plus und quelle in einer Zeile: ' + z);
+  // Öffnung ohne quelle: der Schlüssel entsteht neu
+  const e = lauf([{ mass: 'eg.har-sued.oeff1', wert: '90cm', quelle: 'nutzer' }]);
+  check(e.ok && e.haus.waende[idx('eg.har-sued')].oeffnungen[0].quelle === 'nutzer', 'Herkunft der Öffnung wird gesetzt');
+  check(e.ok && (() => { try { require('assert').deepStrictEqual(JSON.parse(A.textPatchen(HAUS_TEXT, e.kanten)), e.haus); return true; } catch (x) { return false; } })(), 'Text: Herkunft einer Öffnung (Quelle war schon "aufmass" im Text) entspricht dem neuen Haus');
+  const w = lauf([{ mass: 'raum:har.tiefe', wert: '3,05m', quelle: 'gerade so' }]);
+  check(!w.ok && /Herkunft/.test(kurz(w)), 'unbekannte Herkunft muss abbrechen: ' + kurz(w));
+  wirft(() => A.listeLesen(A.listeErzeugen(haus, [{ achse: 'z.speisS', wert: 1, quelle: 'x' }]), haus), /Herkunft/, 'unbekannte Herkunft in der Liste');
+  wirft(() => A.aenderungPruefen({ wandende: 'eg.dbad-west.bis', wert: 1, quelle: 'nutzer' }, haus), /quelle/, 'Wandende hat keine Herkunft');
+}
+
 /* ---------- Befehlszeile ---------- */
 {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'aendern-')), datei = path.join(dir, 'haus.json');
@@ -289,6 +310,9 @@ const speis = lauf([{ mass: 'raum:speis.tiefe', wert: '1,30m' }]);
   setze();
   r = cli('--bewegt', 'z.ZS', '--trotzdem', 'raum:speis.tiefe=1,30m');
   check(r.status === 0 && JSON.parse(text()).achsen['z.ZS'].wert === 9605, 'CLI --bewegt: ' + r.stdout + r.stderr);
+  setze();
+  r = cli('--quelle', 'nutzer', 'raum:har.tiefe=3,05m');
+  check(r.status === 0 && JSON.parse(text()).achsen['z.harSi'].quelle === 'nutzer', 'CLI --quelle: ' + r.stdout + r.stderr);
   setze();
   r = cli('achse:z.speisS=11,06m', 'wandtyp:IW125=135mm');
   check(r.status === 0 && JSON.parse(text()).achsen['z.speisS'].wert === 11060 && JSON.parse(text()).wandtypen.IW125.dicke === 135, 'CLI achse: und wandtyp: ' + r.stdout + r.stderr);

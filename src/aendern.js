@@ -20,11 +20,12 @@
    Auswirkung (zuerst weniger neue Fehler, dann weniger veränderte Räume, dann weniger verschobene Wände); bei Gleichstand das hintere Ende
    (Ost bzw. Süd). `bewegt` gibt den Parameter vor. Gesperrte Parameter (fest: true) bewegt nur optionen.aussenmass. Entstehen neue Fehler,
    bricht alles ab (haus: null), außer mit optionen.trotzdem. */
-if (typeof require !== 'undefined') { var werteAufloesen = require('./werte.js').werteAufloesen, raeumeAbleiten = require('./raeume.js').raeumeAbleiten, dachAbleiten = require('./dach.js').dachAbleiten, pruefen = require('./pruefen.js').pruefen, grundrissAbleiten = require('./grundriss.js').grundrissAbleiten, grundrissSvg = require('./grundriss.js').grundrissSvg; }
+if (typeof require !== 'undefined') { var werteAufloesen = require('./werte.js').werteAufloesen, raeumeAbleiten = require('./raeume.js').raeumeAbleiten, dachAbleiten = require('./dach.js').dachAbleiten, pruefen = require('./pruefen.js').pruefen, grundrissAbleiten = require('./grundriss.js').grundrissAbleiten, grundrissSvg = require('./grundriss.js').grundrissSvg, polygonClipping = require('polygon-clipping'); }
 
 var Aendern = (function () {
   var TOL = 1e-6, GESCHOSSE = ['EG', 'DG'];
-  var ARTEN = { mass: ['mass', 'wert', 'bewegt', 'einzeln'], achse: ['achse', 'wert'], wandtyp: ['wandtyp', 'wert'], wandende: ['wandende', 'wert'], oeffnung: ['oeffnung', 'feld', 'wert'] };
+  var ARTEN = { mass: ['mass', 'wert', 'bewegt', 'einzeln', 'quelle'], achse: ['achse', 'wert', 'quelle'], wandtyp: ['wandtyp', 'wert', 'quelle'], wandende: ['wandende', 'wert'], oeffnung: ['oeffnung', 'feld', 'wert', 'quelle'] };
+  var QUELLEN = ['plan', 'aufmass', 'nutzer', 'annahme'];
   var OEFFNUNGSFELDER = ['ab', 'breite', 'hoehe', 'bruestung'];
 
   function fehler(text) { var e = new Error(text); e.aendern = true; return e; }
@@ -82,6 +83,7 @@ var Aendern = (function () {
     if (!('wert' in ae)) throw fehler('Bei der Änderung ' + art + ' ' + ae[art] + ' fehlt der Wert (wert)');
     if (art === 'oeffnung' && OEFFNUNGSFELDER.indexOf(ae.feld) < 0) throw fehler('Unbekanntes Feld "' + ae.feld + '" der Öffnung (erlaubt: ' + OEFFNUNGSFELDER.join(', ') + ')');
     if (art === 'mass' && 'bewegt' in ae && typeof ae.bewegt !== 'string') throw fehler('bewegt muss der Name einer Achse, eines Wandtyps oder einer Wand sein');
+    if ('quelle' in ae && QUELLEN.indexOf(ae.quelle) < 0) throw fehler('Unbekannte Herkunft "' + ae.quelle + '" (erlaubt: ' + QUELLEN.join(', ') + ')');
     if ('einzeln' in ae && typeof ae.einzeln !== 'boolean') throw fehler('einzeln muss wahr oder falsch sein');
     var achsName = typeof ae.wert === 'string' && haus && achseDef(haus, ae.wert);
     if (!((art === 'wandende' || (art === 'oeffnung' && ae.feld === 'ab')) && achsName)) einheitParsen(ae.wert);
@@ -214,10 +216,17 @@ var Aendern = (function () {
 
   /* ---------- die einzelnen Änderungsarten ---------- */
   function parameterSetzen(S, sg, neuerWert) { setzen(S, sg.pfad, Math.round(neuerWert * 1e6) / 1e6); }
+  /* Herkunft (quelle) des geänderten Parameters: mit ae.quelle neu setzen, sonst im Schritt vermerken, dass sie stehen bleibt */
+  function herkunft(S, schritt, pfad, ae, bezeichnung) {
+    var ep = pfad.slice(0, -1), eltern = lesen(S.haus, ep), q = eltern && eltern.quelle;
+    if (ae.quelle) { if (q !== ae.quelle) setzen(S, ep.concat('quelle'), ae.quelle); schritt.herkunft = { bezeichnung: bezeichnung, quelle: ae.quelle, gesetzt: true }; }
+    else if (q) schritt.herkunft = { bezeichnung: bezeichnung, quelle: q, gesetzt: false };
+    return schritt;
+  }
 
   function massAendern(S, ae, opt) {
     var name = ae.mass, ziel = einheitParsen(ae.wert), D = S.D, m, mo = /^(.*)\.oeff(\d+)$/.exec(name);
-    if (mo && wandIndex(S.haus, mo[1]) >= 0) return oeffnungAendern(S, { oeffnung: name, feld: 'breite', wert: ziel }, opt, name);
+    if (mo && wandIndex(S.haus, mo[1]) >= 0) return oeffnungAendern(S, { oeffnung: name, feld: 'breite', wert: ziel, quelle: ae.quelle }, opt, name);
     m = massSuchen(D, name);
     if (!m) throw fehler('Maß unbekannt: ' + name + ' (Namen stehen im Grundriss beim Anklicken eines Maßes)');
     var seg = m.seg, vorher = seg.laenge, delta = ziel - vorher;
@@ -225,7 +234,7 @@ var Aendern = (function () {
     if (ae.einzeln && seg.art !== 'wand') throw fehler('einzeln gilt nur für Wanddicken (wand:<id>)');
     if (seg.schraeg) throw fehler('Das Maß ' + name + ' ist schräg gemessen und lässt sich nicht ändern; die Schrägwand über ihre Achsen ändern');
     if (seg.art === 'pfeiler') return pfeilerAendern(S, ae, seg, delta, opt);
-    if (seg.art === 'oeffnung') return oeffnungAendern(S, { oeffnung: seg.name, feld: 'breite', wert: ziel }, opt, name);
+    if (seg.art === 'oeffnung') return oeffnungAendern(S, { oeffnung: seg.name, feld: 'breite', wert: ziel, quelle: ae.quelle }, opt, name);
     if (!seg.parameter) throw fehler('Das Maß ' + name + ' fasst mehrere Wände zusammen und hängt an keinem einzelnen Parameter');
 
     /* Wanddicke einzeln: nur diese Wand bekommt eine eigene Dicke */
@@ -234,8 +243,8 @@ var Aendern = (function () {
       if (wi < 0) throw fehler('Wand unbekannt: ' + seg.ids[0]);
       var sgw = { pfad: ['waende', wi, 'dicke'], name: seg.ids[0], bezeichnung: 'Dicke der Wand ' + seg.ids[0], wert: vorher };
       parameterSetzen(S, sgw, ziel);
-      return { art: 'mass', ziel: name, von: vorher, nach: ziel, parameter: { art: 'wanddicke', name: sgw.name, bezeichnung: sgw.bezeichnung, von: vorher, nach: ziel }, betroffeneWaende: 1,
-               text: name + ': ' + mmText(vorher) + ' → ' + mmText(ziel) + ' (nur diese Wand, ' + sgw.bezeichnung + ')' };
+      return herkunft(S, { art: 'mass', ziel: name, von: vorher, nach: ziel, parameter: { art: 'wanddicke', name: sgw.name, bezeichnung: sgw.bezeichnung, von: vorher, nach: ziel }, betroffeneWaende: 1,
+               text: name + ': ' + mmText(vorher) + ' → ' + mmText(ziel) + ' (nur diese Wand, ' + sgw.bezeichnung + ')' }, sgw.pfad, ae, sgw.bezeichnung);
     }
 
     /* Kandidaten sammeln */
@@ -283,13 +292,13 @@ var Aendern = (function () {
     var gewaehlt = bewertet[0].c, alternativen = bewertet.slice(1).map(function (b) { return b.c.bezeichnung; });
     var neuerWert = gewaehlt.wert + delta / gewaehlt.k;
     parameterSetzen(S, gewaehlt, neuerWert);
-    return {
+    return herkunft(S, {
       art: 'mass', ziel: name, von: vorher, nach: ziel,
       parameter: { art: gewaehlt.pfad[2] === 'wert' ? 'achse' : gewaehlt.typ ? 'wandtyp' : 'achse', name: gewaehlt.name, bezeichnung: gewaehlt.bezeichnung, pfad: gewaehlt.pfad, von: gewaehlt.wert, nach: Math.round(neuerWert * 1e6) / 1e6 },
       betroffeneWaende: betroffeneWaende(S.haus, gewaehlt), alternativen: alternativen,
       text: name + ': ' + mmText(vorher) + ' → ' + mmText(ziel) + ' (bewegt: ' + gewaehlt.bezeichnung + ' ' + mmText(gewaehlt.wert) + ' → ' + mmText(neuerWert) + ')' +
             (gewaehlt.typ ? ', gilt für ' + betroffeneWaende(S.haus, gewaehlt) + ' Wände dieses Typs' : '')
-    };
+    }, gewaehlt.pfad, ae, gewaehlt.bezeichnung);
   }
 
   function oeffnungAendern(S, ae, opt, urname) {
@@ -304,8 +313,8 @@ var Aendern = (function () {
     var vorher = o[feld];
     if (JSON.stringify(vorher) === JSON.stringify(ziel)) return { art: 'oeffnung', ziel: ae.oeffnung + '.' + feld, von: vorher, nach: ziel, unveraendert: true, parameter: null, text: 'Öffnung ' + ae.oeffnung + ' (' + feld + ') ist bereits ' + (typeof vorher === 'number' ? mmText(vorher) : vorher) + ' – unverändert' };
     setzen(S, ['waende', wi, 'oeffnungen', k, feld], ziel);
-    return { art: 'oeffnung', ziel: urname || ae.oeffnung + '.' + feld, von: vorher, nach: ziel, parameter: { art: 'oeffnung', name: ae.oeffnung, bezeichnung: 'Öffnung ' + ae.oeffnung + ' (' + feld + ')', von: vorher, nach: ziel },
-             text: 'Öffnung ' + ae.oeffnung + ', ' + feld + ': ' + (typeof vorher === 'number' ? mmText(vorher) : vorher) + ' → ' + (typeof ziel === 'number' ? mmText(ziel) : ziel) };
+    return herkunft(S, { art: 'oeffnung', ziel: urname || ae.oeffnung + '.' + feld, von: vorher, nach: ziel, parameter: { art: 'oeffnung', name: ae.oeffnung, bezeichnung: 'Öffnung ' + ae.oeffnung + ' (' + feld + ')', von: vorher, nach: ziel },
+             text: 'Öffnung ' + ae.oeffnung + ', ' + feld + ': ' + (typeof vorher === 'number' ? mmText(vorher) : vorher) + ' → ' + (typeof ziel === 'number' ? mmText(ziel) : ziel) }, ['waende', wi, 'oeffnungen', k, feld], ae, 'Öffnung ' + ae.oeffnung);
   }
 
   function pfeilerAendern(S, ae, seg, delta, opt) { // der angrenzende Öffnungsblock rückt, der Pfeiler auf der anderen Seite gibt nach
@@ -317,15 +326,15 @@ var Aendern = (function () {
     var o = w.oeffnungen[k], vorher = o.ab;
     if (typeof o.ab === 'number') {
       setzen(S, ['waende', wi, 'oeffnungen', k, 'ab'], Math.round((o.ab + dir * verschiebung) * 1e6) / 1e6);
-      return { art: 'pfeiler', ziel: seg.name, von: seg.laenge, nach: seg.laenge + delta, parameter: { art: 'oeffnung', name: wid + '.oeff' + (k + 1), bezeichnung: 'Lage der Öffnung ' + wid + '.oeff' + (k + 1) + ' (ab)', von: vorher, nach: o.ab + dir * verschiebung },
-               text: seg.name + ': ' + mmText(seg.laenge) + ' → ' + mmText(seg.laenge + delta) + ' (Öffnung ' + wid + '.oeff' + (k + 1) + ' rückt um ' + mmText(Math.abs(verschiebung)) + ')' };
+      return herkunft(S, { art: 'pfeiler', ziel: seg.name, von: seg.laenge, nach: seg.laenge + delta, parameter: { art: 'oeffnung', name: wid + '.oeff' + (k + 1), bezeichnung: 'Lage der Öffnung ' + wid + '.oeff' + (k + 1) + ' (ab)', von: vorher, nach: o.ab + dir * verschiebung },
+               text: seg.name + ': ' + mmText(seg.laenge) + ' → ' + mmText(seg.laenge + delta) + ' (Öffnung ' + wid + '.oeff' + (k + 1) + ' rückt um ' + mmText(Math.abs(verschiebung)) + ')' }, ['waende', wi, 'oeffnungen', k, 'ab'], ae, 'Öffnung ' + wid + '.oeff' + (k + 1));
     }
     var sg = stellgroesse(S.haus, { art: 'wurzel', name: o.ab });
     if (!sg) throw fehler('Die Lage der Öffnung hängt an der abgeleiteten Achse ' + o.ab + '; die Achse oder ein anderes Maß ändern');
     if (sg.fest && !opt.aussenmass) throw fehler('Die Achse ' + o.ab + ' ist gesperrt (aussenmass)');
     parameterSetzen(S, sg, sg.wert + verschiebung);
-    return { art: 'pfeiler', ziel: seg.name, von: seg.laenge, nach: seg.laenge + delta, parameter: { art: 'achse', name: sg.name, bezeichnung: sg.bezeichnung, von: sg.wert, nach: sg.wert + verschiebung },
-             text: seg.name + ': ' + mmText(seg.laenge) + ' → ' + mmText(seg.laenge + delta) + ' (' + sg.bezeichnung + ' ' + mmText(sg.wert) + ' → ' + mmText(sg.wert + verschiebung) + ')' };
+    return herkunft(S, { art: 'pfeiler', ziel: seg.name, von: seg.laenge, nach: seg.laenge + delta, parameter: { art: 'achse', name: sg.name, bezeichnung: sg.bezeichnung, von: sg.wert, nach: sg.wert + verschiebung },
+             text: seg.name + ': ' + mmText(seg.laenge) + ' → ' + mmText(seg.laenge + delta) + ' (' + sg.bezeichnung + ' ' + mmText(sg.wert) + ' → ' + mmText(sg.wert + verschiebung) + ')' }, sg.pfad, ae, sg.bezeichnung);
   }
 
   function achseAendern(S, ae, opt) {
@@ -336,7 +345,7 @@ var Aendern = (function () {
     var ziel = einheitParsen(ae.wert), vorher = d.def.wert;
     if (Math.abs(ziel - vorher) < TOL) return { art: 'achse', ziel: ae.achse, von: vorher, nach: ziel, unveraendert: true, parameter: null, text: 'Achse ' + ae.achse + ' liegt bereits bei ' + mmText(vorher) + ' – unverändert' };
     setzen(S, [d.gruppe, ae.achse, 'wert'], ziel);
-    return { art: 'achse', ziel: ae.achse, von: vorher, nach: ziel, parameter: { art: 'achse', name: ae.achse, bezeichnung: 'Achse ' + ae.achse, von: vorher, nach: ziel }, text: 'Achse ' + ae.achse + ': ' + mmText(vorher) + ' → ' + mmText(ziel) };
+    return herkunft(S, { art: 'achse', ziel: ae.achse, von: vorher, nach: ziel, parameter: { art: 'achse', name: ae.achse, bezeichnung: 'Achse ' + ae.achse, von: vorher, nach: ziel }, text: 'Achse ' + ae.achse + ': ' + mmText(vorher) + ' → ' + mmText(ziel) }, [d.gruppe, ae.achse, 'wert'], ae, 'Achse ' + ae.achse);
   }
 
   function wandtypAendern(S, ae) {
@@ -348,8 +357,8 @@ var Aendern = (function () {
     if (Math.abs(ziel - vorher) < TOL) return { art: 'wandtyp', ziel: ae.wandtyp, von: vorher, nach: ziel, unveraendert: true, parameter: null, text: 'Wandtyp ' + ae.wandtyp + ' ist bereits ' + mmText(vorher) + ' dick – unverändert' };
     setzen(S, ['wandtypen', ae.wandtyp, 'dicke'], ziel);
     var n = S.haus.waende.filter(function (w) { return w.typ === ae.wandtyp && w.dicke == null; }).length;
-    return { art: 'wandtyp', ziel: ae.wandtyp, von: vorher, nach: ziel, betroffeneWaende: n, parameter: { art: 'wandtyp', name: ae.wandtyp, bezeichnung: 'Wandtyp ' + ae.wandtyp, von: vorher, nach: ziel },
-             text: 'Wandtyp ' + ae.wandtyp + ': ' + mmText(vorher) + ' → ' + mmText(ziel) + ', gilt für ' + n + ' Wände' };
+    return herkunft(S, { art: 'wandtyp', ziel: ae.wandtyp, von: vorher, nach: ziel, betroffeneWaende: n, parameter: { art: 'wandtyp', name: ae.wandtyp, bezeichnung: 'Wandtyp ' + ae.wandtyp, von: vorher, nach: ziel },
+             text: 'Wandtyp ' + ae.wandtyp + ': ' + mmText(vorher) + ' → ' + mmText(ziel) + ', gilt für ' + n + ' Wände' }, ['wandtypen', ae.wandtyp, 'dicke'], ae, 'Wandtyp ' + ae.wandtyp);
   }
 
   function wandendeAendern(S, ae) {
@@ -462,6 +471,7 @@ var Aendern = (function () {
         try { schritt = schrittAnwenden(S, ae, opt); } catch (e) { e.nummer = i + 1; e.kurz = kurzText(ae); throw e; }
         res.schritte.push(schritt);
         res.meldungen.push((aenderungen.length > 1 ? 'Änderung ' + (i + 1) + ': ' : '') + schritt.text + (schritt.alternativen && schritt.alternativen.length ? ' (Alternativen: ' + schritt.alternativen.join(', ') + ')' : ''));
+        if (schritt.herkunft && !schritt.herkunft.gesetzt && !schritt.unveraendert) res.meldungen.push('  Hinweis: Die Herkunft von ' + schritt.herkunft.bezeichnung + ' bleibt "' + schritt.herkunft.quelle + '"; stammt der neue Wert aus einer anderen Quelle, quelle (--quelle) angeben (plan, aufmass, nutzer, annahme).');
         if (!schritt.unveraendert) {
           try { S.D = ableiten(S.haus); } catch (e) { throw fehler('Das Haus lässt sich nach dieser Änderung nicht mehr ableiten: ' + e.message); }
         }
@@ -599,17 +609,21 @@ var Aendern = (function () {
     return z.join('\n');
   }
 
-  function vergleichSvg(res, geschoss) {
+  function vergleichUeberlagerung(res, geschoss) { // SVG-Gruppe im Koordinatensystem des Grundrisses: Wandfläche, die entfällt, gestrichelt; Wandfläche, die entsteht, rot getönt
     if (!res.ableitung) throw fehler('Kein Vergleich möglich: die Änderung wurde nicht ausgewertet');
-    var neu = res.ableitung.nachher.plan(geschoss), alt = res.ableitung.vorher.plan(geschoss);
+    var alt = res.ableitung.vorher.plan(geschoss).waendeUnion, neu = res.ableitung.nachher.plan(geschoss).waendeUnion;
     function f(v) { return String(Math.round(v * 10) / 10); }
     function pfad(ring) { return 'M' + ring.map(function (p) { return f(p[0]) + ' ' + f(p[1]); }).join('L') + 'Z'; }
-    var d = alt.waendeUnion.map(function (poly) { return poly.map(pfad).join(''); }).join('');
-    var svg = grundrissSvg(neu, { standalone: true });
-    var ueber = '<g class="vergleich" fill="none" stroke="#c8321e" stroke-width="22" stroke-dasharray="80 60" stroke-linejoin="round"><path d="' + d + '"/></g>';
+    function mp(m) { return m.map(function (poly) { return poly.map(pfad).join(''); }).join(''); }
+    var weg = alt.length && neu.length ? polygonClipping.difference(alt, neu) : alt, dazu = alt.length && neu.length ? polygonClipping.difference(neu, alt) : neu;
+    return '<g class="vergleich" pointer-events="none"><path d="' + mp(dazu) + '" fill="#c8321e" fill-opacity=".35" fill-rule="evenodd" stroke="none"/>' +
+      '<path d="' + mp(weg) + '" fill="none" stroke="#c8321e" stroke-width="22" stroke-dasharray="80 60" stroke-linejoin="round" fill-rule="evenodd"/></g>';
+  }
+  function vergleichSvg(res, geschoss) {
+    var ueber = vergleichUeberlagerung(res, geschoss), svg = grundrissSvg(res.ableitung.nachher.plan(geschoss), { standalone: true });
     return svg.replace(/<\/svg>\s*$/, ueber + '</svg>');
   }
 
-  return { aendern: aendern, einheitParsen: einheitParsen, stand: stand, listeErzeugen: listeErzeugen, listeLesen: listeLesen, textPatchen: textPatchen, auswirkungenText: auswirkungenText, vergleichSvg: vergleichSvg, ableiten: ableiten, aenderungPruefen: aenderungPruefen };
+  return { aendern: aendern, einheitParsen: einheitParsen, stand: stand, listeErzeugen: listeErzeugen, listeLesen: listeLesen, textPatchen: textPatchen, auswirkungenText: auswirkungenText, vergleichSvg: vergleichSvg, vergleichUeberlagerung: vergleichUeberlagerung, ableiten: ableiten, aenderungPruefen: aenderungPruefen };
 })();
 if (typeof module !== 'undefined') module.exports = Aendern;

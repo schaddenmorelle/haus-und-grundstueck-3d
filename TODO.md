@@ -19,7 +19,7 @@ Die Arbeitsliste dieses Projekts, **von Anfang an** geführt und nicht nachträg
 
 <!-- Beschlossen und begründet, aber noch nicht angefangen. -->
 
-- [ ] Ändern über die Oberfläche (Probiermodus, Plan Abschnitt 4, 8 und 9): Maße in der Seite ändern, Prüfung und Auswirkungen anzeigen, den Export als Änderungsliste erzeugen und mit einem Werkzeug im Repository validiert als neue Sollwerte einspielen. Baut auf Phase 1 und `tools/aendern.js` (Phase 4) auf. Fertig, wenn ein in der Seite geänderter Wert exportiert, vom Werkzeug geprüft und eingespielt wird, `npm test` danach grün ist und ein ungültiger Export abgelehnt wird.
+- [ ] 3D im Probiermodus (Plan Abschnitt 9, „Phase 4 umgesetzt“): Wird im Grundriss ein Maß geändert, zeigt die 3D-Ansicht noch den eingecheckten Stand. Fertig, wenn die Seite nach Änderungen im Probiermodus das Haus in 3D mit den geänderten Daten neu aufbaut (alte Geometrien mit `dispose()` freigeben, Gelände und Garten bleiben), Raumliste, Beschriftungen und Befundliste stimmen und ein Screenshot der geänderten Ansicht im Test oder in `tools/` nachvollziehbar ist.
 
 ## Irgendwann
 

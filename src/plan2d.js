@@ -4,7 +4,8 @@
   'use strict';
   var shell = document.getElementById('shell'), host = document.getElementById('plan2d'), box = document.getElementById('planSvg'), info = document.getElementById('planInfo'), panel = document.getElementById('panel');
   if (!host || !box || typeof grundrissAbleiten !== 'function') return;
-  var D = null, plaene = {}, geschoss = null, svg = null, vb = null, vb0 = null, aus = null, auswahlRaum = null;
+  var D = null, geschoss = null, svg = null, vb = null, vb0 = null, aus = null, auswahlRaum = null;
+  var probe = { an: false, liste: [], res: null, mass: null }; // Probiermodus: Änderungen auf einer Kopie der Daten, die Seite speichert nichts
   var opt = { massketten: true, raeume: true, oeffnungen: true, marken: true };
   var HERKUNFT = { plan: 'Plan', aufmass: 'Aufmaß', nutzer: 'Angabe des Nutzers', annahme: 'Annahme', ohne: 'ohne Herkunftsangabe' };
   var HINWEIS = 'Ein Maß, einen Raum oder eine Markierung anklicken.';
@@ -13,13 +14,9 @@
 
   function fmt(n, d) { return n.toLocaleString('de-DE', { minimumFractionDigits: d, maximumFractionDigits: d }); }
   function mass(mm) { return mm >= 1000 ? fmt(mm / 1000, 3).replace(/,?0+$/, '') + ' m' : fmt(mm / 10, 1).replace(/,0$/, '') + ' cm'; }
-  function daten() {
-    if (D) return D;
-    var WV = werteAufloesen(HAUS), abl = raeumeAbleiten(HAUS, WV), dach = dachAbleiten(HAUS, WV);
-    D = { WV: WV, abl: abl, dach: dach, befunde: pruefen(HAUS, WV, abl, dach) };
-    return D;
-  }
-  function plan(g) { if (!plaene[g]) plaene[g] = grundrissAbleiten(HAUS, D.WV, D.abl, D.dach, D.befunde, g); return plaene[g]; }
+  function aktuellesHaus() { return probe.an && probe.res && probe.res.vorschauHaus ? probe.res.vorschauHaus : HAUS; }
+  function daten() { if (!D) D = Aendern.ableiten(aktuellesHaus()); return D; }
+  function plan(g) { return daten().plan(g); }
 
   /* ---------- Anzeige ---------- */
   function layout() {
@@ -29,9 +26,10 @@
   }
   function setVB() { if (svg && vb) svg.setAttribute('viewBox', vb.map(function (v) { return Math.round(v * 10) / 10; }).join(' ')); }
   function darstellen(neu) {
-    var p = plan(geschoss);
+    var p = plan(geschoss), g = geschoss;
     box.innerHTML = grundrissSvg(p, opt);
     svg = box.firstChild;
+    if (probe.an && probe.res && probe.res.ableitung) svg.insertAdjacentHTML('beforeend', Aendern.vergleichUeberlagerung(probe.res, g || geschoss)); // alter Wandumriss gestrichelt
     var n = svg.getAttribute('data-viewbox').split(' ').map(Number);
     if (neu || !vb) { vb0 = n; vb = n.slice(); }
     setVB();
@@ -74,6 +72,7 @@
       l.setAttribute('x1', h ? von : b); l.setAttribute('y1', h ? b : von); l.setAttribute('x2', h ? bis : b); l.setAttribute('y2', h ? b : bis);
       svg.appendChild(l);
     }
+    probeMass(el);
     info.textContent = el.getAttribute('data-name') + ' · ' + mass(wert) + ' (' + fmt(wert, wert % 1 ? 1 : 0) + ' mm) · Herkunft: ' + HERKUNFT[q] +
       (el.getAttribute('data-fest') === '1' ? ' · gesperrt (Außenmaß)' : '') + (el.getAttribute('data-schraeg') ? ' · schräg gemessen' : '');
   }
@@ -142,6 +141,95 @@
   }
   host.addEventListener('pointerup', ende); host.addEventListener('pointercancel', ende);
 
+  /* ---------- Probiermodus ---------- */
+  var pm = {};
+  ['an', 'box', 'mass', 'wert', 'ok', 'einzeln-l', 'einzeln', 'quelle', 'aussen', 'fehler', 'liste', 'aus', 'export', 'reset', 'text'].forEach(function (k) { pm[k] = document.getElementById('pm-' + k); });
+  function pmWert(mm) { return fmt(mm / 1000, 3).replace(/,?0+$/, '') + 'm'; }
+  function probeMass(el) { // ein Maß im Plan wurde angeklickt
+    if (!probe.an || !pm.wert) return;
+    var wert = Number(el.getAttribute('data-wert')), art = el.getAttribute('data-art');
+    probe.mass = { name: el.getAttribute('data-name'), wert: wert, art: art, fest: el.getAttribute('data-fest') === '1', schraeg: !!el.getAttribute('data-schraeg') };
+    pm.mass.textContent = probe.mass.name + ' · derzeit ' + mass(wert) + (probe.mass.fest ? ' · gesperrt (Außenmaß)' : '') + (probe.mass.schraeg ? ' · schräg gemessen, nicht änderbar' : '');
+    pm.wert.value = pmWert(wert);
+    pm['einzeln-l'].hidden = art !== 'wand';
+    pm.fehler.textContent = '';
+    pm.mass.scrollIntoView({ block: 'nearest' });
+    pm.wert.focus({ preventScroll: true });
+    pm.wert.select();
+  }
+  function probeOptionen() { return { aussenmass: pm.aussen.checked, trotzdem: true }; } // trotzdem: Fehler werden angezeigt statt die Vorschau zu verhindern
+  function probeNeuZeichnen() {
+    D = null;
+    if (geschoss) darstellen(false);
+    probeAnzeigen();
+  }
+  function probeAnzeigen() {
+    var res = probe.res;
+    pm.liste.innerHTML = '';
+    if (!probe.liste.length) { var l0 = document.createElement('li'); l0.className = 'leer'; l0.textContent = 'Noch keine Änderung.'; pm.liste.appendChild(l0); }
+    probe.liste.forEach(function (ae, i) {
+      var li = document.createElement('li'), s = document.createElement('span'), b = document.createElement('button');
+      s.textContent = (res && res.schritte[i] && res.schritte[i].text) || (ae.mass + ' = ' + ae.wert);
+      b.type = 'button'; b.textContent = '×'; b.setAttribute('aria-label', 'Änderung ' + (i + 1) + ' entfernen');
+      b.addEventListener('click', function () { probe.liste.splice(i, 1); probeRechnen(); });
+      li.appendChild(s); li.appendChild(b); pm.liste.appendChild(li);
+    });
+    pm.aus.hidden = !res;
+    if (res) {
+      var neu = res.befunde.fehlerNeu.length;
+      pm.aus.textContent = Aendern.auswirkungenText(res).split('\n').slice(res.schritte.length).join('\n');
+      if (neu) {
+        var w = document.createElement('div'); w.className = 'pm-warn';
+        w.textContent = neu + ' neue(r) Fehler: Das Werkzeug übernimmt die Liste nur mit --trotzdem.';
+        pm.aus.insertBefore(w, pm.aus.firstChild);
+      }
+    }
+    pm.export.disabled = !probe.liste.length;
+    pm.reset.disabled = !probe.liste.length;
+  }
+  function probeRechnen() {
+    if (!probe.liste.length) probe.res = null;
+    else probe.res = Aendern.aendern(HAUS, probe.liste, probeOptionen());
+    probeNeuZeichnen();
+  }
+  function probeAnwenden() {
+    if (!probe.mass) { pm.fehler.textContent = 'Zuerst ein Maß im Grundriss anklicken.'; return; }
+    var ae = { mass: probe.mass.name, wert: pm.wert.value.trim() };
+    if (probe.mass.art === 'wand' && pm.einzeln.checked) ae.einzeln = true;
+    if (pm.quelle.value) ae.quelle = pm.quelle.value;
+    var versuch = probe.liste.concat([ae]), res = Aendern.aendern(HAUS, versuch, probeOptionen());
+    if (!res.vorschauHaus) { pm.fehler.textContent = res.meldungen[res.meldungen.length - 1]; return; } // die Änderung selbst ist nicht möglich
+    pm.fehler.textContent = '';
+    probe.liste = versuch; probe.res = res;
+    info.textContent = 'Geändert: ' + res.schritte[res.schritte.length - 1].text;
+    probe.mass = null; pm.mass.textContent = 'Kein Maß gewählt.'; pm.wert.value = ''; pm['einzeln-l'].hidden = true;
+    probeNeuZeichnen();
+  }
+  function probeSchalten(an) {
+    probe.an = an; pm.box.hidden = !an;
+    if (!an) { probe.mass = null; pm.fehler.textContent = ''; }
+    else if (probe.liste.length) probe.res = Aendern.aendern(HAUS, probe.liste, probeOptionen());
+    probeNeuZeichnen();
+  }
+  if (pm.an) {
+    pm.an.addEventListener('change', function () { probeSchalten(pm.an.checked); });
+    pm.ok.addEventListener('click', probeAnwenden);
+    pm.wert.addEventListener('keydown', function (e) { if (e.key === 'Enter') { e.preventDefault(); probeAnwenden(); } });
+    pm.aussen.addEventListener('change', function () { if (probe.liste.length) probeRechnen(); });
+    pm.reset.addEventListener('click', function () { probe.liste = []; probe.res = null; pm.fehler.textContent = ''; pm.text.hidden = true; probeNeuZeichnen(); });
+    pm.export.addEventListener('click', function () {
+      var text;
+      try { text = JSON.stringify(Aendern.listeErzeugen(HAUS, probe.liste), null, 2) + '\n'; } catch (e) { pm.fehler.textContent = e.message; return; }
+      pm.text.value = text; pm.text.hidden = false; pm.text.focus({ preventScroll: true }); pm.text.select();
+      try { // Datei zum Speichern; wo Downloads gesperrt sind, bleibt der Text zum Kopieren stehen
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(new Blob([text], { type: 'application/json' })); a.download = 'aenderungen.json';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      } catch (e) { /* Text steht im Feld */ }
+    });
+    probeAnzeigen();
+  }
+
   /* ---------- Schnittstelle zur Seite ---------- */
   window.__plan2d = {
     aktiv: function () { return shell.classList.contains('modus2d'); },
@@ -152,6 +240,7 @@
       if (r.geschoss !== geschoss) setModus(r.geschoss);
       waehleRaum(id);
     },
+    probe: function () { return probe; },
     zeigeBefund: function (b) { // Befund aus der Liste: Geschoss wechseln, Stelle heranholen
       if (!b.ort) return;
       var g = b.geschoss || geschoss;

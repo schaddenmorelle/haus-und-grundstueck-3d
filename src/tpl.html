@@ -66,6 +66,18 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
 .modus2d #fallback{display:none}
 .modus2d #gl,.modus2d #tags,.modus2d #hud,.modus2d #measTag{display:none}
 .nur2d{display:none}.modus2d .nur2d{display:block}.modus2d .nur3d{display:none}
+.pm-zeile{display:flex;gap:6px;margin:6px 0}.pm-zeile input{flex:1;min-width:0;height:36px;border:1px solid var(--rule);border-radius:5px;background:var(--paper);color:var(--ink);padding:0 10px;font:inherit;font-variant-numeric:tabular-nums}
+.pm-zeile .btn{padding:0 14px}
+.pm-q{align-items:center;justify-content:space-between;font-size:13px}.pm-q select{height:32px;border:1px solid var(--rule);border-radius:5px;background:var(--paper);color:var(--ink);padding:0 6px;font:inherit;max-width:55%}
+#pm-liste{margin:0 0 8px;padding:0;list-style:none;display:grid;gap:4px}
+#pm-liste li{display:flex;gap:8px;align-items:flex-start;justify-content:space-between;font-size:13px;border-left:3px solid var(--on);padding:3px 0 3px 8px}
+#pm-liste li.leer{border-left-color:var(--rule);color:var(--muted)}
+#pm-liste li button{flex:none;width:28px;height:28px;border:1px solid var(--rule);background:var(--chip);color:var(--ink);border-radius:4px;cursor:pointer;font:inherit;line-height:1}
+.pm-aus{margin:8px 0;padding:8px;border:1px solid var(--rule);border-radius:5px;background:var(--paper);font:12px/1.45 Barlow,sans-serif;white-space:pre-wrap;max-height:240px;overflow:auto;font-variant-numeric:tabular-nums}
+.pm-fehler{color:var(--red);white-space:pre-wrap}
+.pm-warn{color:var(--red);font-weight:600}
+#pm-text{width:100%;margin-top:8px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:5px;padding:6px}
+.btns.zwei{grid-template-columns:repeat(2,minmax(0,1fr))}
 .leg{display:grid;gap:5px;font-size:13px}.leg span{display:flex;align-items:center;gap:8px}
 .leg i{display:inline-block;width:26px;height:0;border-top:3px solid currentColor}.leg i.s{border-top-style:dashed}.leg i.p{border-top-style:dotted}
 .q-plan{color:var(--q-plan)}.q-aufmass{color:var(--q-aufmass)}.q-nutzer{color:var(--q-nutzer)}.q-annahme{color:var(--q-annahme)}.q-ohne{color:var(--q-ohne)}
@@ -100,6 +112,23 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
         <button class="btn on" type="button" data-modus="3d" aria-pressed="true">3D-Modell</button>
         <button class="btn" type="button" data-modus="EG" aria-pressed="false">Grundriss EG</button>
         <button class="btn" type="button" data-modus="DG" aria-pressed="false">Grundriss DG</button>
+      </div>
+    </section>
+    <section class="nur2d" id="probe"><h2>Probiermodus</h2>
+      <label class="chk"><input id="pm-an" type="checkbox">Maße ausprobieren</label>
+      <div id="pm-box" hidden>
+        <p class="note">Ein Maß im Grundriss anklicken und den neuen Wert mit Einheit eingeben (1,30m, 12,5cm, 885mm). Der Nachbarraum gibt nach, gesperrte Außenmaße bleiben stehen. Die Seite speichert nichts: Die Änderungsliste wird exportiert und im Repository mit <b>node tools/aendern.js --liste</b> geprüft und eingespielt. Das 3D-Modell zeigt weiter den eingecheckten Stand.</p>
+        <p id="pm-mass" class="note" aria-live="polite">Kein Maß gewählt.</p>
+        <div class="pm-zeile"><input id="pm-wert" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="z. B. 1,30m" aria-label="Neuer Wert mit Einheit"><button id="pm-ok" class="btn" type="button">Anwenden</button></div>
+        <label class="chk" id="pm-einzeln-l" hidden><input id="pm-einzeln" type="checkbox">Nur diese Wand (statt des Wandtyps)</label>
+        <div class="pm-zeile pm-q"><label for="pm-quelle">Herkunft des neuen Werts</label><select id="pm-quelle"><option value="">bleibt wie sie ist</option><option value="nutzer">Angabe des Nutzers</option><option value="aufmass">Aufmaß</option><option value="plan">Plan</option><option value="annahme">Annahme</option></select></div>
+        <label class="chk"><input id="pm-aussen" type="checkbox">Gesperrte Außenmaße freigeben</label>
+        <p id="pm-fehler" class="note pm-fehler" role="alert"></p>
+        <h2>Änderungen</h2>
+        <ol id="pm-liste"></ol>
+        <div id="pm-aus" class="pm-aus" hidden></div>
+        <div class="btns zwei"><button id="pm-export" class="btn" type="button">Exportieren</button><button id="pm-reset" class="btn" type="button">Zurücksetzen</button></div>
+        <textarea id="pm-text" rows="8" readonly hidden aria-label="Änderungsliste zum Kopieren"></textarea>
       </div>
     </section>
     <section class="nur2d"><h2>Im Grundriss</h2>
@@ -181,6 +210,7 @@ var HAUS = /*HAUS*/;
 /*DACH*/
 /*PRUEFEN*/
 /*GRUNDRISS*/
+/*AENDERN*/
 /*MODEL*/
 </script>
 <script>
