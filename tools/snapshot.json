@@ -75,9 +75,9 @@
    "area": 10.95
   },
   "terrasse": {
-   "name": "Terrasse (überdacht)",
+   "name": "Terrasse (teils überdacht)",
    "level": "out",
-   "area": 10.95
+   "area": 26.78
   },
   "pergola": {
    "name": "Pergola",

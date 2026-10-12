@@ -424,9 +424,9 @@ function buildModel(THREE, haus) {
   var TERR = yF, TZ1 = F.z1;
   (function terrace() {
     var t = boxAt(3.4, 0.3, TZ1 - F.zn, M(0x6e7176, 0.9), (F.x0 + F.xn) / 2 + 0.0, TERR - 0.15, (F.zn + TZ1) / 2, gGarden);
-    var area = 3.4 * (15.74 - F.zn);
-    tags.push({ kind: 'room', layer: 'rooms', name: 'Terrasse (überdacht)', area: area, pos: [(F.x0 + F.xn) / 2, TERR + 0.25, (F.zn + 15.74) / 2] });
-    roomsOut.push({ id: 'terrasse', name: 'Terrasse (überdacht)', area: area, center: [(F.x0 + F.xn) / 2, (F.zn + 15.74) / 2], mesh: t, base: 0x6e7176, level: 'out' });
+    var T0 = WOHNFL.terrassen[0], area = T0 ? T0.grundflaeche / 1e6 : 3.4 * (TZ1 - F.zn), tname = T0 ? T0.name + (T0.ueberdacht ? ' (teils überdacht)' : '') : 'Terrasse', tzm = (F.zn + TZ1) / 2; // Fläche und Name aus haus.terrasse (wie in der Wohnfläche)
+    tags.push({ kind: 'room', layer: 'rooms', name: tname, area: area, pos: [(F.x0 + F.xn) / 2, TERR + 0.25, tzm] });
+    roomsOut.push({ id: 'terrasse', name: tname, area: area, center: [(F.x0 + F.xn) / 2, tzm], mesh: t, base: 0x6e7176, level: 'out' });
   })();
   // Pergola (Aluminium anthrazit, Lamellendach weiß) auf dem nicht überdachten Teil der Terrasse: außen 3 × 5 m, 2,525 m hoch.
   // Angaben Nutzer: 30 cm vor der Westwand des Wohnzimmers, Südseite 5 cm hinter der Terrassenkante; hinten reicht sie unter den Dachüberstand
@@ -460,9 +460,9 @@ function buildModel(THREE, haus) {
     stufe(1.05, 0.38, yF - 0.005, NE_Z);          // obere Stufe vor der Schwelle
     stufe(1.15, 0.38, yF - 0.155, NE_Z - 0.38);   // untere Stufe
   })();
-  // Mülltonnen an der Nordwand: blau und gelb östlich der Tür, schwarz westlich beim Carportpfosten (Fotos)
+  // Mülltonnen an der Nordwand: blau und gelb östlich der Tür; die schwarze steht, auf 80 % verkleinert, zwischen dem Carportpfosten und der Treppe vor der Tür (Angabe Nutzer 12.10.2026)
   (function tonnen() {
-    function tonne(x, z, deckel, dm, w, d, h) {
+    function tonne(x, z, deckel, dm, w, d, h, k) {
       var g = new THREE.Group(), gy = groundY(x, z);
       g.userData = { kind: 'tonne', deckel: deckel };
       var bg = new THREE.BoxGeometry(w, h - 0.12, d), pa = bg.attributes.position;
@@ -472,12 +472,14 @@ function buildModel(THREE, haus) {
       var l = mesh(new THREE.BoxGeometry(w + 0.03, 0.07, d + 0.03), dm, true, g, false); l.position.set(0, h - 0.045, 0);
       [-1, 1].forEach(function (sx) { var r = mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.05, 14), mat.bin1, true, g, false); r.rotation.z = Math.PI / 2; r.position.set(sx * w * 0.4, 0.1, d * 0.28); });
       g.position.set(x, gy, z);
+      if (k) g.scale.setScalar(k);
       gGarden.add(g);
     }
     var tz = NE_Z - 0.54;
     tonne(NE_X + 0.92, tz, 'gelb', mat.deckelGelb, 0.58, 0.72, 1.07);
     tonne(NE_X + 1.54, tz, 'blau', mat.deckelBlau, 0.58, 0.72, 1.07);
-    tonne(NE_X - 1.06, tz, 'schwarz', mat.deckelSchwarz, 0.62, 0.76, 1.12);
+    var pfostenO = 7.9 + 0.07, stufeW = NE_X - 0.575; // Ostseite des Carportpfostens (x 7,90, 14 cm stark), Westkante der unteren Stufe
+    tonne((pfostenO + stufeW) / 2, tz, 'schwarz', mat.deckelSchwarz, 0.62, 0.76, 1.12, 0.8);
   })();
 
   /* ---------- Dach (zwei Walmflügel, Höhe als Maximum beider) ---------- */

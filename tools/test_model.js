@@ -163,6 +163,23 @@ const inPoly = (poly, x, z) => { let ins = false; for (let i = 0, j = poly.lengt
     const cx = f => box(farbe(f)[0]).getCenter(new THREE.Vector3()).x;
     check(cx('blau') > 9.7 && cx('gelb') > 9.2 && cx('blau') > cx('gelb') && cx('schwarz') < 8.6, 'Tonnen: blau und gelb östlich, schwarz westlich der Nebeneingangstür erwartet');
   }
+  /* Schwarze Tonne (Angabe des Nutzers vom 12.10.2026): auf 80 % verkleinert (Höhe 1,12 m → 0,896 m, Breite 0,62 m → 0,496 m) und zwischen dem Carportpfosten
+     (Mitte x 7,90, 14 cm stark, Ostseite 7,97) und der unteren Stufe des Nebeneingangs (Westkante 8,535) aufgestellt. */
+  if (tonnen.length === 3) {
+    const b = box(farbe('schwarz')[0]), gelb = box(farbe('gelb')[0]);
+    check(Math.abs((b.max.y - b.min.y) - 0.8 * 1.12) < 0.02, 'schwarze Tonne: Höhe ' + (b.max.y - b.min.y).toFixed(3) + ' m statt 0,896 m (80 % von 1,12 m)');
+    check(Math.abs((b.max.x - b.min.x) - 0.8 * 0.65) < 0.03, 'schwarze Tonne: Breite ' + (b.max.x - b.min.x).toFixed(3) + ' m statt etwa 0,52 m (80 % von 0,65 m mit Rädern und Deckel)');
+    check(b.min.x >= 7.97 && b.max.x <= 8.535, 'schwarze Tonne steht nicht zwischen Pfosten (7,97) und Stufe (8,535): x ' + b.min.x.toFixed(3) + ' bis ' + b.max.x.toFixed(3));
+    check((gelb.max.y - gelb.min.y) > 1.0, 'gelbe Tonne behält ihre Größe');
+  }
+}
+
+/* Terrasse: Beschriftung und Raumliste zeigen die Fläche aus den Daten (haus.terrasse, 3,40 × 7,875 m = 26,775 m²), nicht eine alte feste Zahl (10,9 m²). */
+{
+  const t = m.rooms.filter(r => r.id === 'terrasse')[0], tag = m.tags.filter(q => q.kind === 'room' && /^Terrasse/.test(q.name))[0];
+  check(t && Math.abs(t.area - 3.4 * 7.875) < 0.01, 'Terrasse in der Raumliste: ' + (t && t.area) + ' m² statt 26,775 m²');
+  check(tag && Math.abs(tag.area - 3.4 * 7.875) < 0.01, 'Terrasse in der Beschriftung: ' + (tag && tag.area) + ' m² statt 26,775 m²');
+  check(t && /teils überdacht/.test(t.name) && tag && /teils überdacht/.test(tag.name), 'Terrasse heißt „teils überdacht“, nicht „überdacht“: ' + (t && t.name));
 }
 
 /* Außengrundstück (Angaben des Nutzers vom 11.10.2026):
