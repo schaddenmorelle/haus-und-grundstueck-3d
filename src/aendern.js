@@ -16,11 +16,19 @@
      { wandtyp: "IW125", wert }                              Dicke eines Wandtyps
      { wandende: "eg.dbad-west.bis", wert }                  Ende einer achsparallelen Wand (Achse oder Zahl)
      { oeffnung: "eg.har-sued.oeff1", feld, wert }           ab, breite, hoehe oder bruestung einer Öffnung
+   Höhen (Phase 5, aus Schnitt und Ansicht, src/schnitt.js) sind Maße mit dem Namen
+     hoehe:eg.lichte            lichte Höhe EG; der Deckenaufbau gibt nach (Geschosshöhe bleibt)
+     hoehe:dg.deckenaufbau      Deckenaufbau; die lichte Höhe gibt nach
+     hoehe:dg.okff              Geschosshöhe OKFF–OKFF (gesperrt, Treppenplanung: nur mit aussenmass); der Deckenaufbau gibt nach
+     hoehe:dach.traufe          Traufe über OKFF EG (der First steigt mit);  hoehe:dach.ueberstand  Dachüberstand
+     hoehe:<kniewand>           Höhe einer Kniewand (hoehe.max);  hoehe:dg.kniewand  alle Kniewände samt Sollwert
+     <wand>.oeff<k>.bruestung | .hoehe | .sturz   Brüstung, Höhe, Sturz (bis zur Decke) einer Öffnung im EG
+   Abgeleitet und nicht änderbar sind die Höhen bis zum First. Die Auswirkungen nennen auch Steigung und Kopfhöhe der Treppe und die Kniewandhöhen.
    Ein Maß hängt an mehreren Parametern (Achsen, Wandtypen). „Nachbar gibt nach“: Der Kern probiert jeden aus und wählt den mit der kleinsten
    Auswirkung (zuerst weniger neue Fehler, dann weniger veränderte Räume, dann weniger verschobene Wände); bei Gleichstand das hintere Ende
    (Ost bzw. Süd). `bewegt` gibt den Parameter vor. Gesperrte Parameter (fest: true) bewegt nur optionen.aussenmass. Entstehen neue Fehler,
    bricht alles ab (haus: null), außer mit optionen.trotzdem. */
-if (typeof require !== 'undefined') { var werteAufloesen = require('./werte.js').werteAufloesen, raeumeAbleiten = require('./raeume.js').raeumeAbleiten, dachAbleiten = require('./dach.js').dachAbleiten, pruefen = require('./pruefen.js').pruefen, grundrissAbleiten = require('./grundriss.js').grundrissAbleiten, grundrissSvg = require('./grundriss.js').grundrissSvg, polygonClipping = require('polygon-clipping'); }
+if (typeof require !== 'undefined') { var werteAufloesen = require('./werte.js').werteAufloesen, raeumeAbleiten = require('./raeume.js').raeumeAbleiten, dachAbleiten = require('./dach.js').dachAbleiten, pruefen = require('./pruefen.js').pruefen, treppeAbleiten = require('./treppe.js').treppeAbleiten, treppeKopfhoehe = require('./treppe.js').treppeKopfhoehe, schnittLinien = require('./schnitt.js').schnittLinien, schnittAbleiten = require('./schnitt.js').schnittAbleiten, ansichtAbleiten = require('./schnitt.js').ansichtAbleiten, grundrissAbleiten = require('./grundriss.js').grundrissAbleiten, grundrissSvg = require('./grundriss.js').grundrissSvg, polygonClipping = require('polygon-clipping'); }
 
 var Aendern = (function () {
   var TOL = 1e-6, GESCHOSSE = ['EG', 'DG'];
@@ -117,12 +125,54 @@ var Aendern = (function () {
 
   /* ---------- Ableitung ---------- */
   function ableiten(haus) {
-    var WV = werteAufloesen(haus), abl = raeumeAbleiten(haus, WV), dach = dachAbleiten(haus, WV), befunde = pruefen(haus, WV, abl, dach), plaene = {};
-    return {
+    var WV = werteAufloesen(haus), abl = raeumeAbleiten(haus, WV), dach = dachAbleiten(haus, WV), befunde = pruefen(haus, WV, abl, dach), plaene = {}, schnitte = {}, ansichten = {}, hoehen = null;
+    var D = {
       haus: haus, WV: WV, abl: abl, dach: dach, befunde: befunde,
       plan: function (g) { if (!plaene[g]) plaene[g] = grundrissAbleiten(haus, WV, abl, dach, befunde, g); return plaene[g]; },
-      geschosse: Object.keys(abl.geschosse)
+      geschosse: Object.keys(abl.geschosse),
+      schnitte: function () { return schnittLinien(haus, WV); },
+      schnitt: function (id) { // id einer Schnittlinie aus haus.schnitte oder eine freie Linie { id, name, a, b }
+        var lin = typeof id === 'string' ? D.schnitte().filter(function (l) { return l.id === id; })[0] : id;
+        if (!lin) throw fehler('Schnitt unbekannt: ' + id);
+        if (typeof id !== 'string') return schnittAbleiten(haus, WV, abl, dach, lin);
+        if (!schnitte[id]) schnitte[id] = schnittAbleiten(haus, WV, abl, dach, lin);
+        return schnitte[id];
+      },
+      ansicht: function (seite) { if (!ansichten[seite]) ansichten[seite] = ansichtAbleiten(haus, WV, abl, dach, seite); return ansichten[seite]; },
+      hoehen: function () { if (!hoehen) hoehen = hoehenWerte(D); return hoehen; }
     };
+    return D;
+  }
+  /* Höhenwerte für die Auswirkungen: { name: { wert, text } } */
+  function hoehenWerte(D) {
+    var haus = D.haus, out = {}, G = haus.geschosse, yD = G.DG.okff;
+    function put(n, v, text) { out[n] = { wert: v, text: text }; }
+    put('hoehe:eg.lichte', G.EG.lichteHoehe, 'lichte Höhe EG');
+    if (G.DG.deckenaufbau != null) put('hoehe:dg.deckenaufbau', G.DG.deckenaufbau, 'Deckenaufbau');
+    put('hoehe:dg.okff', G.DG.okff - G.EG.okff, 'Geschosshöhe');
+    put('hoehe:dach.traufe', haus.dach.traufe, 'Traufe');
+    put('hoehe:dach.first', D.dach.first, 'First');
+    if (haus.treppe && haus.treppe.steigungen && haus.treppe.anker) {
+      var T = treppeAbleiten(haus, D.WV), K = treppeKopfhoehe(haus, D.WV, T, D.dach);
+      put('treppe.steigung', T.steigung, 'Steigung der Treppe');
+      put('treppe.schrittmass', 2 * T.steigung + T.auftritt, 'Schrittmaß 2s + a');
+      put('treppe.kopfhoehe', K.min, 'Kopfhöhe über der Treppe');
+    }
+    D.abl.geschosse.DG && D.abl.geschosse.DG.waende.forEach(function (w) { // niedrigste Oberkante der Wände mit Höhenvorgabe (Kniewände) über dem DG-Boden
+      if (w.trennlinie || !(w.wand.hoehe && w.wand.hoehe.max)) return;
+      var ln = w.linie, L = Math.hypot(ln.b[0] - ln.a[0], ln.b[1] - ln.a[1]), n = Math.max(1, Math.ceil(L / 100)), min = Infinity, i;
+      for (i = 0; i <= n; i++) min = Math.min(min, D.dach.wandOK(ln.a[0] + (ln.b[0] - ln.a[0]) * i / n, ln.a[1] + (ln.b[1] - ln.a[1]) * i / n, w.wand.hoehe.max, w.wand.dach === 'B') - yD);
+      put('hoehe:' + w.id, min, 'Kniewand ' + w.id);
+    });
+    haus.waende.forEach(function (w) {
+      if (w.geschoss !== 'EG') return;
+      (w.oeffnungen || []).forEach(function (o, k) {
+        var n = w.id + '.oeff' + (k + 1);
+        if (typeof o.hoehe === 'number') put(n + '.hoehe', o.hoehe, 'Höhe der Öffnung ' + n);
+        put(n + '.bruestung', o.bruestung || 0, 'Brüstung der Öffnung ' + n);
+      });
+    });
+    return out;
   }
   function massSuchen(D, name) {
     var treffer = null;
@@ -225,7 +275,9 @@ var Aendern = (function () {
   }
 
   function massAendern(S, ae, opt) {
-    var name = ae.mass, ziel = einheitParsen(ae.wert), D = S.D, m, mo = /^(.*)\.oeff(\d+)$/.exec(name);
+    var name = ae.mass, ziel = einheitParsen(ae.wert), D = S.D, m, mo = /^(.*)\.oeff(\d+)$/.exec(name), mh = /^(.*\.oeff\d+)\.(bruestung|hoehe|sturz)$/.exec(name);
+    if (/^hoehe:/.test(name)) return hoeheAendern(S, ae, ziel, opt);
+    if (mh && wandIndex(S.haus, /^(.*)\.oeff\d+$/.exec(mh[1])[1]) >= 0) return oeffnungsHoeheAendern(S, ae, mh[1], mh[2], ziel);
     if (mo && wandIndex(S.haus, mo[1]) >= 0) return oeffnungAendern(S, { oeffnung: name, feld: 'breite', wert: ziel, quelle: ae.quelle }, opt, name);
     m = massSuchen(D, name);
     if (!m) throw fehler('Maß unbekannt: ' + name + ' (Namen stehen im Grundriss beim Anklicken eines Maßes)');
@@ -299,6 +351,98 @@ var Aendern = (function () {
       text: name + ': ' + mmText(vorher) + ' → ' + mmText(ziel) + ' (bewegt: ' + gewaehlt.bezeichnung + ' ' + mmText(gewaehlt.wert) + ' → ' + mmText(neuerWert) + ')' +
             (gewaehlt.typ ? ', gilt für ' + betroffeneWaende(S.haus, gewaehlt) + ' Wände dieses Typs' : '')
     }, gewaehlt.pfad, ae, gewaehlt.bezeichnung);
+  }
+
+  /* ---------- Höhen ---------- */
+  function hoeheSchritt(S, ae, name, bezeichnung, pfad, vorher, nach, zusatz) {
+    return herkunft(S, { art: 'hoehe', ziel: name, von: vorher, nach: nach, parameter: { art: 'hoehe', name: name, bezeichnung: bezeichnung, von: vorher, nach: nach },
+      text: name + ': ' + mmText(vorher) + ' → ' + mmText(nach) + (zusatz ? ' (' + zusatz + ')' : '') }, pfad, ae, bezeichnung);
+  }
+  function hoeheAendern(S, ae, ziel, opt) {
+    var name = ae.mass, G = S.haus.geschosse, vorher, w, i;
+    if (ae.bewegt || ae.einzeln) throw fehler('bewegt und einzeln gelten nicht für Höhen (' + name + ')');
+    function unveraendert(v) { return { art: 'hoehe', ziel: name, von: v, nach: ziel, unveraendert: true, parameter: null, text: 'Maß ' + name + ' ist bereits ' + mmText(v) + ' – unverändert' }; }
+    function gh() { return G.DG.okff - G.EG.okff; }
+    if (name === 'hoehe:eg.lichte') {
+      vorher = G.EG.lichteHoehe;
+      if (!(ziel > 0)) throw fehler('Die lichte Höhe muss größer als 0 sein');
+      if (Math.abs(ziel - vorher) < TOL) return unveraendert(vorher);
+      var da = gh() - ziel;
+      if (G.DG.deckenaufbau != null && da < 0) throw fehler('Die lichte Höhe ' + mmText(ziel) + ' ist größer als die Geschosshöhe ' + mmText(gh()) + ': der Deckenaufbau würde negativ');
+      setzen(S, ['geschosse', 'EG', 'lichteHoehe'], ziel);
+      var zus = null;
+      if (G.DG.deckenaufbau != null) { zus = 'Deckenaufbau gibt nach: ' + mmText(G.DG.deckenaufbau) + ' → ' + mmText(da); setzen(S, ['geschosse', 'DG', 'deckenaufbau'], da); }
+      return hoeheSchritt(S, ae, name, 'lichte Höhe EG', ['geschosse', 'EG', 'lichteHoehe'], vorher, ziel, zus);
+    }
+    if (name === 'hoehe:dg.deckenaufbau') {
+      vorher = G.DG.deckenaufbau;
+      if (vorher == null) throw fehler('Der Deckenaufbau ist in den Daten nicht angegeben');
+      if (!(ziel > 0)) throw fehler('Der Deckenaufbau muss größer als 0 sein');
+      if (Math.abs(ziel - vorher) < TOL) return unveraendert(vorher);
+      var li = gh() - ziel;
+      if (li <= 0) throw fehler('Der Deckenaufbau ' + mmText(ziel) + ' ist nicht kleiner als die Geschosshöhe ' + mmText(gh()) + ': die lichte Höhe würde negativ');
+      setzen(S, ['geschosse', 'DG', 'deckenaufbau'], ziel);
+      var alt = G.EG.lichteHoehe; setzen(S, ['geschosse', 'EG', 'lichteHoehe'], li);
+      return hoeheSchritt(S, ae, name, 'Deckenaufbau', ['geschosse', 'DG', 'deckenaufbau'], vorher, ziel, 'lichte Höhe gibt nach: ' + mmText(alt) + ' → ' + mmText(li));
+    }
+    if (name === 'hoehe:dg.okff') {
+      vorher = gh();
+      if (G.DG.fest && !opt.aussenmass) throw fehler('Die Geschosshöhe ' + mmText(vorher) + ' ist gesperrt (Treppenplanung) und lässt sich nur mit aussenmass ändern (Befehlszeile --aussenmass)');
+      if (!(ziel > 0)) throw fehler('Die Geschosshöhe muss größer als 0 sein');
+      if (Math.abs(ziel - vorher) < TOL) return unveraendert(vorher);
+      var da2 = ziel - G.EG.lichteHoehe;
+      if (G.DG.deckenaufbau != null && da2 < 0) throw fehler('Die Geschosshöhe ' + mmText(ziel) + ' ist kleiner als die lichte Höhe ' + mmText(G.EG.lichteHoehe) + ': der Deckenaufbau würde negativ');
+      var daAlt = G.DG.deckenaufbau;
+      setzen(S, ['geschosse', 'DG', 'okff'], G.EG.okff + ziel);
+      if (daAlt != null) setzen(S, ['geschosse', 'DG', 'deckenaufbau'], da2);
+      return hoeheSchritt(S, ae, name, 'Geschosshöhe OKFF–OKFF', ['geschosse', 'DG', 'okff'], vorher, ziel, daAlt != null ? 'Deckenaufbau gibt nach: ' + mmText(daAlt) + ' → ' + mmText(da2) : null);
+    }
+    if (name === 'hoehe:dach.traufe' || name === 'hoehe:dach.ueberstand') {
+      var feld = name.slice('hoehe:dach.'.length);
+      vorher = S.haus.dach[feld];
+      if (feld === 'traufe' ? !(ziel > 0) : ziel < 0) throw fehler(feld === 'traufe' ? 'Die Traufe muss größer als 0 sein' : 'Der Dachüberstand darf nicht negativ sein');
+      if (Math.abs(ziel - vorher) < TOL) return unveraendert(vorher);
+      setzen(S, ['dach', feld], ziel);
+      return hoeheSchritt(S, ae, name, feld === 'traufe' ? 'Traufe' : 'Dachüberstand', ['dach', feld], vorher, ziel, feld === 'traufe' ? 'der First steigt mit' : null);
+    }
+    if (/^hoehe:(dach\.(first|traufe-first)|dg\.bis-first)$/.test(name)) throw fehler('Das Maß ' + name + ' ist abgeleitet (Dachneigung 35° ist gesperrt); die Traufe (hoehe:dach.traufe) ändern');
+    if (name === 'hoehe:dg.kniewand') {
+      var ws = S.haus.waende.map(function (x, k) { return { w: x, k: k }; }).filter(function (x) { return x.w.hoehe && x.w.hoehe.max != null; });
+      if (!ws.length) throw fehler('Keine Kniewände mit Höhenvorgabe in den Daten');
+      if (!(ziel > 0)) throw fehler('Die Kniewandhöhe muss größer als 0 sein');
+      vorher = ws[0].w.hoehe.max;
+      if (ws.every(function (x) { return Math.abs(x.w.hoehe.max - ziel) < TOL; }) && (S.haus.dg.kniewandSoll == null || Math.abs(S.haus.dg.kniewandSoll - ziel) < TOL)) return unveraendert(vorher);
+      ws.forEach(function (x) { setzen(S, ['waende', x.k, 'hoehe', 'max'], ziel); });
+      if (S.haus.dg.kniewandSoll != null) setzen(S, ['dg', 'kniewandSoll'], ziel);
+      var sc = hoeheSchritt(S, ae, name, 'Kniewandhöhe', ['waende', ws[0].k, 'hoehe', 'max'], vorher, ziel, ws.length + ' Wände und Sollwert'); sc.kniewaende = ws.map(function (x) { return x.w.id; }); return sc;
+    }
+    var mw = /^hoehe:(.+)$/.exec(name);
+    i = wandIndex(S.haus, mw[1]);
+    if (i >= 0 && S.haus.waende[i].hoehe && S.haus.waende[i].hoehe.max != null) {
+      w = S.haus.waende[i]; vorher = w.hoehe.max;
+      if (!(ziel > 0)) throw fehler('Die Wandhöhe muss größer als 0 sein');
+      if (Math.abs(ziel - vorher) < TOL) return unveraendert(vorher);
+      setzen(S, ['waende', i, 'hoehe', 'max'], ziel);
+      var sw = hoeheSchritt(S, ae, name, 'Höhe der Wand ' + w.id, ['waende', i, 'hoehe', 'max'], vorher, ziel, 'Höchstwert'); sw.kniewaende = [w.id]; return sw;
+    }
+    throw fehler('Höhenmaß unbekannt: ' + name + ' (hoehe:eg.lichte, hoehe:dg.deckenaufbau, hoehe:dg.okff, hoehe:dach.traufe, hoehe:dach.ueberstand, hoehe:dg.kniewand oder hoehe:<wand mit Höhenvorgabe>)');
+  }
+  function oeffnungsHoeheAendern(S, ae, oname, feld, ziel) { // Brüstung, Höhe oder Sturz einer Öffnung; der Sturz reicht bis zur Decke (lichte Höhe EG)
+    var mo = /^(.*)\.oeff(\d+)$/.exec(oname), wi = wandIndex(S.haus, mo[1]), k = parseInt(mo[2], 10) - 1, w = S.haus.waende[wi], o = (w.oeffnungen || [])[k];
+    if (!o) throw fehler('Öffnung unbekannt: ' + oname);
+    if (ae.bewegt || ae.einzeln) throw fehler('bewegt und einzeln gelten nicht für Höhen (' + ae.mass + ')');
+    if (feld === 'sturz') {
+      if (w.geschoss !== 'EG') throw fehler('Der Sturz wird nur im Erdgeschoss bis zur Decke gemessen (' + oname + ' liegt im ' + w.geschoss + ')');
+      if (typeof o.hoehe !== 'number') throw fehler('Die Öffnung ' + oname + ' hat keine Höhe in mm');
+      if (ziel < 0) throw fehler('Der Sturz darf nicht negativ sein (' + mmText(ziel) + ')');
+      var hoehe = S.haus.geschosse.EG.lichteHoehe - ziel - (o.bruestung || 0);
+      if (!(hoehe > 0)) throw fehler('Mit dem Sturz ' + mmText(ziel) + ' bliebe keine Öffnungshöhe (Brüstung ' + mmText(o.bruestung || 0) + ', lichte Höhe ' + mmText(S.haus.geschosse.EG.lichteHoehe) + ')');
+      var s1 = oeffnungAendern(S, { oeffnung: oname, feld: 'hoehe', wert: hoehe, quelle: ae.quelle }, {}, ae.mass);
+      if (!s1.unveraendert) s1.text = oname + '.sturz: ' + mmText(S.haus.geschosse.EG.lichteHoehe - (o.hoehe) - (o.bruestung || 0)) + ' → ' + mmText(ziel) + ' (Höhe der Öffnung ' + mmText(s1.von) + ' → ' + mmText(hoehe) + ')';
+      return s1;
+    }
+    if (ziel < 0 || (feld === 'hoehe' && ziel === 0)) throw fehler((feld === 'hoehe' ? 'Die Höhe' : 'Die Brüstung') + ' einer Öffnung darf nicht ' + (ziel < 0 ? 'negativ' : '0') + ' sein');
+    return oeffnungAendern(S, { oeffnung: oname, feld: feld, wert: ziel, quelle: ae.quelle }, {}, ae.mass);
   }
 
   function oeffnungAendern(S, ae, opt, urname) {
@@ -399,13 +543,14 @@ var Aendern = (function () {
         if (a.fest && (!b || JSON.stringify(a) !== JSON.stringify(b))) out.push(n);
       });
     });
+    if (alt.geschosse && alt.geschosse.DG && alt.geschosse.DG.fest && (!neu.geschosse || !neu.geschosse.DG || neu.geschosse.DG.okff !== alt.geschosse.DG.okff)) out.push('geschosse.DG.okff');
     if (alt.dach && alt.dach.fest && JSON.stringify(alt.dach.neigung) !== JSON.stringify(neu.dach && neu.dach.neigung)) out.push('dach.neigung');
     return out;
   }
 
   /* ---------- Auswirkungen ---------- */
   function auswirkungenBerechnen(D0, D1) {
-    var A = { raeume: [], masse: [], waende: [], oeffnungen: [], dach: [] };
+    var A = { raeume: [], masse: [], waende: [], oeffnungen: [], dach: [], hoehen: [] };
     function lichte(D, id) { var r = null; D.geschosse.forEach(function (g) { D.plan(g).raeume.forEach(function (q) { if (q.id === id) r = q; }); }); return r; }
     var alt = {};
     D0.abl.raeume.forEach(function (r) { alt[r.id] = r; });
@@ -454,13 +599,15 @@ var Aendern = (function () {
     }
     var d0 = dachWerte(D0), d1 = dachWerte(D1);
     Object.keys(d1).forEach(function (n) { if (n in d0 && Math.abs(d0[n] - d1[n]) > TOL) A.dach.push({ name: n, vorher: d0[n], nachher: d1[n] }); });
+    var h0 = D0.hoehen(), h1 = D1.hoehen();
+    Object.keys(h1).forEach(function (n) { if (n in h0 && Math.abs(h0[n].wert - h1[n].wert) > 1e-6) A.hoehen.push({ name: n, text: h1[n].text, vorher: h0[n].wert, nachher: h1[n].wert }); });
     return A;
   }
 
   /* ---------- Hauptfunktion ---------- */
   function aendern(haus, aenderungen, optionen) {
     var opt = optionen || {};
-    var res = { ok: false, haus: null, vorschauHaus: null, kanten: [], schritte: [], meldungen: [], auswirkungen: { raeume: [], masse: [], waende: [], oeffnungen: [], dach: [] }, befunde: { neu: [], behoben: [], fehlerNeu: [], alle: [] } };
+    var res = { ok: false, haus: null, vorschauHaus: null, kanten: [], schritte: [], meldungen: [], auswirkungen: { raeume: [], masse: [], waende: [], oeffnungen: [], dach: [], hoehen: [] }, befunde: { neu: [], behoben: [], fehlerNeu: [], alle: [] } };
     var S = null;
     try {
       if (!Array.isArray(aenderungen) || !aenderungen.length) throw fehler('Keine Änderungen angegeben.');
@@ -477,6 +624,12 @@ var Aendern = (function () {
         }
       });
       var D1 = S.D;
+      res.schritte.forEach(function (sc) { // Kniewände: Dachhaut abzüglich Sparrenabstand begrenzt die Höhe
+        (sc.kniewaende || []).forEach(function (id) {
+          var w = D1.hoehen()['hoehe:' + id], ziel = sc.nach;
+          if (!sc.unveraendert && w && w.wert < ziel - 0.5) res.meldungen.push('  Hinweis: ' + id + ' erreicht nur ' + mmText(w.wert) + ' (die Dachhaut abzüglich ' + mmText(S.haus.dg.wandAbstandDachhaut) + ' Sparrenabstand begrenzt die Wand), nicht ' + mmText(ziel) + '.');
+        });
+      });
       res.vorschauHaus = S.haus;
       Object.defineProperty(res, 'ableitung', { value: { vorher: D0, nachher: D1 }, enumerable: false });
       res.auswirkungen = auswirkungenBerechnen(D0, D1);
@@ -599,6 +752,7 @@ var Aendern = (function () {
       z.push('Öffnungen:');
       A.oeffnungen.forEach(function (o) { z.push('  ' + o.name + ': ' + (o.art === 'breite' ? 'Breite ' + de(o.vorher, 1) + ' → ' + de(o.nachher, 1) + ' mm' : 'verschoben um ' + de(o.weg, 1) + ' mm')); });
     }
+    if (A.hoehen.length) { z.push('Höhen:'); A.hoehen.forEach(function (h) { z.push('  ' + h.name + ' (' + h.text + '): ' + de(h.vorher, 2) + ' → ' + de(h.nachher, 2) + ' mm'); }); }
     if (A.dach.length) { z.push('Dach:'); A.dach.forEach(function (d) { z.push('  ' + d.name + ': ' + de(d.vorher, 1) + ' → ' + de(d.nachher, 1)); }); }
     if (res.vorschauHaus) {
       var B = res.befunde;

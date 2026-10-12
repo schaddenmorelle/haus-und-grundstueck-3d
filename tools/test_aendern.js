@@ -344,5 +344,105 @@ const speis = lauf([{ mass: 'raum:speis.tiefe', wert: '1,30m' }]);
   check(r.status === 1, 'CLI --liste mit fehlender Datei: Exit 1');
 }
 
+/* ---------- Höhen (Phase 5): lichte Höhe, Deckenaufbau, Geschosshöhe, Traufe, Kniewand, Brüstung, Höhe und Sturz ---------- */
+// Geschosshöhe OKFF–OKFF = lichte Höhe + Deckenaufbau (Regel 10): 2525 + 446 = 2971; die Geschosshöhe ist gesperrt (Treppenplanung), der Deckenaufbau gibt nach.
+{
+  const r = lauf([{ mass: 'hoehe:eg.lichte', wert: '2,40m' }]);
+  check(r.ok, 'lichte Höhe 2,40 m bricht ab: ' + kurz(r));
+  check(r.haus && r.haus.geschosse.EG.lichteHoehe === 2400 && r.haus.geschosse.DG.deckenaufbau === 571 && r.haus.geschosse.DG.okff === 2971, 'lichte Höhe 2,40 m: Deckenaufbau gibt nach (571), Geschosshöhe bleibt 2971: ' + JSON.stringify(r.haus && r.haus.geschosse));
+  check(r.kanten.length === 2, 'lichte Höhe: zwei geänderte Stellen (lichteHoehe, deckenaufbau), nicht ' + r.kanten.length);
+  const hw = (res, n) => (res.auswirkungen.hoehen || []).filter(h => h.name === n)[0];
+  check(hw(r, 'hoehe:eg.lichte') && hw(r, 'hoehe:eg.lichte').vorher === 2525 && hw(r, 'hoehe:eg.lichte').nachher === 2400, 'Auswirkung lichte Höhe 2525 → 2400: ' + JSON.stringify(r.auswirkungen.hoehen));
+  check(hw(r, 'hoehe:dg.deckenaufbau') && hw(r, 'hoehe:dg.deckenaufbau').nachher === 571, 'Auswirkung Deckenaufbau 446 → 571');
+  check(r.befunde.neu.filter(b => b.stufe === 'fehler').length === 0, 'lichte Höhe 2,40 m: keine neuen Fehler: ' + r.befunde.neu.map(b => b.text));
+  check(/Höhen/.test(A.auswirkungenText(r)), 'Ausgabe nennt die Höhen');
+  check(haus.geschosse.EG.lichteHoehe === 2525, 'Eingabedaten dürfen nicht verändert werden');
+}
+{ // Die Haustür ist 2,375 m hoch: bei 2,30 m lichter Höhe liegt ihr Sturz über der Decke (Regel 12)
+  const r = lauf([{ mass: 'hoehe:eg.lichte', wert: '2,30m' }]);
+  check(!r.ok && r.haus === null && /Abbruch/.test(kurz(r)) && r.befunde.fehlerNeu.some(b => b.regel === 12), 'lichte Höhe 2,30 m muss an der Türhöhe 2,375 m abbrechen: ' + kurz(r));
+  check(lauf([{ mass: 'hoehe:eg.lichte', wert: '2,30m' }], { trotzdem: true }).ok, 'mit trotzdem wird gespeichert');
+}
+{
+  const r = lauf([{ mass: 'hoehe:dg.deckenaufbau', wert: '500mm' }]);
+  check(r.ok && r.haus.geschosse.DG.deckenaufbau === 500 && r.haus.geschosse.EG.lichteHoehe === 2471, 'Deckenaufbau 500 mm: die lichte Höhe gibt nach (2471): ' + kurz(r));
+  const neg = lauf([{ mass: 'hoehe:dg.deckenaufbau', wert: '3m' }]);
+  check(!neg.ok && /negativ|größer/.test(kurz(neg)), 'Deckenaufbau 3 m (größer als die Geschosshöhe) wird abgelehnt: ' + kurz(neg));
+  const nul = lauf([{ mass: 'hoehe:eg.lichte', wert: '0mm' }]);
+  check(!nul.ok, 'lichte Höhe 0 wird abgelehnt');
+}
+{ // Geschosshöhe: gesperrt, nur mit aussenmass; 3,00 m → Steigung 3000 / 15 = 200 mm, Deckenaufbau 3000 − 2525 = 475
+  const ohneFreigabe = lauf([{ mass: 'hoehe:dg.okff', wert: '3,00m' }]);
+  check(!ohneFreigabe.ok && /gesperrt/.test(kurz(ohneFreigabe)) && /aussenmass/.test(kurz(ohneFreigabe)), 'Geschosshöhe ist gesperrt: ' + kurz(ohneFreigabe));
+  const r = lauf([{ mass: 'hoehe:dg.okff', wert: '3,00m' }], { aussenmass: true });
+  check(r.ok && r.haus.geschosse.DG.okff === 3000 && r.haus.geschosse.DG.deckenaufbau === 475 && r.haus.geschosse.EG.lichteHoehe === 2525, 'Geschosshöhe 3,00 m: OKFF DG 3000, Deckenaufbau 475: ' + kurz(r));
+  const st = (r.auswirkungen.hoehen || []).filter(h => h.name === 'treppe.steigung')[0];
+  check(st && nahe(st.vorher, 2971 / 15, 1e-6) && nahe(st.nachher, 200, 1e-6), 'Auswirkung Steigung 198,07 → 200 mm: ' + JSON.stringify(st));
+}
+{ // Traufe: der First steigt mit (Neigung bleibt, Überstand bleibt)
+  const r = lauf([{ mass: 'hoehe:dach.traufe', wert: '3,10m' }]);
+  check(r.ok && r.haus.dach.traufe === 3100, 'Traufe 3,10 m: ' + kurz(r));
+  const f = (r.auswirkungen.hoehen || []).filter(h => h.name === 'hoehe:dach.first')[0];
+  check(f && nahe(f.nachher - f.vorher, 130, 1e-6), 'Der First steigt um 130 mm mit der Traufe: ' + JSON.stringify(f));
+  check(r.befunde.neu.some(b => b.regel === 15), 'Der berechnete First weicht nun vom Plan (149,08 m ü. NN) ab: Regel 15');
+  const ue = lauf([{ mass: 'hoehe:dach.ueberstand', wert: '30cm' }]);
+  check(ue.ok && ue.haus.dach.ueberstand === 300, 'Dachüberstand 30 cm: ' + kurz(ue));
+  check(!lauf([{ mass: 'hoehe:dach.first', wert: '6,5m' }]).ok && /abgeleitet/.test(kurz(lauf([{ mass: 'hoehe:dach.first', wert: '6,5m' }]))), 'Der First ist abgeleitet und nicht änderbar');
+}
+{ // Kniewände: eine Wand oder alle. Die Höhe ist ein Höchstwert; die Dachhaut abzüglich Sparrenabstand (22 cm) begrenzt sie an den Enden der Wand
+  const r = lauf([{ mass: 'hoehe:dg.kniewand-west', wert: '1,20m' }]);
+  const w = id => r.haus.waende[idx(id)];
+  check(r.ok && w('dg.kniewand-west').hoehe.max === 1200 && w('dg.kniewand-nord').hoehe.max === 1000, 'Kniewand West 1,20 m, die anderen bleiben: ' + kurz(r));
+  check(/Dachhaut/.test(kurz(r)) && (r.auswirkungen.hoehen || []).every(h => h.name !== 'hoehe:dg.kniewand-west'), 'Die Dachhaut begrenzt die West-Kniewand schon bei etwa 0,97 m: Hinweis, keine Höhenänderung: ' + kurz(r));
+  const tiefer = lauf([{ mass: 'hoehe:dg.kniewand-west', wert: '0,80m' }]);
+  const k = (tiefer.auswirkungen.hoehen || []).filter(h => h.name === 'hoehe:dg.kniewand-west')[0];
+  check(tiefer.ok && tiefer.haus.waende[idx('dg.kniewand-west')].hoehe.max === 800 && k && nahe(k.nachher, 800, 1e-6) && k.vorher < 1000, 'Kniewand West 0,80 m: niedrigste Oberkante ' + JSON.stringify(k));
+  check(tiefer.befunde.neu.some(b => b.regel === 13), 'Kniewand unter 0,95 m: Regel 13 meldet');
+  const alle = lauf([{ mass: 'hoehe:dg.kniewand', wert: '1,10m' }]);
+  check(alle.ok && alle.haus.dg.kniewandSoll === 1100 && alle.haus.waende.filter(x => x.hoehe && x.hoehe.max != null).every(x => x.hoehe.max === 1100), 'Alle Kniewände 1,10 m samt Sollwert: ' + kurz(alle));
+}
+{ // Öffnungen: Brüstung, Höhe, Sturz (bis zur Decke, 2525)
+  const nord = 'eg.aw.nord', i = idx(nord);
+  const br = lauf([{ mass: nord + '.oeff2.bruestung', wert: '1,00m' }]);
+  check(br.ok && br.haus.waende[i].oeffnungen[1].bruestung === 1000 && br.haus.waende[i].oeffnungen[1].hoehe === 1250, 'Brüstung 1,00 m: ' + kurz(br));
+  const h = lauf([{ mass: nord + '.oeff2.hoehe', wert: '1,30m' }]);
+  check(h.ok && h.haus.waende[i].oeffnungen[1].hoehe === 1300, 'Höhe 1,30 m: ' + kurz(h));
+  const sturz = lauf([{ mass: nord + '.oeff2.sturz', wert: '100mm' }]);
+  check(sturz.ok && sturz.haus.waende[i].oeffnungen[1].hoehe === 1300 && sturz.haus.waende[i].oeffnungen[1].bruestung === 1125, 'Sturz 100 mm: Höhe = 2525 − 100 − 1125 = 1300: ' + kurz(sturz));
+  const zuHoch = lauf([{ mass: nord + '.oeff2.hoehe', wert: '1,50m' }]);
+  check(!zuHoch.ok && zuHoch.befunde.fehlerNeu.some(b => b.regel === 12), 'Fenster bis 2,625 m liegt über der Decke (Regel 12): ' + kurz(zuHoch));
+  const neg = lauf([{ mass: nord + '.oeff2.sturz', wert: '-5cm' }]);
+  check(!neg.ok && /negativ|Sturz/.test(kurz(neg)), 'negativer Sturz wird abgelehnt: ' + kurz(neg));
+  const tuer = lauf([{ mass: nord + '.oeff1.sturz', wert: '10cm' }]);
+  check(tuer.ok && tuer.haus.waende[i].oeffnungen[0].hoehe === 2425, 'Tür ohne Brüstung: Sturz 10 cm → Höhe 2425: ' + kurz(tuer));
+  check(!lauf([{ mass: 'hoehe:gibtsnicht', wert: '1m' }]).ok && /unbekannt/.test(kurz(lauf([{ mass: 'hoehe:gibtsnicht', wert: '1m' }]))), 'unbekanntes Höhenmaß');
+  check(!lauf([{ mass: 'hoehe:eg.lichte', wert: '2,40m', einzeln: true }]).ok, 'einzeln gilt nicht für Höhen');
+}
+{ // Änderungsliste mit Höhen und Schnitt der Ableitung
+  const liste = A.listeErzeugen(haus, [{ mass: 'hoehe:eg.lichte', wert: '2,40m' }, { mass: 'hoehe:dach.traufe', wert: '3,05m' }]);
+  const res = A.aendern(haus, A.listeLesen(liste, haus));
+  check(res.ok && res.haus.dach.traufe === 3050 && res.haus.geschosse.EG.lichteHoehe === 2400, 'Änderungsliste mit zwei Höhen: ' + kurz(res));
+  const D = A.ableiten(res.haus);
+  check(D.schnitte().map(l => l.id).join() === 'A,B', 'Schnittlinien der Ableitung: ' + D.schnitte().map(l => l.id));
+  const sA = D.schnitt('A');
+  check(sA.koten.deckeUK === 2400 && sA.koten.traufe === 3050, 'Der Schnitt folgt den geänderten Höhen: ' + JSON.stringify(sA.koten));
+  check(D.ansicht('N').seite === 'N' && D.ansicht('N').koten.traufe === 3050, 'Die Ansicht folgt den geänderten Höhen');
+  wirft(() => D.schnitt('Z'), /Schnitt.*unbekannt/, 'unbekannter Schnitt');
+}
+{ // Befehlszeile
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'haus-hoehen-')), datei = path.join(dir, 'haus.json');
+  fs.writeFileSync(datei, HAUS_TEXT);
+  const cli = (...a) => spawnSync(process.execPath, [path.join(__dirname, 'aendern.js'), '--datei', datei, ...a], { encoding: 'utf8' });
+  let r = cli('hoehe:eg.lichte=2,40m');
+  const neu = fs.readFileSync(datei, 'utf8');
+  check(r.status === 0 && JSON.parse(neu).geschosse.EG.lichteHoehe === 2400 && /Höhen/.test(r.stdout), 'CLI hoehe:eg.lichte: ' + r.stdout + r.stderr);
+  check(neu.split('\n').length === HAUS_TEXT.split('\n').length, 'CLI: Zeilenzahl bleibt, geändert werden nur die betroffenen Stellen');
+  fs.writeFileSync(datei, HAUS_TEXT);
+  r = cli('hoehe:dg.okff=3,00m');
+  check(r.status === 1 && /gesperrt/.test(r.stdout + r.stderr) && fs.readFileSync(datei, 'utf8') === HAUS_TEXT, 'CLI hoehe:dg.okff ohne --aussenmass wird abgelehnt: ' + r.stdout + r.stderr);
+  r = cli('--aussenmass', 'hoehe:dg.okff=3,00m');
+  check(r.status === 0 && JSON.parse(fs.readFileSync(datei, 'utf8')).geschosse.DG.okff === 3000, 'CLI hoehe:dg.okff mit --aussenmass: ' + r.stdout + r.stderr);
+}
+
 if (fails.length) { console.log('FEHLER:\n  ' + fails.join('\n  ')); process.exit(1); }
 console.log('Änderungen: alle Prüfungen bestanden');
