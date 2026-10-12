@@ -1814,10 +1814,10 @@ var schnittLinien, schnittAbleiten, ansichtAbleiten, schnittSvg;
 
   /* ---------- Ansicht ---------- */
   var SEITEN = {
-    N: { name: 'Ansicht Nord', blick: [0, 1], normal: [0, -1], achse: 0, umkehr: false },
-    O: { name: 'Ansicht Ost', blick: [-1, 0], normal: [1, 0], achse: 1, umkehr: false },
-    S: { name: 'Ansicht Süd', blick: [0, -1], normal: [0, 1], achse: 0, umkehr: true },
-    W: { name: 'Ansicht West', blick: [1, 0], normal: [-1, 0], achse: 1, umkehr: true }
+    N: { name: 'Ansicht Nord', blick: [0, 1], normal: [0, -1], achse: 0, umkehr: true },   // Blick nach Süden: links ist Osten, s = hi − hx
+    O: { name: 'Ansicht Ost', blick: [-1, 0], normal: [1, 0], achse: 1, umkehr: true },    // Blick nach Westen: links ist Süden, s = hi − hz
+    S: { name: 'Ansicht Süd', blick: [0, -1], normal: [0, 1], achse: 0, umkehr: false },   // Blick nach Norden: links ist Westen, s = hx
+    W: { name: 'Ansicht West', blick: [1, 0], normal: [-1, 0], achse: 1, umkehr: false }   // Blick nach Osten: links ist Norden, s = hz
   };
   ansichtAbleiten = function (haus, WV, abl, dach, seite) {
     var D = SEITEN[seite];
