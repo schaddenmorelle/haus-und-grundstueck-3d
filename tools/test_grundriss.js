@@ -234,5 +234,20 @@ function xmlOk(svg) { // Tags sind ausgeglichen (kleiner Prüfer, genügt für s
   });
 }
 
+/* ---------- Treppe mit Stufen, Schnittlinien im Grundriss (Phase 5) ---------- */
+{
+  const eg = plan('EG'), svgEG = grundrissSvg(eg, { standalone: true });
+  check(eg.treppe && eg.treppe.stufen && eg.treppe.stufen.length === 14 && eg.treppe.stufen[0].n === 1, 'Treppe im EG: 14 Stufen mit Nummer (Treppenplanung: 15 Steigungen, die 15. ist der DG-Boden): ' + (eg.treppe && eg.treppe.stufen && eg.treppe.stufen.length));
+  check((svgEG.match(/class="stufe"/g) || []).length === 14 && (svgEG.match(/class="snr/g) || []).length === 14, 'SVG: 14 Stufen mit Nummern');
+  check(/class="lauflinie"/.test(svgEG), 'SVG: Lauflinie der Treppe');
+  check(plan('DG').treppe === null && !/class="stufe"/.test(grundrissSvg(plan('DG'), { standalone: true })), 'Im DG gibt es keine Stufen, nur die Treppenöffnung');
+  const linien = [{ id: 'A', name: 'Schnitt A–A', a: [3100, 9195], b: [13350, 9195], blick: [0, -1] }];
+  const mit = grundrissSvg(eg, { standalone: true, schnittlinien: linien });
+  check(/data-schnitt="A"/.test(mit) && />A</.test(mit) && !/NaN/.test(mit), 'SVG: Schnittlinie A mit Beschriftung und Verweis (data-schnitt)');
+  check(!/data-schnitt/.test(svgEG), 'SVG ohne Schnittlinien zeichnet keine');
+  const vb = s => s.match(/viewBox="([^"]+)"/)[1].split(' ').map(Number);
+  check(vb(mit)[0] + vb(mit)[2] >= 13350, 'Die Schnittlinie liegt im sichtbaren Ausschnitt: viewBox ' + vb(mit));
+}
+
 if (fails.length) { console.log('FEHLER:\n  ' + fails.join('\n  ')); process.exit(1); }
 console.log('Grundriss: alle Prüfungen bestanden (EG: ' + eg.ketten.length + ' Ketten, ' + eg.oeffnungen.length + ' Öffnungen; DG: ' + dg.ketten.length + ' Ketten)');

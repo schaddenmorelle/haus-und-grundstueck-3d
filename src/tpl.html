@@ -79,7 +79,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
 .pm-fehler{color:var(--red);white-space:pre-wrap}
 .pm-warn{color:var(--red);font-weight:600}
 #pm-text{width:100%;margin-top:8px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:5px;padding:6px}
-.btns.zwei{grid-template-columns:repeat(2,minmax(0,1fr))}
+.btns.zwei{grid-template-columns:repeat(2,minmax(0,1fr))}.btns.vier{grid-template-columns:repeat(4,minmax(0,1fr))}#modusBtns+.btns{margin-top:6px}#schnittBtns+.btns{margin-top:6px}#plan2d.zeichnet,#plan2d.zeichnet *{cursor:crosshair}
 .leg{display:grid;gap:5px;font-size:13px}.leg span{display:flex;align-items:center;gap:8px}
 .leg i{display:inline-block;width:26px;height:0;border-top:3px solid currentColor}.leg i.s{border-top-style:dashed}.leg i.p{border-top-style:dotted}
 .q-plan{color:var(--q-plan)}.q-aufmass{color:var(--q-aufmass)}.q-nutzer{color:var(--q-nutzer)}.q-annahme{color:var(--q-annahme)}.q-ohne{color:var(--q-ohne)}
@@ -117,11 +117,22 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
         <button class="btn" type="button" data-modus="EG" aria-pressed="false">Grundriss EG</button>
         <button class="btn" type="button" data-modus="DG" aria-pressed="false">Grundriss DG</button>
       </div>
+      <div class="btns" id="schnittBtns">
+        <button class="btn" type="button" data-modus="sch:A" aria-pressed="false">Schnitt A–A</button>
+        <button class="btn" type="button" data-modus="sch:B" aria-pressed="false">Schnitt B–B</button>
+        <button class="btn" type="button" id="btnFrei" data-modus="sch:frei" aria-pressed="false" hidden>Freier Schnitt</button>
+      </div>
+      <div class="btns vier" id="ansichtBtns">
+        <button class="btn" type="button" data-modus="an:N" aria-pressed="false">Nord</button>
+        <button class="btn" type="button" data-modus="an:O" aria-pressed="false">Ost</button>
+        <button class="btn" type="button" data-modus="an:S" aria-pressed="false">Süd</button>
+        <button class="btn" type="button" data-modus="an:W" aria-pressed="false">West</button>
+      </div>
     </section>
     <section class="nur2d" id="probe"><h2>Probiermodus</h2>
       <label class="chk"><input id="pm-an" type="checkbox">Maße ausprobieren</label>
       <div id="pm-box" hidden>
-        <p class="note">Ein Maß im Grundriss anklicken und den neuen Wert mit Einheit eingeben (1,30m, 12,5cm, 885mm). Der Nachbarraum gibt nach, gesperrte Außenmaße bleiben stehen. Die Seite speichert nichts: Die Änderungsliste wird exportiert und im Repository mit <b>node tools/aendern.js --liste</b> geprüft und eingespielt. Beim Wechsel zu 3D wird das Haus mit den geänderten Daten neu aufgebaut.</p>
+        <p class="note">Ein Maß im Plan (Grundriss, Schnitt oder Ansicht) anklicken und den neuen Wert mit Einheit eingeben (1,30m, 12,5cm, 885mm). Der Nachbarraum gibt nach, gesperrte Außenmaße bleiben stehen. Die Seite speichert nichts: Die Änderungsliste wird exportiert und im Repository mit <b>node tools/aendern.js --liste</b> geprüft und eingespielt. Beim Wechsel zu 3D wird das Haus mit den geänderten Daten neu aufgebaut.</p>
         <p id="pm-mass" class="note" aria-live="polite">Kein Maß gewählt.</p>
         <div class="pm-zeile"><input id="pm-wert" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="z. B. 1,30m" aria-label="Neuer Wert mit Einheit"><button id="pm-ok" class="btn" type="button">Anwenden</button></div>
         <label class="chk" id="pm-einzeln-l" hidden><input id="pm-einzeln" type="checkbox">Nur diese Wand (statt des Wandtyps)</label>
@@ -135,12 +146,14 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
         <textarea id="pm-text" rows="8" readonly hidden aria-label="Änderungsliste zum Kopieren"></textarea>
       </div>
     </section>
-    <section class="nur2d"><h2>Im Grundriss</h2>
+    <section class="nur2d"><h2>Im Plan</h2>
       <label class="chk"><input id="p-mass" type="checkbox" checked>Maßketten</label>
       <label class="chk"><input id="p-raeume" type="checkbox" checked>Raumstempel mit Fläche</label>
       <label class="chk"><input id="p-oeff" type="checkbox" checked>Maße der Öffnungen</label>
       <label class="chk"><input id="p-marken" type="checkbox" checked>Befunde der Prüfung</label>
       <p class="note">Ziehen verschiebt, Mausrad oder zwei Finger zoomen. Ein Maß anklicken zeigt Name, Wert und Herkunft; die zugehörige Wand, der Ausschnitt oder die Raumlinie leuchtet rot auf.</p>
+      <div class="btns zwei"><button id="sl-neu" class="btn" type="button">Schnittlinie legen</button></div>
+      <p class="note">Schnitt A–A und B–B stehen als rote Linien im Grundriss; ein Klick darauf öffnet den Schnitt. „Schnittlinie legen“: zwei Punkte im Grundriss anklicken, der Blick geht nach links von der Laufrichtung. Schnitte und Ansichten zeigen Höhen ab OKFF EG (142,80 m ü. NN); die Höhen lassen sich im Probiermodus ändern.</p>
     </section>
     <section class="nur2d"><h2>Herkunft der Maße</h2>
       <div class="leg">
@@ -215,6 +228,7 @@ var HAUS = /*HAUS*/;
 /*TREPPE*/
 /*PRUEFEN*/
 /*GRUNDRISS*/
+/*SCHNITT*/
 /*AENDERN*/
 /*MODEL*/
 </script>

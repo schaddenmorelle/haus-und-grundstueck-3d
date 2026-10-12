@@ -16,7 +16,7 @@
    (die Innenkante der Außenwand hebt sich bei der HAR-Tiefe auf, übrig bleibt das Aufmaß 2,95 m). Die Namen der Maße sind vorläufig:
    Mit diesen Namen spricht src/aendern.js (Phase 4) ein Maß an; jedes Segment einer Kette trägt dafür `parameter` (Achsen und Wandtypen, von denen es
    abhängt, mit Faktor k) und bei Öffnungen und Pfeilern `oeffnungen` (Verweis auf die Öffnung in der Wand). */
-if (typeof require !== 'undefined') { var polygonClipping = require('polygon-clipping'); var RA = require('./raeume.js'); }
+if (typeof require !== 'undefined') { var polygonClipping = require('polygon-clipping'); var RA = require('./raeume.js'); var treppeAbleiten = require('./treppe.js').treppeAbleiten; }
 
 var grundrissAbleiten, kettenSchnitt, grundrissSvg, planHilfen;
 (function () {
@@ -409,7 +409,9 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg, planHilfen;
     var T = haus.treppe;
     if (g === 'EG' && T && T.anker && T.laufEnde) {
       var ax = WV.mm(T.anker[0]), az = WV.mm(T.anker[1]);
-      plan.treppe = { lauf: [[ax - T.laufEnde, az - T.laufbreite], [ax - T.geraderLaufAb, az - T.laufbreite], [ax - T.geraderLaufAb, az], [ax - T.laufEnde, az]] };
+      var TR = T.steigungen ? treppeAbleiten(haus, WV) : null;
+      plan.treppe = { lauf: [[ax - T.laufEnde, az - T.laufbreite], [ax - T.geraderLaufAb, az - T.laufbreite], [ax - T.geraderLaufAb, az], [ax - T.laufEnde, az]],
+                      stufen: TR ? TR.stufen.map(function (s) { return { n: s.n, polygon: s.polygon, schwerpunkt: s.schwerpunkt, hoehe: s.hoehe }; }) : [], lauflinie: TR ? TR.lauflinie : [] };
     }
     if (g === 'DG' && haus.dg && haus.dg.treppenoeffnung) plan.treppenoeffnung = haus.dg.treppenoeffnung.map(function (q) { return [WV.mm(q[0]), WV.mm(q[1])]; });
     return plan;
@@ -428,6 +430,8 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg, planHilfen;
     '.plan .bg{fill:var(--pg)}.plan .raumf{fill:var(--pt);stroke:none}.plan .raumf.on{fill:color-mix(in srgb,var(--qp) 28%,var(--pt))}.plan .wandf{fill:var(--pw);stroke:none}',
     '.plan .eps{fill:url(#hatch)}.plan .oef{fill:var(--pg);stroke:none}.plan .rahmen{fill:none;stroke:var(--pi);stroke-width:14}.plan .glas{fill:none;stroke:var(--pi);stroke-width:9}',
     '.plan .trenn{stroke:var(--pm);stroke-width:12;stroke-dasharray:60 50;fill:none}.plan .treppe{fill:none;stroke:var(--pm);stroke-width:12;stroke-dasharray:90 40}',
+    '.plan .stufe{fill:none;stroke:var(--pm);stroke-width:9;stroke-linejoin:round}.plan .lauflinie{fill:none;stroke:var(--pm);stroke-width:8;stroke-dasharray:50 40}.plan .snr{font-size:95px;text-anchor:middle;fill:var(--pm)}',
+    '.plan .schnittl .sl{stroke:var(--pe);stroke-width:14;stroke-dasharray:160 50 20 50;fill:none}.plan .schnittl .sa{stroke:var(--pe);stroke-width:14;fill:var(--pe)}.plan .schnittl text{font-size:230px;font-weight:700;fill:var(--pe);text-anchor:middle}.plan .schnittl .hit{stroke:none;cursor:pointer}',
     '.plan .halo{paint-order:stroke;stroke:var(--pg);stroke-width:34;stroke-linejoin:round;fill:var(--pi)}',
     '.plan .rname{font-weight:600;font-size:200px;text-anchor:middle}.plan .rinfo{font-size:150px;text-anchor:middle;fill:var(--pm)}.plan .kreuz{stroke:var(--pm);stroke-width:10}',
     '.plan .olabel{font-size:105px;text-anchor:middle;fill:var(--pm)}.plan .dim{font-size:' + FS + 'px}.plan .dim text{stroke:none}',
@@ -485,7 +489,7 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg, planHilfen;
       }
       var hx = horiz ? Math.min(p0[0], p1[0]) : lage - 160, hy = horiz ? lage - 160 : Math.min(p0[1], p1[1]);
       var hw = horiz ? Math.abs(p1[0] - p0[0]) : 320, hh = horiz ? 320 : Math.abs(p1[1] - p0[1]);
-      var attr = ' data-name="' + esc(s.name) + '" data-wert="' + f(s.laenge) + '" data-quelle="' + s.quelle + '" data-fest="' + (s.fest ? 1 : 0) + '" data-art="' + s.art + '" data-richtung="' + k.richtung + '" data-von="' + f(s.von) + '" data-bis="' + f(s.bis) + '"' + (k.bei != null ? ' data-bei="' + f(k.bei) + '"' : '') + (s.schraeg ? ' data-schraeg="1"' : '');
+      var attr = ' data-name="' + esc(s.name) + '" data-wert="' + f(s.laenge) + '" data-quelle="' + s.quelle + '" data-fest="' + (s.fest ? 1 : 0) + '" data-art="' + s.art + '" data-richtung="' + k.richtung + '" data-von="' + f(s.von) + '" data-bis="' + f(s.bis) + '"' + (k.bei != null ? ' data-bei="' + f(k.bei) + '"' : '') + (s.schraeg ? ' data-schraeg="1"' : '') + (s.abgeleitet ? ' data-abgeleitet="1"' : '');
       out.push('<rect class="hit"' + attr + ' x="' + f(hx) + '" y="' + f(hy) + '" width="' + f(hw) + '" height="' + f(hh) + '"><title>' + esc(s.name + ': ' + mass(s.laenge) + (s.fest ? ' (gesperrt)' : '')) + '</title></rect>');
     });
     return '<g class="dim" data-kette="' + nr + '">' + out.join('') + '</g>';
@@ -519,7 +523,13 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg, planHilfen;
 
     /* Treppe, Treppenöffnung, Trennlinien */
     var extra = plan.trennlinien.map(function (t) { return '<line class="trenn" x1="' + f(t.von[0]) + '" y1="' + f(t.von[1]) + '" x2="' + f(t.bis[0]) + '" y2="' + f(t.bis[1]) + '"/>'; }).join('');
-    if (plan.treppe) extra += '<path class="treppe" d="' + pfad(plan.treppe.lauf) + '"/>';
+    if (plan.treppe) {
+      if (plan.treppe.stufen && plan.treppe.stufen.length) { // Stufen mit Nummer und Lauflinie (durch die Schwerpunkte der Stufen)
+        extra += plan.treppe.stufen.map(function (st) { return '<path class="stufe" data-stufe="' + st.n + '" d="' + pfad(st.polygon) + '"><title>Stufe ' + st.n + ': Trittfläche ' + zahl(st.hoehe / 1000, 3) + ' m über OKFF EG</title></path>'; }).join('');
+        extra += '<path class="lauflinie" d="M' + plan.treppe.lauflinie.map(function (p) { return f(p[0]) + ' ' + f(p[1]); }).join('L') + '"/>';
+        extra += plan.treppe.stufen.map(function (st) { return '<text class="snr halo" x="' + f(st.schwerpunkt[0]) + '" y="' + f(st.schwerpunkt[1] + 32) + '">' + st.n + '</text>'; }).join('');
+      } else extra += '<path class="treppe" d="' + pfad(plan.treppe.lauf) + '"/>';
+    }
     if (plan.treppenoeffnung) extra += '<path class="treppe" d="' + pfad(plan.treppenoeffnung) + '"/>';
 
     /* Raumstempel: Name, Fläche, lichte Maße */
@@ -556,6 +566,21 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg, planHilfen;
       });
     }
 
+    /* Schnittlinien: gestrichelt mit Buchstaben an den Enden und Pfeilen in Blickrichtung (links von der Laufrichtung) */
+    var schnittSvgTeile = (o.schnittlinien || []).map(function (sl) {
+      var L = Math.hypot(sl.b[0] - sl.a[0], sl.b[1] - sl.a[1]), u = [(sl.b[0] - sl.a[0]) / L, (sl.b[1] - sl.a[1]) / L], bl = [u[1], -u[0]], pf = 420, out = '';
+      erweitere(sl.a[0], sl.a[1]); erweitere(sl.b[0], sl.b[1]); erweitere(sl.a[0] + bl[0] * (pf + 330), sl.a[1] + bl[1] * (pf + 330)); erweitere(sl.b[0] + bl[0] * (pf + 330), sl.b[1] + bl[1] * (pf + 330));
+      out += '<line class="sl" x1="' + f(sl.a[0]) + '" y1="' + f(sl.a[1]) + '" x2="' + f(sl.b[0]) + '" y2="' + f(sl.b[1]) + '"/>';
+      [sl.a, sl.b].forEach(function (p) {
+        var t = [p[0] + bl[0] * pf, p[1] + bl[1] * pf], k1 = [t[0] - bl[0] * 120 + u[1] * 90 * -1, t[1] - bl[1] * 120 + u[0] * 90], k2 = [t[0] - bl[0] * 120 - u[1] * 90 * -1, t[1] - bl[1] * 120 - u[0] * 90];
+        out += '<line class="sl" style="stroke-dasharray:none" x1="' + f(p[0]) + '" y1="' + f(p[1]) + '" x2="' + f(t[0]) + '" y2="' + f(t[1]) + '"/><path class="sa" d="M' + f(t[0]) + ' ' + f(t[1]) + 'L' + f(k1[0]) + ' ' + f(k1[1]) + 'L' + f(k2[0]) + ' ' + f(k2[1]) + 'Z"/>' +
+          '<text class="halo" x="' + f(p[0] + bl[0] * (pf + 330)) + '" y="' + f(p[1] + bl[1] * (pf + 330) + 80) + '">' + esc(sl.id) + '</text>';
+      });
+      var m = [(sl.a[0] + sl.b[0]) / 2, (sl.a[1] + sl.b[1]) / 2], w = 300, nq = [-u[1], u[0]];
+      out += '<polygon class="hit" points="' + [[sl.a[0] + nq[0] * w, sl.a[1] + nq[1] * w], [sl.b[0] + nq[0] * w, sl.b[1] + nq[1] * w], [sl.b[0] - nq[0] * w, sl.b[1] - nq[1] * w], [sl.a[0] - nq[0] * w, sl.a[1] - nq[1] * w]].map(function (p) { return f(p[0]) + ',' + f(p[1]); }).join(' ') + '" fill="transparent"><title>' + esc(sl.name || sl.id) + '</title></polygon>';
+      return '<g class="schnittl" data-schnitt="' + esc(sl.id) + '">' + out + '</g>';
+    }).join('');
+
     /* Befund-Marken */
     var markenSvg = zeigeMarken ? plan.marken.map(function (m, i) {
       return '<g class="marke ' + m.stufe + '" data-marke="' + i + '" transform="translate(' + f(m.ort[0]) + ' ' + f(m.ort[1]) + ')"><circle r="170"/><text y="70">!</text><title>' + esc('Regel ' + m.regel + ': ' + m.text) + '</title></g>';
@@ -568,7 +593,7 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg, planHilfen;
     return '<svg xmlns="http://www.w3.org/2000/svg" class="plan" viewBox="' + f(vx) + ' ' + f(vy) + ' ' + f(vw) + ' ' + f(vh) + '"' + size + ' role="img" aria-label="Grundriss ' + esc(plan.geschoss) + '" data-geschoss="' + esc(plan.geschoss) + '" data-viewbox="' + f(vx) + ' ' + f(vy) + ' ' + f(vw) + ' ' + f(vh) + '">' +
       style + defs + (standalone ? '<rect class="bg" x="' + f(vx) + '" y="' + f(vy) + '" width="' + f(vw) + '" height="' + f(vh) + '"/>' : '') +
       '<g class="boden">' + bodenSvg + '</g><g class="waende">' + waendeSvg + '</g><g class="oeffnungen">' + oeffSvg + '</g><g class="extra">' + extra + '</g>' +
-      '<g class="oeffnungstexte">' + oeffText + '</g><g class="raeume">' + raumSvg + '</g><g class="massketten">' + kettenSvgTeile + '</g><g class="marken">' + markenSvg + '</g></svg>';
+      '<g class="oeffnungstexte">' + oeffText + '</g><g class="raeume">' + raumSvg + '</g><g class="massketten">' + kettenSvgTeile + '</g><g class="schnittlinien">' + schnittSvgTeile + '</g><g class="marken">' + markenSvg + '</g></svg>';
   };
   /* Zeichenhilfen für Schnitt und Ansicht (src/schnitt.js): dieselben Maßketten, Farben und Zahlenformate wie im Grundriss */
   planHilfen = { kettenSvg: kettenSvg, kettenLayout: kettenLayout, CSS: CSS, CSS_DUNKEL: CSS_DUNKEL, f: f, esc: esc, pfad: pfad, mass: mass, zahl: zahl, schlossSvg: schlossSvg, FS: FS };

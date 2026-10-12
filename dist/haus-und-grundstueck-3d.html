@@ -79,7 +79,7 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
 .pm-fehler{color:var(--red);white-space:pre-wrap}
 .pm-warn{color:var(--red);font-weight:600}
 #pm-text{width:100%;margin-top:8px;font:12px/1.4 ui-monospace,Menlo,Consolas,monospace;background:var(--paper);color:var(--ink);border:1px solid var(--rule);border-radius:5px;padding:6px}
-.btns.zwei{grid-template-columns:repeat(2,minmax(0,1fr))}
+.btns.zwei{grid-template-columns:repeat(2,minmax(0,1fr))}.btns.vier{grid-template-columns:repeat(4,minmax(0,1fr))}#modusBtns+.btns{margin-top:6px}#schnittBtns+.btns{margin-top:6px}#plan2d.zeichnet,#plan2d.zeichnet *{cursor:crosshair}
 .leg{display:grid;gap:5px;font-size:13px}.leg span{display:flex;align-items:center;gap:8px}
 .leg i{display:inline-block;width:26px;height:0;border-top:3px solid currentColor}.leg i.s{border-top-style:dashed}.leg i.p{border-top-style:dotted}
 .q-plan{color:var(--q-plan)}.q-aufmass{color:var(--q-aufmass)}.q-nutzer{color:var(--q-nutzer)}.q-annahme{color:var(--q-annahme)}.q-ohne{color:var(--q-ohne)}
@@ -117,11 +117,22 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
         <button class="btn" type="button" data-modus="EG" aria-pressed="false">Grundriss EG</button>
         <button class="btn" type="button" data-modus="DG" aria-pressed="false">Grundriss DG</button>
       </div>
+      <div class="btns" id="schnittBtns">
+        <button class="btn" type="button" data-modus="sch:A" aria-pressed="false">Schnitt A–A</button>
+        <button class="btn" type="button" data-modus="sch:B" aria-pressed="false">Schnitt B–B</button>
+        <button class="btn" type="button" id="btnFrei" data-modus="sch:frei" aria-pressed="false" hidden>Freier Schnitt</button>
+      </div>
+      <div class="btns vier" id="ansichtBtns">
+        <button class="btn" type="button" data-modus="an:N" aria-pressed="false">Nord</button>
+        <button class="btn" type="button" data-modus="an:O" aria-pressed="false">Ost</button>
+        <button class="btn" type="button" data-modus="an:S" aria-pressed="false">Süd</button>
+        <button class="btn" type="button" data-modus="an:W" aria-pressed="false">West</button>
+      </div>
     </section>
     <section class="nur2d" id="probe"><h2>Probiermodus</h2>
       <label class="chk"><input id="pm-an" type="checkbox">Maße ausprobieren</label>
       <div id="pm-box" hidden>
-        <p class="note">Ein Maß im Grundriss anklicken und den neuen Wert mit Einheit eingeben (1,30m, 12,5cm, 885mm). Der Nachbarraum gibt nach, gesperrte Außenmaße bleiben stehen. Die Seite speichert nichts: Die Änderungsliste wird exportiert und im Repository mit <b>node tools/aendern.js --liste</b> geprüft und eingespielt. Beim Wechsel zu 3D wird das Haus mit den geänderten Daten neu aufgebaut.</p>
+        <p class="note">Ein Maß im Plan (Grundriss, Schnitt oder Ansicht) anklicken und den neuen Wert mit Einheit eingeben (1,30m, 12,5cm, 885mm). Der Nachbarraum gibt nach, gesperrte Außenmaße bleiben stehen. Die Seite speichert nichts: Die Änderungsliste wird exportiert und im Repository mit <b>node tools/aendern.js --liste</b> geprüft und eingespielt. Beim Wechsel zu 3D wird das Haus mit den geänderten Daten neu aufgebaut.</p>
         <p id="pm-mass" class="note" aria-live="polite">Kein Maß gewählt.</p>
         <div class="pm-zeile"><input id="pm-wert" type="text" inputmode="decimal" autocomplete="off" spellcheck="false" placeholder="z. B. 1,30m" aria-label="Neuer Wert mit Einheit"><button id="pm-ok" class="btn" type="button">Anwenden</button></div>
         <label class="chk" id="pm-einzeln-l" hidden><input id="pm-einzeln" type="checkbox">Nur diese Wand (statt des Wandtyps)</label>
@@ -135,12 +146,14 @@ dt{color:var(--muted)}dd{margin:0;text-align:right;font-weight:500}
         <textarea id="pm-text" rows="8" readonly hidden aria-label="Änderungsliste zum Kopieren"></textarea>
       </div>
     </section>
-    <section class="nur2d"><h2>Im Grundriss</h2>
+    <section class="nur2d"><h2>Im Plan</h2>
       <label class="chk"><input id="p-mass" type="checkbox" checked>Maßketten</label>
       <label class="chk"><input id="p-raeume" type="checkbox" checked>Raumstempel mit Fläche</label>
       <label class="chk"><input id="p-oeff" type="checkbox" checked>Maße der Öffnungen</label>
       <label class="chk"><input id="p-marken" type="checkbox" checked>Befunde der Prüfung</label>
       <p class="note">Ziehen verschiebt, Mausrad oder zwei Finger zoomen. Ein Maß anklicken zeigt Name, Wert und Herkunft; die zugehörige Wand, der Ausschnitt oder die Raumlinie leuchtet rot auf.</p>
+      <div class="btns zwei"><button id="sl-neu" class="btn" type="button">Schnittlinie legen</button></div>
+      <p class="note">Schnitt A–A und B–B stehen als rote Linien im Grundriss; ein Klick darauf öffnet den Schnitt. „Schnittlinie legen“: zwei Punkte im Grundriss anklicken, der Blick geht nach links von der Laufrichtung. Schnitte und Ansichten zeigen Höhen ab OKFF EG (142,80 m ü. NN); die Höhen lassen sich im Probiermodus ändern.</p>
     </section>
     <section class="nur2d"><h2>Herkunft der Maße</h2>
       <div class="leg">
@@ -868,7 +881,7 @@ function pruefen(haus, WV, abl, dach) {
    abhängt, mit Faktor k) und bei Öffnungen und Pfeilern `oeffnungen` (Verweis auf die Öffnung in der Wand). */
 
 
-var grundrissAbleiten, kettenSchnitt, grundrissSvg;
+var grundrissAbleiten, kettenSchnitt, grundrissSvg, planHilfen;
 (function () {
   var TOL = 1e-6;
   var RANG = { aufmass: 0, plan: 1, nutzer: 1, ohne: 2, annahme: 3 }; // je höher, desto unsicherer
@@ -1259,7 +1272,9 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
     var T = haus.treppe;
     if (g === 'EG' && T && T.anker && T.laufEnde) {
       var ax = WV.mm(T.anker[0]), az = WV.mm(T.anker[1]);
-      plan.treppe = { lauf: [[ax - T.laufEnde, az - T.laufbreite], [ax - T.geraderLaufAb, az - T.laufbreite], [ax - T.geraderLaufAb, az], [ax - T.laufEnde, az]] };
+      var TR = T.steigungen ? treppeAbleiten(haus, WV) : null;
+      plan.treppe = { lauf: [[ax - T.laufEnde, az - T.laufbreite], [ax - T.geraderLaufAb, az - T.laufbreite], [ax - T.geraderLaufAb, az], [ax - T.laufEnde, az]],
+                      stufen: TR ? TR.stufen.map(function (s) { return { n: s.n, polygon: s.polygon, schwerpunkt: s.schwerpunkt, hoehe: s.hoehe }; }) : [], lauflinie: TR ? TR.lauflinie : [] };
     }
     if (g === 'DG' && haus.dg && haus.dg.treppenoeffnung) plan.treppenoeffnung = haus.dg.treppenoeffnung.map(function (q) { return [WV.mm(q[0]), WV.mm(q[1])]; });
     return plan;
@@ -1278,6 +1293,8 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
     '.plan .bg{fill:var(--pg)}.plan .raumf{fill:var(--pt);stroke:none}.plan .raumf.on{fill:color-mix(in srgb,var(--qp) 28%,var(--pt))}.plan .wandf{fill:var(--pw);stroke:none}',
     '.plan .eps{fill:url(#hatch)}.plan .oef{fill:var(--pg);stroke:none}.plan .rahmen{fill:none;stroke:var(--pi);stroke-width:14}.plan .glas{fill:none;stroke:var(--pi);stroke-width:9}',
     '.plan .trenn{stroke:var(--pm);stroke-width:12;stroke-dasharray:60 50;fill:none}.plan .treppe{fill:none;stroke:var(--pm);stroke-width:12;stroke-dasharray:90 40}',
+    '.plan .stufe{fill:none;stroke:var(--pm);stroke-width:9;stroke-linejoin:round}.plan .lauflinie{fill:none;stroke:var(--pm);stroke-width:8;stroke-dasharray:50 40}.plan .snr{font-size:95px;text-anchor:middle;fill:var(--pm)}',
+    '.plan .schnittl .sl{stroke:var(--pe);stroke-width:14;stroke-dasharray:160 50 20 50;fill:none}.plan .schnittl .sa{stroke:var(--pe);stroke-width:14;fill:var(--pe)}.plan .schnittl text{font-size:230px;font-weight:700;fill:var(--pe);text-anchor:middle}.plan .schnittl .hit{stroke:none;cursor:pointer}',
     '.plan .halo{paint-order:stroke;stroke:var(--pg);stroke-width:34;stroke-linejoin:round;fill:var(--pi)}',
     '.plan .rname{font-weight:600;font-size:200px;text-anchor:middle}.plan .rinfo{font-size:150px;text-anchor:middle;fill:var(--pm)}.plan .kreuz{stroke:var(--pm);stroke-width:10}',
     '.plan .olabel{font-size:105px;text-anchor:middle;fill:var(--pm)}.plan .dim{font-size:' + FS + 'px}.plan .dim text{stroke:none}',
@@ -1335,7 +1352,7 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
       }
       var hx = horiz ? Math.min(p0[0], p1[0]) : lage - 160, hy = horiz ? lage - 160 : Math.min(p0[1], p1[1]);
       var hw = horiz ? Math.abs(p1[0] - p0[0]) : 320, hh = horiz ? 320 : Math.abs(p1[1] - p0[1]);
-      var attr = ' data-name="' + esc(s.name) + '" data-wert="' + f(s.laenge) + '" data-quelle="' + s.quelle + '" data-fest="' + (s.fest ? 1 : 0) + '" data-art="' + s.art + '" data-richtung="' + k.richtung + '" data-von="' + f(s.von) + '" data-bis="' + f(s.bis) + '"' + (k.bei != null ? ' data-bei="' + f(k.bei) + '"' : '') + (s.schraeg ? ' data-schraeg="1"' : '');
+      var attr = ' data-name="' + esc(s.name) + '" data-wert="' + f(s.laenge) + '" data-quelle="' + s.quelle + '" data-fest="' + (s.fest ? 1 : 0) + '" data-art="' + s.art + '" data-richtung="' + k.richtung + '" data-von="' + f(s.von) + '" data-bis="' + f(s.bis) + '"' + (k.bei != null ? ' data-bei="' + f(k.bei) + '"' : '') + (s.schraeg ? ' data-schraeg="1"' : '') + (s.abgeleitet ? ' data-abgeleitet="1"' : '');
       out.push('<rect class="hit"' + attr + ' x="' + f(hx) + '" y="' + f(hy) + '" width="' + f(hw) + '" height="' + f(hh) + '"><title>' + esc(s.name + ': ' + mass(s.laenge) + (s.fest ? ' (gesperrt)' : '')) + '</title></rect>');
     });
     return '<g class="dim" data-kette="' + nr + '">' + out.join('') + '</g>';
@@ -1369,7 +1386,13 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
 
     /* Treppe, Treppenöffnung, Trennlinien */
     var extra = plan.trennlinien.map(function (t) { return '<line class="trenn" x1="' + f(t.von[0]) + '" y1="' + f(t.von[1]) + '" x2="' + f(t.bis[0]) + '" y2="' + f(t.bis[1]) + '"/>'; }).join('');
-    if (plan.treppe) extra += '<path class="treppe" d="' + pfad(plan.treppe.lauf) + '"/>';
+    if (plan.treppe) {
+      if (plan.treppe.stufen && plan.treppe.stufen.length) { // Stufen mit Nummer und Lauflinie (durch die Schwerpunkte der Stufen)
+        extra += plan.treppe.stufen.map(function (st) { return '<path class="stufe" data-stufe="' + st.n + '" d="' + pfad(st.polygon) + '"><title>Stufe ' + st.n + ': Trittfläche ' + zahl(st.hoehe / 1000, 3) + ' m über OKFF EG</title></path>'; }).join('');
+        extra += '<path class="lauflinie" d="M' + plan.treppe.lauflinie.map(function (p) { return f(p[0]) + ' ' + f(p[1]); }).join('L') + '"/>';
+        extra += plan.treppe.stufen.map(function (st) { return '<text class="snr halo" x="' + f(st.schwerpunkt[0]) + '" y="' + f(st.schwerpunkt[1] + 32) + '">' + st.n + '</text>'; }).join('');
+      } else extra += '<path class="treppe" d="' + pfad(plan.treppe.lauf) + '"/>';
+    }
     if (plan.treppenoeffnung) extra += '<path class="treppe" d="' + pfad(plan.treppenoeffnung) + '"/>';
 
     /* Raumstempel: Name, Fläche, lichte Maße */
@@ -1406,6 +1429,21 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
       });
     }
 
+    /* Schnittlinien: gestrichelt mit Buchstaben an den Enden und Pfeilen in Blickrichtung (links von der Laufrichtung) */
+    var schnittSvgTeile = (o.schnittlinien || []).map(function (sl) {
+      var L = Math.hypot(sl.b[0] - sl.a[0], sl.b[1] - sl.a[1]), u = [(sl.b[0] - sl.a[0]) / L, (sl.b[1] - sl.a[1]) / L], bl = [u[1], -u[0]], pf = 420, out = '';
+      erweitere(sl.a[0], sl.a[1]); erweitere(sl.b[0], sl.b[1]); erweitere(sl.a[0] + bl[0] * (pf + 330), sl.a[1] + bl[1] * (pf + 330)); erweitere(sl.b[0] + bl[0] * (pf + 330), sl.b[1] + bl[1] * (pf + 330));
+      out += '<line class="sl" x1="' + f(sl.a[0]) + '" y1="' + f(sl.a[1]) + '" x2="' + f(sl.b[0]) + '" y2="' + f(sl.b[1]) + '"/>';
+      [sl.a, sl.b].forEach(function (p) {
+        var t = [p[0] + bl[0] * pf, p[1] + bl[1] * pf], k1 = [t[0] - bl[0] * 120 + u[1] * 90 * -1, t[1] - bl[1] * 120 + u[0] * 90], k2 = [t[0] - bl[0] * 120 - u[1] * 90 * -1, t[1] - bl[1] * 120 - u[0] * 90];
+        out += '<line class="sl" style="stroke-dasharray:none" x1="' + f(p[0]) + '" y1="' + f(p[1]) + '" x2="' + f(t[0]) + '" y2="' + f(t[1]) + '"/><path class="sa" d="M' + f(t[0]) + ' ' + f(t[1]) + 'L' + f(k1[0]) + ' ' + f(k1[1]) + 'L' + f(k2[0]) + ' ' + f(k2[1]) + 'Z"/>' +
+          '<text class="halo" x="' + f(p[0] + bl[0] * (pf + 330)) + '" y="' + f(p[1] + bl[1] * (pf + 330) + 80) + '">' + esc(sl.id) + '</text>';
+      });
+      var m = [(sl.a[0] + sl.b[0]) / 2, (sl.a[1] + sl.b[1]) / 2], w = 300, nq = [-u[1], u[0]];
+      out += '<polygon class="hit" points="' + [[sl.a[0] + nq[0] * w, sl.a[1] + nq[1] * w], [sl.b[0] + nq[0] * w, sl.b[1] + nq[1] * w], [sl.b[0] - nq[0] * w, sl.b[1] - nq[1] * w], [sl.a[0] - nq[0] * w, sl.a[1] - nq[1] * w]].map(function (p) { return f(p[0]) + ',' + f(p[1]); }).join(' ') + '" fill="transparent"><title>' + esc(sl.name || sl.id) + '</title></polygon>';
+      return '<g class="schnittl" data-schnitt="' + esc(sl.id) + '">' + out + '</g>';
+    }).join('');
+
     /* Befund-Marken */
     var markenSvg = zeigeMarken ? plan.marken.map(function (m, i) {
       return '<g class="marke ' + m.stufe + '" data-marke="' + i + '" transform="translate(' + f(m.ort[0]) + ' ' + f(m.ort[1]) + ')"><circle r="170"/><text y="70">!</text><title>' + esc('Regel ' + m.regel + ': ' + m.text) + '</title></g>';
@@ -1418,8 +1456,564 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
     return '<svg xmlns="http://www.w3.org/2000/svg" class="plan" viewBox="' + f(vx) + ' ' + f(vy) + ' ' + f(vw) + ' ' + f(vh) + '"' + size + ' role="img" aria-label="Grundriss ' + esc(plan.geschoss) + '" data-geschoss="' + esc(plan.geschoss) + '" data-viewbox="' + f(vx) + ' ' + f(vy) + ' ' + f(vw) + ' ' + f(vh) + '">' +
       style + defs + (standalone ? '<rect class="bg" x="' + f(vx) + '" y="' + f(vy) + '" width="' + f(vw) + '" height="' + f(vh) + '"/>' : '') +
       '<g class="boden">' + bodenSvg + '</g><g class="waende">' + waendeSvg + '</g><g class="oeffnungen">' + oeffSvg + '</g><g class="extra">' + extra + '</g>' +
-      '<g class="oeffnungstexte">' + oeffText + '</g><g class="raeume">' + raumSvg + '</g><g class="massketten">' + kettenSvgTeile + '</g><g class="marken">' + markenSvg + '</g></svg>';
+      '<g class="oeffnungstexte">' + oeffText + '</g><g class="raeume">' + raumSvg + '</g><g class="massketten">' + kettenSvgTeile + '</g><g class="schnittlinien">' + schnittSvgTeile + '</g><g class="marken">' + markenSvg + '</g></svg>';
   };
+  /* Zeichenhilfen für Schnitt und Ansicht (src/schnitt.js): dieselben Maßketten, Farben und Zahlenformate wie im Grundriss */
+  planHilfen = { kettenSvg: kettenSvg, kettenLayout: kettenLayout, CSS: CSS, CSS_DUNKEL: CSS_DUNKEL, f: f, esc: esc, pfad: pfad, mass: mass, zahl: zahl, schlossSvg: schlossSvg, FS: FS };
+})();
+
+
+/* Schnitt und Ansicht: leitet aus dem abgeleiteten Modell senkrechte Schnitte und Fassaden ab und zeichnet sie als SVG (Plan docs/plan-parametrisches-modell.md,
+   Abschnitt 4.2, Phase 5). Ohne Three.js, in Node testbar. Maße in Millimetern; Höhen ab OKFF EG (nach oben), im SVG ist y = −Höhe.
+
+     schnittLinien(haus, WV)                                   die Schnittlinien aus haus.schnitte: [{ id, name, a, b }] mit a, b = [hx, hz]
+     schnittAbleiten(haus, WV, abl, dach, linie)               Schnitt entlang einer beliebigen Linie { id, name, a, b }
+     ansichtAbleiten(haus, WV, abl, dach, seite)               Fassade 'N', 'O', 'S' oder 'W' (Blick auf die Außenseite)
+     schnittSvg(zeichnung, optionen)                           SVG-Text (zeichnung = Schnitt oder Ansicht); optionen.standalone wie beim Grundriss
+
+   Schnitt: Die Linie läuft von a nach b (s = Abstand von a), der Blick geht nach links der Laufrichtung, so bleibt s im Bild von links nach rechts (Linie nach
+   Osten → Blick nach Norden). Geschnitten werden Wände (mit Öffnungen), Decke (Innenseiten der Außenwände ohne Treppenöffnung), Dach (Dachhaut minus
+   Sparrenabstand), Treppe (Stufen mit Dicke), Kamin und Dachfenster. Die Oberkanten im Dachausbau und die Dachhaut sind stückweise linear; sie werden abgetastet
+   und an den Knicken exakt nachgezogen (profil). Die Kopfhöhe über der Treppe zählt Streifen unter 100 mm Breite nicht (der Kopf passt nicht hinein).
+   Ansicht: nur die Außenwände des EG, deren Außenseite zum Betrachter zeigt, mit ihren Öffnungen; dazu Dachsilhouette (höchste Dachhaut je Stelle), Dachfenster,
+   die zum Betrachter zeigen, und Kamin. Das Gelände fehlt (es hängt an src/model.js).
+
+   Höhenmaße haben Namen wie die Maße im Grundriss: hoehe:eg.lichte, hoehe:dg.deckenaufbau, hoehe:dg.okff (gesperrt), hoehe:dach.traufe, hoehe:<kniewand>,
+   <wand>.oeff<k>.bruestung / .hoehe / .sturz; abgeleitete Höhen (bis zum First) haben abgeleitet: true. Mit diesen Namen spricht src/aendern.js sie an. */
+
+
+var schnittLinien, schnittAbleiten, ansichtAbleiten, schnittSvg;
+(function () {
+  var EPS = 1e-6, SPARREN_STEP = 25;
+
+  /* ---------- Geometrie ---------- */
+  function imRing(r, x, z) {
+    var ins = false, i, j;
+    for (i = 0, j = r.length - 1; i < r.length; j = i++) {
+      var a = r[j], b = r[i];
+      if ((b[1] > z) !== (a[1] > z) && x < (a[0] - b[0]) * (z - b[1]) / (a[1] - b[1]) + b[0]) ins = !ins;
+    }
+    return ins;
+  }
+  function linie(a, b, id, name) {
+    var L = Math.hypot(b[0] - a[0], b[1] - a[1]);
+    if (L < EPS) throw new Error('Schnittlinie ohne Länge');
+    var u = [(b[0] - a[0]) / L, (b[1] - a[1]) / L];
+    return { id: id, name: name, a: a, b: b, laenge: L, u: u, blick: [u[1] + 0, -u[0] + 0] };
+  }
+  function punkt(L, s) { return [L.a[0] + L.u[0] * s, L.a[1] + L.u[1] * s]; }
+  function intervalle(L, ring) { // Abschnitte der Linie im Polygon: [[s0, s1], …]
+    var ts = [0, L.laenge], i;
+    for (i = 0; i < ring.length; i++) {
+      var p = ring[i], q = ring[(i + 1) % ring.length], dx = q[0] - p[0], dz = q[1] - p[1], wx = p[0] - L.a[0], wz = p[1] - L.a[1];
+      var den = L.u[0] * dz - L.u[1] * dx, len = Math.hypot(dx, dz);
+      if (Math.abs(den) < 1e-12 * Math.max(1, len)) { // parallel: liegt die Kante auf der Linie, zählen ihre Endpunkte
+        if (Math.abs(wx * L.u[1] - wz * L.u[0]) < 1e-6) { ts.push(wx * L.u[0] + wz * L.u[1]); ts.push((q[0] - L.a[0]) * L.u[0] + (q[1] - L.a[1]) * L.u[1]); }
+        continue;
+      }
+      var s = (wx * dz - wz * dx) / den, k = (wx * L.u[1] - wz * L.u[0]) / den;
+      if (k >= -EPS && k <= 1 + EPS && s > 0 && s < L.laenge) ts.push(s);
+    }
+    ts = ts.filter(function (t) { return t >= 0 && t <= L.laenge; }).sort(function (a, b) { return a - b; });
+    var out = [];
+    for (i = 0; i + 1 < ts.length; i++) {
+      if (ts[i + 1] - ts[i] < EPS) continue;
+      var m = punkt(L, (ts[i] + ts[i + 1]) / 2);
+      if (!imRing(ring, m[0], m[1])) continue;
+      if (out.length && Math.abs(out[out.length - 1][1] - ts[i]) < EPS) out[out.length - 1][1] = ts[i + 1]; else out.push([ts[i], ts[i + 1]]);
+    }
+    return out;
+  }
+  function abziehen(iv, weg) { // Abschnitte iv ohne die Abschnitte weg
+    var out = iv.map(function (x) { return x.slice(); });
+    weg.forEach(function (w) {
+      var neu = [];
+      out.forEach(function (x) {
+        if (w[1] <= x[0] + EPS || w[0] >= x[1] - EPS) { neu.push(x); return; }
+        if (w[0] > x[0] + EPS) neu.push([x[0], w[0]]);
+        if (w[1] < x[1] - EPS) neu.push([w[1], x[1]]);
+      });
+      out = neu;
+    });
+    return out;
+  }
+
+  /* Stückweise lineare Funktion f(s) auf [s0, s1] als Polylinie: abtasten und an den Knicken exakt nachziehen */
+  function profil(f, s0, s1, step) {
+    step = step || SPARREN_STEP;
+    var n = Math.max(1, Math.ceil((s1 - s0) / step)), S = [], Y = [], m = [], i, gleich = function (a, b) { return Math.abs(a - b) < 1e-6; };
+    for (i = 0; i <= n; i++) { var s = s0 + (s1 - s0) * i / n; S.push(s); Y.push(f(s)); }
+    for (i = 0; i < n; i++) m.push((Y[i + 1] - Y[i]) / (S[i + 1] - S[i]));
+    var rein = m.map(function (v, k) { return (k > 0 && gleich(v, m[k - 1])) || (k < n - 1 && gleich(v, m[k + 1])); });
+    var tok = [];
+    for (i = 0; i < n;) {
+      if (rein[i]) { var j = i; while (j + 1 < n && rein[j + 1] && gleich(m[j + 1], m[i])) j++; tok.push({ run: true, a: i, b: j + 1, m: m[i] }); i = j + 1; }
+      else { tok.push({ run: false, i: i }); i++; }
+    }
+    var pts = [];
+    function add(s, y) { var l = pts[pts.length - 1]; if (!l || Math.abs(l[0] - s) > 1e-9 || Math.abs(l[1] - y) > 1e-9) pts.push([s, y]); }
+    add(S[0], Y[0]);
+    tok.forEach(function (t, k) {
+      if (t.run) { add(S[t.a], Y[t.a]); add(S[t.b], Y[t.b]); return; }
+      var vor = tok[k - 1], nach = tok[k + 1];
+      if (vor && nach && vor.run && nach.run && !gleich(vor.m, nach.m)) { // ein Knick in diesem Abschnitt: Schnittpunkt der beiden Geraden
+        var sk = (Y[nach.a] - nach.m * S[nach.a] - Y[vor.a] + vor.m * S[vor.a]) / (vor.m - nach.m);
+        if (sk >= S[t.i] - 1e-9 && sk <= S[t.i + 1] + 1e-9) { add(sk, Y[vor.a] + vor.m * (sk - S[vor.a])); return; }
+      }
+      add(S[t.i], Y[t.i]); add(S[t.i + 1], Y[t.i + 1]);
+    });
+    add(S[n], Y[n]);
+    var out = [pts[0]];
+    for (i = 1; i + 1 < pts.length; i++) { // Punkte auf der Verbindung ihrer Nachbarn entfallen
+      var a = out[out.length - 1], b = pts[i], c = pts[i + 1], L = Math.hypot(c[0] - a[0], c[1] - a[1]);
+      if (L > 0 && Math.abs((b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])) / L < 0.005) continue;
+      out.push(b);
+    }
+    if (pts.length > 1) out.push(pts[pts.length - 1]);
+    return out;
+  }
+  function praesenz(pred, s0, s1) { // Abschnitte, in denen pred wahr ist (abgetastet, Ränder durch Halbieren)
+    var step = 10, n = Math.max(1, Math.ceil((s1 - s0) / step)), out = [], an = null, prev = pred(s0), i;
+    function rand(lo, hi) { // lo und hi haben unterschiedliche Werte; Rand auf der wahren Seite finden
+      var pl = pred(lo);
+      for (var k = 0; k < 40; k++) { var mid = (lo + hi) / 2; if (pred(mid) === pl) lo = mid; else hi = mid; }
+      return pl ? lo : hi;
+    }
+    if (prev) an = s0;
+    for (i = 1; i <= n; i++) {
+      var s = s0 + (s1 - s0) * i / n, cur = pred(s), sPrev = s0 + (s1 - s0) * (i - 1) / n;
+      if (cur && !prev) an = rand(sPrev, s);
+      else if (!cur && prev) { out.push([an, rand(sPrev, s)]); an = null; }
+      prev = cur;
+    }
+    if (prev && an != null) out.push([an, s1]);
+    return out;
+  }
+
+  /* ---------- Daten und Höhen ---------- */
+  function nn(haus) { return (haus.bezug && haus.bezug.okffEG) || 0; }
+  function koten(haus, dach) {
+    return { okffEG: haus.geschosse.EG.okff, deckeUK: haus.geschosse.EG.lichteHoehe, okffDG: haus.geschosse.DG.okff, traufe: haus.dach.traufe, first: dach.first, nn: nn(haus) };
+  }
+  function wandHoehe(haus, w) { return w.wand.hoehe === 'traufe' ? haus.dach.traufe : haus.geschosse.EG.lichteHoehe; }
+  function oeffnungsBereich(WV, ln, o) { // Beginn und Ende der Öffnung als Abstand von ln.a entlang der Wand
+    var L = Math.hypot(ln.b[0] - ln.a[0], ln.b[1] - ln.a[1]), along = Math.abs(ln.b[0] - ln.a[0]) >= Math.abs(ln.b[1] - ln.a[1]) ? 0 : 1, dir = ln.b[along] >= ln.a[along] ? 1 : -1;
+    var ab = typeof o.ab === 'number' ? o.ab : (WV.mm(o.ab) - ln.a[along]) * dir;
+    return [ab, ab + o.breite, L];
+  }
+  function seg(name, art, von, bis, quelle, extra) {
+    var o = { art: art, von: von, bis: bis, laenge: bis - von, name: name, quelle: quelle || 'plan', fest: false, ids: [], schraeg: false };
+    if (extra) Object.keys(extra).forEach(function (k) { o[k] = extra[k]; });
+    return o;
+  }
+
+  schnittLinien = function (haus, WV) {
+    return (haus.schnitte || []).map(function (s) {
+      var l = linie([WV.mm(s.von[0]), WV.mm(s.von[1])], [WV.mm(s.bis[0]), WV.mm(s.bis[1])], s.id, s.name);
+      l.notiz = s.notiz;
+      return l;
+    });
+  };
+
+  /* ---------- Höhenketten (gemeinsam für Schnitt und Ansicht) ---------- */
+  function hoehenKetten(haus, dach) {
+    var k = koten(haus, dach), G = haus.geschosse, qE = G.EG.quelle || 'plan', qD = G.DG.quelle || 'plan', qT = haus.dach.quelle || 'plan';
+    var innen = { typ: 'hoehe', richtung: 'z', seite: 'W', geschoss: null, bei: null, von: 0, bis: k.first, segmente: [
+      seg('hoehe:eg.lichte', 'hoehe', 0, k.deckeUK, qE),
+      seg('hoehe:dg.deckenaufbau', 'hoehe', k.deckeUK, k.okffDG, qD),
+      seg('hoehe:dg.bis-first', 'hoehe', k.okffDG, k.first, 'plan', { abgeleitet: true })
+    ] };
+    var geschoss = { typ: 'hoehe', richtung: 'z', seite: 'W', geschoss: null, bei: null, von: 0, bis: k.okffDG, segmente: [
+      seg('hoehe:dg.okff', 'hoehe', 0, k.okffDG, qD, { fest: !!G.DG.fest })
+    ] };
+    var aussen = { typ: 'hoehe', richtung: 'z', seite: 'O', geschoss: null, bei: null, von: 0, bis: k.first, segmente: [
+      seg('hoehe:dach.traufe', 'hoehe', 0, k.traufe, qT),
+      seg('hoehe:dach.traufe-first', 'hoehe', k.traufe, k.first, 'plan', { abgeleitet: true })
+    ] };
+    return [innen, geschoss, aussen];
+  }
+
+  /* ---------- Schnitt ---------- */
+  schnittAbleiten = function (haus, WV, abl, dach, lin) {
+    var L = lin.laenge ? lin : linie(lin.a, lin.b, lin.id, lin.name);
+    if (!L.u) L = linie(lin.a, lin.b, lin.id, lin.name);
+    var yD = haus.geschosse.DG.okff, lichte = haus.geschosse.EG.lichteHoehe, yE = haus.dach.traufe, sparren = haus.dg.wandAbstandDachhaut;
+    var flaechen = [], K = koten(haus, dach);
+    function xz(s) { return punkt(L, s); }
+
+    /* Wände mit Öffnungen */
+    ['EG', 'DG'].forEach(function (g) {
+      var gs = abl.geschosse[g];
+      if (!gs) return;
+      gs.waende.forEach(function (w) {
+        if (w.trennlinie) return;
+        var ln = w.linie, uw = [(ln.b[0] - ln.a[0]) / Math.hypot(ln.b[0] - ln.a[0], ln.b[1] - ln.a[1]), (ln.b[1] - ln.a[1]) / Math.hypot(ln.b[0] - ln.a[0], ln.b[1] - ln.a[1])];
+        intervalle(L, w.ring).forEach(function (iv) {
+          var s0 = iv[0], s1 = iv[1], p0 = xz(s0), p1 = xz(s1);
+          var q0 = (p0[0] - ln.a[0]) * uw[0] + (p0[1] - ln.a[1]) * uw[1], q1 = (p1[0] - ln.a[0]) * uw[0] + (p1[1] - ln.a[1]) * uw[1];
+          var offen = (w.wand.oeffnungen || []).map(function (o) { var b = oeffnungsBereich(WV, ln, o); return { o: o, qa: b[0], qb: b[1] }; });
+          var bruch = [s0, s1];
+          if (Math.abs(q1 - q0) > EPS) offen.forEach(function (x) { [x.qa, x.qb].forEach(function (q) { var s = s0 + (q - q0) / (q1 - q0) * (s1 - s0); if (s > s0 + EPS && s < s1 - EPS) bruch.push(s); }); });
+          bruch.sort(function (a, b) { return a - b; });
+          for (var i = 0; i + 1 < bruch.length; i++) {
+            var a = bruch[i], b = bruch[i + 1], mid = (a + b) / 2, pm = xz(mid), qm = (pm[0] - ln.a[0]) * uw[0] + (pm[1] - ln.a[1]) * uw[1], loch = null;
+            offen.forEach(function (x) { if (!loch && qm >= x.qa - EPS && qm <= x.qb + EPS) loch = x.o; });
+            var y0, y1, br = loch ? (loch.bruestung || 0) : 0, hh = loch ? (typeof loch.hoehe === 'number' ? loch.hoehe : Infinity) : 0;
+            if (g === 'EG') {
+              y0 = 0; y1 = wandHoehe(haus, w);
+              if (!loch) flaechen.push({ art: 'wand', id: w.id, geschoss: g, ring: [[a, y0], [b, y0], [b, y1], [a, y1]] });
+              else {
+                if (br > 0) flaechen.push({ art: 'wand', id: w.id, geschoss: g, ring: [[a, 0], [b, 0], [b, br], [a, br]] });
+                if (br + hh < y1) flaechen.push({ art: 'wand', id: w.id, geschoss: g, ring: [[a, br + hh], [b, br + hh], [b, y1], [a, y1]] });
+              }
+            } else {
+              var hmax = w.wand.hoehe && w.wand.hoehe.max, nurB = w.wand.dach === 'B';
+              var oben = profil(function (s) { var p = xz(s); return dach.wandOK(p[0], p[1], hmax, nurB); }, a, b);
+              var stuecke = loch ? [] : [[yD]];
+              if (loch) { if (br > 0) stuecke.push([yD, yD + br]); if (br + hh < Infinity) stuecke.push([yD + br + hh]); }
+              stuecke.forEach(function (st) {
+                var unten = st[0], obere = oben.map(function (p) { return [p[0], Math.max(p[1], st[1] != null ? st[1] : unten)]; });
+                if (st[1] != null) { flaechen.push({ art: 'wand', id: w.id, geschoss: g, ring: [[a, unten], [b, unten], [b, st[1]], [a, st[1]]] }); return; }
+                if (obere.every(function (p) { return p[1] <= unten + EPS; })) return;
+                flaechen.push({ art: 'wand', id: w.id, geschoss: g, ring: [[a, unten], [b, unten]].concat(obere.slice().reverse()), kniewand: !!hmax, hmax: hmax || null });
+              });
+            }
+          }
+        });
+      });
+    });
+
+    /* Decke: Innenseiten der Außenwände ohne Treppenöffnung */
+    var innen = haus.huelle.innen.map(function (q) { return [WV.mm(q[0]), WV.mm(q[1])]; });
+    var oef = haus.dg.treppenoeffnung ? haus.dg.treppenoeffnung.map(function (q) { return [WV.mm(q[0]), WV.mm(q[1])]; }) : null;
+    var decke = intervalle(L, innen);
+    if (oef) decke = abziehen(decke, intervalle(L, oef));
+    decke.forEach(function (iv) { flaechen.push({ art: 'decke', id: 'decke', geschoss: 'EG', ring: [[iv[0], lichte], [iv[1], lichte], [iv[1], yD], [iv[0], yD]] }); });
+
+    /* Dach: Dachhaut und Dachaufbau (Sparren) */
+    var dachhaut = [], dachflaechen = [];
+    praesenz(function (s) { var p = xz(s); return dach.hoehe(p[0], p[1]) > -1e8; }, 0, L.laenge).forEach(function (iv) {
+      var oben = profil(function (s) { var p = xz(s); return dach.hoehe(p[0], p[1]); }, iv[0], iv[1]);
+      dachhaut.push(oben);
+      dachflaechen.push({ art: 'dach', id: 'dach', geschoss: null, ring: oben.concat(oben.slice().reverse().map(function (p) { return [p[0], p[1] - sparren]; })) });
+    });
+    dachflaechen.forEach(function (f) { flaechen.push(f); });
+
+    /* Kamin */
+    var kamin = null;
+    if (haus.kamin) {
+      var kc = [WV.mm(haus.kamin.mitte[0]), WV.mm(haus.kamin.mitte[1])], b2 = haus.kamin.breite / 2, t2 = haus.kamin.tiefe / 2;
+      var kr = [[kc[0] - b2, kc[1] - t2], [kc[0] + b2, kc[1] - t2], [kc[0] + b2, kc[1] + t2], [kc[0] - b2, kc[1] + t2]];
+      intervalle(L, kr).forEach(function (iv) { kamin = { art: 'kamin', id: 'kamin', geschoss: null, ring: [[iv[0], 0], [iv[1], 0], [iv[1], haus.kamin.oberkante], [iv[0], haus.kamin.oberkante]] }; flaechen.push(kamin); });
+    }
+
+    /* Dachfenster */
+    var fenster = [], cs = Math.cos(haus.dach.neigung * Math.PI / 180);
+    (haus.dachfenster || []).forEach(function (f) {
+      var c = [WV.mm(f.mitte[0]), WV.mm(f.mitte[1])], o = f.richtung, p = [-o[1], o[0]], a = f.laenge * cs / 2, b = f.breite / 2;
+      var ring = [[1, 1], [1, -1], [-1, -1], [-1, 1]].map(function (k) { return [c[0] + k[0] * a * o[0] + k[1] * b * p[0], c[1] + k[0] * a * o[1] + k[1] * b * p[1]]; });
+      intervalle(L, ring).forEach(function (iv) {
+        var p0 = xz(iv[0]), p1 = xz(iv[1]);
+        fenster.push({ id: f.id, typ: f.typ, s0: iv[0], s1: iv[1], y0: dach.hoehe(p0[0], p0[1]), y1: dach.hoehe(p1[0], p1[1]) });
+      });
+    });
+
+    /* Treppe mit Stufendicke, Kopfhöhe über den geschnittenen Stufen */
+    var TR = haus.treppe && haus.treppe.steigungen ? treppeAbleiten(haus, WV) : null, stufen = [], kopf = { min: null, stufe: null, s: null, stellen: [], linie: [] };
+    if (TR) {
+      var sInStufe = [];
+      TR.stufen.forEach(function (st) {
+        intervalle(L, st.polygon).forEach(function (iv) {
+          stufen.push({ n: st.n, hoehe: st.hoehe, s0: iv[0], s1: iv[1], ring: [[iv[0], st.unterkante], [iv[1], st.unterkante], [iv[1], st.hoehe], [iv[0], st.hoehe]] });
+          sInStufe.push([iv[0], iv[1], st]);
+        });
+      });
+      stufen.sort(function (a, b) { return a.n - b.n || a.s0 - b.s0; });
+      sInStufe.sort(function (a, b) { return a[0] - b[0]; });
+      sInStufe.forEach(function (iv) {
+        var st = iv[2], n = Math.max(1, Math.ceil((iv[1] - iv[0]) / 25));
+        for (var i = 0; i <= n; i++) {
+          var s = iv[0] + (iv[1] - iv[0]) * i / n, p = xz(s), offen = oef && imRing(oef, p[0], p[1]), r = dach.hoehe(p[0], p[1]);
+          var grenze = offen ? (r < -1e8 ? Infinity : r - sparren) : lichte;
+          kopf.stellen.push({ s: s, x: p[0], z: p[1], stufe: st.n, tritt: st.hoehe, hoehe: grenze - st.hoehe, art: offen ? 'dach' : 'decke' });
+        }
+        kopf.linie.push([iv[0], st.hoehe + 2000], [iv[1], st.hoehe + 2000]);
+      });
+      // Streifen unter 100 mm Breite, in denen die Kopfhöhe unter 2000 liegt, zählen nicht
+      var schmal = [], lauf = null;
+      kopf.stellen.forEach(function (t, i) {
+        var zu = t.hoehe < 2000 - 1e-6;
+        if (zu && !lauf) lauf = { a: i, b: i };
+        else if (zu) lauf.b = i;
+        if ((!zu || i === kopf.stellen.length - 1) && lauf) { if (kopf.stellen[lauf.b].s - kopf.stellen[lauf.a].s < 100) schmal.push(lauf); lauf = null; }
+      });
+      var zaehlt = kopf.stellen.filter(function (t, i) { return !schmal.some(function (r) { return i >= r.a && i <= r.b; }); });
+      zaehlt.forEach(function (t) { if (kopf.min == null || t.hoehe < kopf.min) { kopf.min = t.hoehe; kopf.stufe = t.stufe; kopf.s = t.s; } });
+    }
+
+    /* Maßketten: waagerecht je Geschoss entlang der Linie (nur bei achsparalleler Linie), senkrecht die Höhen */
+    var ketten = [];
+    var waagerecht = Math.abs(L.u[1]) < 1e-9, senkrecht = Math.abs(L.u[0]) < 1e-9;
+    if (waagerecht || senkrecht) {
+      ['EG', 'DG'].forEach(function (g) {
+        if (!abl.geschosse[g]) return;
+        var richtung = waagerecht ? 'x' : 'z', ax = waagerecht ? 0 : 1, vz = waagerecht ? L.u[0] : L.u[1], bei = waagerecht ? L.a[1] : L.a[0];
+        var ks = kettenSchnitt(haus, WV, abl, g, richtung, bei);
+        if (!ks.segmente.length) return;
+        var abs = function (c) { return (c - L.a[ax]) * vz; };
+        var segs = ks.segmente.map(function (s) {
+          var v = abs(s.von), b = abs(s.bis), lo = Math.min(v, b), hi = Math.max(v, b);
+          return seg(s.name, s.art, lo, hi, s.quelle, { ids: s.ids, schraeg: s.schraeg, fest: s.fest });
+        }).sort(function (a, b) { return a.von - b.von; });
+        ketten.push({ typ: 'waende', richtung: 'x', seite: g === 'EG' ? 'S' : 'N', geschoss: g, bei: null, von: segs[0].von, bis: segs[segs.length - 1].bis, segmente: segs });
+      });
+    }
+    hoehenKetten(haus, dach).forEach(function (k) { ketten.push(k); });
+    // Kniewände: Höhe über dem DG-Boden in der Mitte des geschnittenen Stücks
+    flaechen.forEach(function (f) {
+      if (!f.kniewand) return;
+      var b = f.ring.map(function (p) { return p[0]; }), a0 = Math.min.apply(null, b), a1 = Math.max.apply(null, b), top = Math.max.apply(null, f.ring.map(function (p) { return p[1]; }));
+      var hoehe = top - yD, begrenzt = hoehe < f.hmax - 0.5;
+      ketten.push({ typ: 'hoehe', richtung: 'z', seite: (a0 + a1) / 2 < L.laenge / 2 ? 'W' : 'O', geschoss: 'DG', bei: null, lage: (a0 + a1) / 2 < L.laenge / 2 ? a0 - 150 : a1 + 150, von: yD, bis: top,
+        segmente: [seg('hoehe:' + f.id, 'hoehe', yD, top, 'plan', { abgeleitet: begrenzt, wand: f.id })] });
+    });
+
+    var hMax = Math.max.apply(null, [K.first].concat(flaechen.map(function (f) { return Math.max.apply(null, f.ring.map(function (p) { return p[1]; })); })));
+    return {
+      art: 'schnitt', id: lin.id, name: lin.name, a: L.a, b: L.b, laenge: L.laenge, u: L.u, blick: L.blick, flaechen: flaechen, dachhaut: dachhaut, koten: K,
+      treppe: { stufen: stufen, steigung: TR ? TR.steigung : null, kopf: kopf }, kamin: kamin, dachfenster: fenster, ketten: ketten,
+      grenzen: { s0: 0, s1: L.laenge, y0: 0, y1: hMax }
+    };
+  };
+
+  /* ---------- Ansicht ---------- */
+  var SEITEN = {
+    N: { name: 'Ansicht Nord', blick: [0, 1], normal: [0, -1], achse: 0, umkehr: false },
+    O: { name: 'Ansicht Ost', blick: [-1, 0], normal: [1, 0], achse: 1, umkehr: false },
+    S: { name: 'Ansicht Süd', blick: [0, -1], normal: [0, 1], achse: 0, umkehr: true },
+    W: { name: 'Ansicht West', blick: [1, 0], normal: [-1, 0], achse: 1, umkehr: true }
+  };
+  ansichtAbleiten = function (haus, WV, abl, dach, seite) {
+    var D = SEITEN[seite];
+    if (!D) throw new Error('Ansicht unbekannt: ' + seite + ' (N, O, S oder W)');
+    var hull = haus.huelle.aussen.map(function (q) { return [WV.mm(q[0]), WV.mm(q[1])]; });
+    var lo = Math.min.apply(null, hull.map(function (p) { return p[D.achse]; })), hi = Math.max.apply(null, hull.map(function (p) { return p[D.achse]; }));
+    function sVon(c) { return D.umkehr ? hi - c : c - lo; }
+    var breite = hi - lo, lichte = haus.geschosse.EG.lichteHoehe, yE = haus.dach.traufe, K = koten(haus, dach), ach = D.achse, tan = dach.tan, cs = Math.cos(haus.dach.neigung * Math.PI / 180);
+    var waende = [], oeffnungen = [], ketten = [];
+    (abl.geschosse.EG ? abl.geschosse.EG.waende : []).forEach(function (w) {
+      if (w.trennlinie || w.wand.typ !== 'AW') return;
+      var ln = w.linie;
+      if (Math.abs(ln.n[0] - D.normal[0]) > 1e-9 || Math.abs(ln.n[1] - D.normal[1]) > 1e-9) return;
+      var cs0 = w.ring.map(function (p) { return sVon(p[ach]); }), s0 = Math.min.apply(null, cs0), s1 = Math.max.apply(null, cs0), top = wandHoehe(haus, w);
+      waende.push({ id: w.id, s0: s0, s1: s1, y0: 0, y1: top });
+      (w.wand.oeffnungen || []).forEach(function (o, k) {
+        var b = oeffnungsBereich(WV, ln, o), dirv = ln.b[ach] >= ln.a[ach] ? 1 : -1, c0 = ln.a[ach] + dirv * b[0], c1 = ln.a[ach] + dirv * b[1];
+        var os0 = Math.min(sVon(c0), sVon(c1)), os1 = Math.max(sVon(c0), sVon(c1)), br = o.bruestung || 0, h = typeof o.hoehe === 'number' ? o.hoehe : top - br;
+        var name = w.id + '.oeff' + (k + 1);
+        oeffnungen.push({ name: name, wand: w.id, art: o.art, s0: os0, s1: os1, y0: br, y1: br + h, quelle: o.quelle || 'plan' });
+        var q = o.quelle || 'plan', segs = [];
+        if (br > 0) segs.push(seg(name + '.bruestung', 'hoehe', 0, br, q));
+        segs.push(seg(name + '.hoehe', 'hoehe', br, br + h, q));
+        if (br + h < lichte) segs.push(seg(name + '.sturz', 'hoehe', br + h, lichte, q, { abgeleitet: false }));
+        ketten.push({ typ: 'hoehe', richtung: 'z', seite: 'O', geschoss: 'EG', bei: null, lage: os1 + 140, von: 0, bis: lichte, segmente: segs, oeffnung: name });
+      });
+    });
+
+    /* Dachsilhouette: je Flügel steigt die Dachhaut von der Traufkante mit tan 35° bis zur halben Tiefe (Walm), dahinter bleibt sie auf der Firsthöhe */
+    function fluegel(r) {
+      var aLo = ach === 0 ? r.x0 : r.z0, aHi = ach === 0 ? r.x1 : r.z1, tiefe = ach === 0 ? r.z1 - r.z0 : r.x1 - r.x0;
+      return { lo: aLo, hi: aHi, halb: tiefe / 2 };
+    }
+    var fl = [fluegel(dach.A)].concat(dach.B ? [fluegel(dach.B)] : []);
+    function silhouette(c) { // c: Koordinate entlang der Achse
+      var h = -1e9;
+      fl.forEach(function (f) { if (c >= f.lo - 1e-3 && c <= f.hi + 1e-3) h = Math.max(h, haus.dach.traufe - dach.ueberstand * tan + tan * Math.min(c - f.lo, f.hi - c, f.halb)); });
+      return h;
+    }
+    function cVonS(s) { return D.umkehr ? hi - s : lo + s; }
+    var sL = Math.min.apply(null, fl.map(function (f) { return sVon(f.lo); }).concat(fl.map(function (f) { return sVon(f.hi); }))), sR = Math.max.apply(null, fl.map(function (f) { return sVon(f.lo); }).concat(fl.map(function (f) { return sVon(f.hi); })));
+    var dachPts = [];
+    praesenz(function (s) { return silhouette(cVonS(s)) > -1e8; }, sL, sR).forEach(function (iv) {
+      var pl = profil(function (s) { return silhouette(cVonS(s)); }, iv[0], iv[1]);
+      dachPts = dachPts.length ? dachPts.concat(pl) : pl;
+    });
+    var traufKante = haus.dach.traufe - dach.ueberstand * tan;
+
+    /* First und Grate beider Flügel, soweit sie auf der sichtbaren Dachfläche liegen (nicht im anderen Flügel versunken, nicht hinter einer höheren Dachfläche) */
+    var kanten = [];
+    [dach.A, dach.B].forEach(function (r) {
+      if (!r) return;
+      var w = r.x1 - r.x0, d = r.z1 - r.z0, halb = Math.min(w, d) / 2, h0 = haus.dach.traufe - dach.ueberstand * tan, hr = h0 + tan * halb, xc = (r.x0 + r.x1) / 2, zc = (r.z0 + r.z1) / 2;
+      var e1 = w >= d ? [r.x0 + halb, zc] : [xc, r.z0 + halb], e2 = w >= d ? [r.x1 - halb, zc] : [xc, r.z1 - halb], segs = [{ art: 'first', a: [e1[0], e1[1], hr], b: [e2[0], e2[1], hr] }];
+      [[r.x0, r.z0], [r.x1, r.z0], [r.x1, r.z1], [r.x0, r.z1]].forEach(function (c) {
+        var e = Math.hypot(c[0] - e1[0], c[1] - e1[1]) <= Math.hypot(c[0] - e2[0], c[1] - e2[1]) ? e1 : e2;
+        segs.push({ art: 'grat', a: [c[0], c[1], h0], b: [e[0], e[1], hr] });
+      });
+      segs.forEach(function (sg) {
+        var len = Math.hypot(sg.b[0] - sg.a[0], sg.b[1] - sg.a[1]), n = Math.max(1, Math.ceil(len / 40)), von = null, i;
+        function sichtbar(t) {
+          var x = sg.a[0] + (sg.b[0] - sg.a[0]) * t, z = sg.a[1] + (sg.b[1] - sg.a[1]) * t, y = sg.a[2] + (sg.b[2] - sg.a[2]) * t;
+          if (Math.abs(dach.hoehe(x, z) - y) > 1.5) return false;
+          // beide Nachbarflächen gehören diesem Flügel (liegt die Kante im anderen Flügel versunken, ist sie keine Kante der sichtbaren Dachhaut)
+          var nx = -(sg.b[1] - sg.a[1]) / len, nz = (sg.b[0] - sg.a[0]) / len, k;
+          for (k = -1; k <= 1; k += 2) {
+            var qx = x + nx * 60 * k, qz = z + nz * 60 * k;
+            if (Math.abs(dach.hoehe(qx, qz) - (haus.dach.traufe - dach.ueberstand * tan + tan * dach.dR(r, qx, qz))) > 1.5) return false;
+          }
+          for (var q = 40; q < 25000; q += 40) if (dach.hoehe(x - D.blick[0] * q, z - D.blick[1] * q) > y + 1) return false;
+          return true;
+        }
+        function punkt(t) { return [sVon(sg.a[ach] + (sg.b[ach] - sg.a[ach]) * t), sg.a[2] + (sg.b[2] - sg.a[2]) * t]; }
+        for (i = 0; i <= n; i++) {
+          var t = i / n, ok = sichtbar(t);
+          if (ok && von == null) von = t;
+          if ((!ok || i === n) && von != null) { var bis = ok ? t : (i - 1) / n; if (bis > von) kanten.push({ art: sg.art, a: punkt(von), b: punkt(bis) }); von = null; }
+        }
+      });
+    });
+
+    /* Dachfenster, die zum Betrachter zeigen */
+    var dachfenster = [];
+    (haus.dachfenster || []).forEach(function (f) {
+      if (f.richtung[0] !== D.normal[0] || f.richtung[1] !== D.normal[1]) return;
+      var c = [WV.mm(f.mitte[0]), WV.mm(f.mitte[1])], hc = dach.hoehe(c[0], c[1]), halbH = f.laenge * Math.sin(haus.dach.neigung * Math.PI / 180) / 2, b2 = f.breite / 2;
+      var a = sVon(c[ach] - b2), b = sVon(c[ach] + b2);
+      dachfenster.push({ id: f.id, typ: f.typ, s0: Math.min(a, b), s1: Math.max(a, b), y0: hc - halbH, y1: hc + halbH });
+    });
+    var kamin = null;
+    if (haus.kamin) {
+      var kc = [WV.mm(haus.kamin.mitte[0]), WV.mm(haus.kamin.mitte[1])], kb = ach === 0 ? haus.kamin.breite / 2 : haus.kamin.tiefe / 2, ka = sVon(kc[ach] - kb), kz = sVon(kc[ach] + kb);
+      var rh = Math.min.apply(null, [[-1, -1], [1, -1], [1, 1], [-1, 1]].map(function (k) { return dach.hoehe(kc[0] + k[0] * haus.kamin.breite / 2, kc[1] + k[1] * haus.kamin.tiefe / 2); }));
+      kamin = { s0: Math.min(ka, kz), s1: Math.max(ka, kz), y0: rh, y1: haus.kamin.oberkante };
+    }
+    hoehenKetten(haus, dach).forEach(function (k) { ketten.push(k); });
+    var hMax = Math.max(K.first, haus.kamin ? haus.kamin.oberkante : 0);
+    return {
+      art: 'ansicht', seite: seite, id: seite, name: D.name, blick: D.blick, breite: breite, waende: waende, oeffnungen: oeffnungen, dach: dachPts, traufKante: traufKante,
+      dachfenster: dachfenster, kamin: kamin, kanten: kanten, koten: K, ketten: ketten, grenzen: { s0: dachPts.length ? dachPts[0][0] : 0, s1: dachPts.length ? dachPts[dachPts.length - 1][0] : breite, y0: 0, y1: hMax }
+    };
+  };
+
+  /* ---------- SVG ---------- */
+  var CSS_S = [
+    '.plan .s-erde{fill:var(--pr);opacity:.55;stroke:none}.plan .s-boden{stroke:var(--pi);stroke-width:18;fill:none}',
+    '.plan .s-wand{fill:var(--pw);stroke:none}.plan .s-decke{fill:color-mix(in srgb,var(--pw) 55%,var(--pg));stroke:none}',
+    '.plan .s-dach{fill:color-mix(in srgb,var(--qx) 38%,var(--pg));stroke:none}.plan .s-dachlinie{fill:none;stroke:var(--pi);stroke-width:22;stroke-linejoin:round;stroke-linecap:round}',
+    '.plan .s-stufe{fill:color-mix(in srgb,var(--qx) 70%,var(--pi));stroke:var(--pi);stroke-width:6}.plan .s-kamin{fill:color-mix(in srgb,var(--pm) 70%,var(--pg));stroke:var(--pi);stroke-width:8}',
+    '.plan .s-kopf{fill:none;stroke:var(--pe);stroke-width:14;stroke-dasharray:70 45}.plan .s-kopft{font-size:150px;fill:var(--pe);font-weight:600}',
+    '.plan .s-kote{stroke:var(--pm);stroke-width:5;stroke-dasharray:30 40;fill:none}.plan .s-kotet{font-size:130px;fill:var(--pm)}',
+    '.plan .s-df{stroke:var(--qp);stroke-width:60;fill:none;stroke-linecap:butt}.plan .s-dfa{fill:color-mix(in srgb,var(--qp) 30%,var(--pg));stroke:var(--qp);stroke-width:14}',
+    '.plan .s-fassade{fill:var(--pt);stroke:var(--pi);stroke-width:12}.plan .s-oeff{fill:color-mix(in srgb,var(--qp) 16%,var(--pg));stroke:var(--pi);stroke-width:14}.plan .s-oefft{stroke:var(--pi);stroke-width:8;fill:none}',
+    '.plan .s-grat{stroke:var(--pi);stroke-width:10;fill:none}.plan .s-titel{font-size:230px;font-weight:600;fill:var(--pi)}.plan .s-sub{font-size:150px;fill:var(--pm)}'
+  ].join('');
+
+  function ring2svg(H, ring) { return H.pfad(ring.map(function (p) { return [p[0], -p[1]]; })); }
+  function poly2svg(H, pts) { return 'M' + pts.map(function (p) { return H.f(p[0]) + ' ' + H.f(-p[1]); }).join('L'); }
+  function mText(v) { return (Math.round(v / 10) / 100).toFixed(2).replace('.', ',') + ' m'; }
+
+  schnittSvg = function (z, optionen) {
+    var H = planHilfen, o = optionen || {}, standalone = !!o.standalone, zeigeM = o.massketten !== false;
+    var G = z.grenzen, K = z.koten, parts = [], bb = { x0: G.s0, x1: G.s1, y0: -G.y1, y1: 0 };
+    function erweitere(x, y) { bb.x0 = Math.min(bb.x0, x); bb.x1 = Math.max(bb.x1, x); bb.y0 = Math.min(bb.y0, y); bb.y1 = Math.max(bb.y1, y); }
+    var ist = z.art === 'schnitt', body = [];
+    var breite0 = G.s1 - G.s0;
+
+    /* Erde (nur als Strich unter OKFF EG angedeutet) und Fußbodenlinie */
+    body.push('<rect class="s-erde" x="' + H.f(G.s0) + '" y="0" width="' + H.f(breite0) + '" height="140"/>');
+    body.push('<line class="s-boden" x1="' + H.f(G.s0) + '" y1="0" x2="' + H.f(G.s1) + '" y2="0"/>');
+
+    if (ist) {
+      z.flaechen.filter(function (f) { return f.art === 'decke'; }).forEach(function (f) { body.push('<path class="s-decke" d="' + ring2svg(H, f.ring) + '"/>'); });
+      z.flaechen.filter(function (f) { return f.art === 'dach'; }).forEach(function (f) { body.push('<path class="s-dach" d="' + ring2svg(H, f.ring) + '"/>'); });
+      z.flaechen.filter(function (f) { return f.art === 'wand'; }).forEach(function (f) { body.push('<path class="s-wand" data-wand="' + H.esc(f.id) + '" d="' + ring2svg(H, f.ring) + '"><title>' + H.esc(f.id) + '</title></path>'); });
+      z.dachhaut.forEach(function (pl) { body.push('<path class="s-dachlinie" d="' + poly2svg(H, pl) + '"/>'); });
+      z.flaechen.filter(function (f) { return f.art === 'kamin'; }).forEach(function (f) { body.push('<path class="s-kamin" d="' + ring2svg(H, f.ring) + '"><title>Kamin</title></path>'); });
+      z.treppe.stufen.forEach(function (s) { body.push('<path class="s-stufe" data-stufe="' + s.n + '" d="' + ring2svg(H, s.ring) + '"><title>Stufe ' + s.n + ': Trittfläche ' + mText(s.hoehe) + '</title></path>'); });
+      z.dachfenster.forEach(function (f) { body.push('<line class="s-df" x1="' + H.f(f.s0) + '" y1="' + H.f(-f.y0) + '" x2="' + H.f(f.s1) + '" y2="' + H.f(-f.y1) + '"><title>Dachfenster ' + H.esc(f.id) + '</title></line>'); });
+      var kp = z.treppe.kopf;
+      if (kp.linie.length) {
+        body.push('<path class="s-kopf" d="' + poly2svg(H, kp.linie) + '"><title>2,00 m über den Stufen</title></path>');
+        if (kp.min != null) {
+          var st = kp.stellen.filter(function (t) { return t.stufe === kp.stufe && Math.abs(t.hoehe - kp.min) < 1e-6; })[0] || kp.stellen[0];
+          body.push('<line class="s-kopf" style="stroke-dasharray:none" x1="' + H.f(st.s) + '" y1="' + H.f(-st.tritt) + '" x2="' + H.f(st.s) + '" y2="' + H.f(-(st.tritt + kp.min)) + '"/>');
+          body.push('<text class="s-kopft halo" x="' + H.f(st.s + 60) + '" y="' + H.f(-(st.tritt + kp.min / 2)) + '">Kopfhöhe ' + mText(kp.min) + '</text>');
+          erweitere(st.s - 200, -(st.tritt + kp.min) - 50);
+        }
+      }
+    } else {
+      body.push(ansichtKoerper(H, z));
+    }
+
+    /* Maßketten */
+    var kettenSvgTeile = '', cursor = { W: bb.x0, O: G.s1, S: 160, N: -G.y1 - 100 };
+    if (zeigeM) {
+      var nr = 0;
+      var sgn = { N: -1, S: 1, W: -1, O: 1 };
+      var reihe = [];
+      ['S', 'N', 'W', 'O'].forEach(function (seite) { z.ketten.filter(function (k) { return k.seite === seite && k.lage == null; }).forEach(function (k) { reihe.push(k); }); });
+      z.ketten.filter(function (k) { return k.lage != null; }).forEach(function (k) { reihe.push(k); });
+      reihe.forEach(function (k) {
+        var lay = H.kettenLayout(k), sg = sgn[k.seite], pos;
+        var kk = k;
+        if (k.richtung === 'z') kk = Object.assign({}, k, { von: -k.bis, bis: -k.von, segmente: k.segmente.map(function (s) { return Object.assign({}, s, { von: -s.bis, bis: -s.von }); }) });
+        if (k.lage != null) pos = k.lage;
+        else { pos = cursor[k.seite] + sg * 450; cursor[k.seite] += sg * lay.dicke; }
+        if (k.richtung === 'x') { erweitere(kk.von, pos + sg * lay.dicke); erweitere(kk.bis, pos); }
+        else { erweitere(pos + sg * lay.dicke, kk.von); erweitere(pos, kk.bis); }
+        kettenSvgTeile += H.kettenSvg(kk, pos, null, nr++);
+      });
+    }
+
+    /* Höhenkoten über die ganze Breite: OKFF EG, UK Decke, OKFF DG, Traufe, First (mit Höhe ü. NN) */
+    var textX = cursor.O + 120;
+    var koten = [['OKFF EG', K.okffEG], ['UK Decke', K.deckeUK], ['OKFF DG', K.okffDG], ['Traufe', K.traufe], ['First', K.first]];
+    koten.forEach(function (k) {
+      body.push('<line class="s-kote" x1="' + H.f(G.s0) + '" y1="' + H.f(-k[1]) + '" x2="' + H.f(textX - 40) + '" y2="' + H.f(-k[1]) + '"/>');
+    });
+    var ky = -1e9, kotenText = [];
+    koten.slice().sort(function (a, b) { return a[1] - b[1]; }).forEach(function (k) {
+      var y = -k[1]; if (ky !== -1e9 && Math.abs(y - ky) < 150) y = ky - 150; ky = y; // eng liegende Koten (Traufe, OKFF DG) auseinanderziehen
+      kotenText.push('<text class="s-kotet" x="' + H.f(textX) + '" y="' + H.f(y + 45) + '">' + H.esc(k[0] + ' ' + (K.okffEG === k[1] ? '±0,00' : '+' + (Math.round(k[1] / 10) / 100).toFixed(2).replace('.', ',')) + ' | ' + (Math.round((k[1] + K.nn) / 10) / 100).toFixed(2).replace('.', ',') + ' m ü. NN') + '</text>');
+    });
+    erweitere(textX + 3200, 0);
+    body.push(kotenText.join(''));
+
+    var titel = '<text class="s-titel" x="' + H.f(G.s0) + '" y="' + H.f(bb.y0 - 520) + '">' + H.esc(z.name) + '</text>' +
+      '<text class="s-sub" x="' + H.f(G.s0) + '" y="' + H.f(bb.y0 - 280) + '">' + H.esc(blickText(z)) + '</text>';
+    erweitere(G.s0, bb.y0 - 600);
+    var rand = 600, vx = bb.x0 - rand, vy = bb.y0 - rand, vw = bb.x1 - bb.x0 + 2 * rand, vh = bb.y1 - bb.y0 + 2 * rand;
+    var size = standalone ? ' width="' + Math.round(vw / 6) + '" height="' + Math.round(vh / 6) + '"' : '';
+    var vb = H.f(vx) + ' ' + H.f(vy) + ' ' + H.f(vw) + ' ' + H.f(vh);
+    return '<svg xmlns="http://www.w3.org/2000/svg" class="plan" viewBox="' + vb + '"' + size + ' role="img" aria-label="' + H.esc(z.name) + '" data-zeichnung="' + z.art + '" data-id="' + H.esc(z.id) + '" data-viewbox="' + vb + '">' +
+      '<style>' + H.CSS + CSS_S + (standalone ? H.CSS_DUNKEL : '') + '</style>' + (standalone ? '<rect class="bg" x="' + H.f(vx) + '" y="' + H.f(vy) + '" width="' + H.f(vw) + '" height="' + H.f(vh) + '"/>' : '') +
+      '<g class="koerper">' + body.join('') + '</g><g class="massketten">' + kettenSvgTeile + '</g>' + titel + '</svg>';
+  };
+  function blickText(z) {
+    var b = z.blick, r = b[1] < -0.5 ? 'Norden' : b[1] > 0.5 ? 'Süden' : b[0] > 0.5 ? 'Osten' : 'Westen';
+    if (Math.abs(b[0]) > 0.5 && Math.abs(b[1]) > 0.5) r = (b[1] < 0 ? 'Nord' : 'Süd') + (b[0] > 0 ? 'osten' : 'westen');
+    else if (Math.abs(b[0]) > 0.1 && Math.abs(b[1]) > 0.1) r = 'etwa ' + r;
+    return z.art === 'schnitt' ? 'Blick nach ' + r + ', Länge ' + mText(z.laenge) : 'Blick nach ' + r;
+  }
+  function ansichtKoerper(H, z) {
+    var out = [];
+    z.waende.forEach(function (w) { out.push('<rect class="s-fassade" data-wand="' + H.esc(w.id) + '" x="' + H.f(w.s0) + '" y="' + H.f(-w.y1) + '" width="' + H.f(w.s1 - w.s0) + '" height="' + H.f(w.y1 - w.y0) + '"><title>' + H.esc(w.id) + '</title></rect>'); });
+    z.oeffnungen.forEach(function (o) {
+      var x = H.f(o.s0), y = H.f(-o.y1), w = H.f(o.s1 - o.s0), h = H.f(o.y1 - o.y0), tuer = o.art === 'tuer' || o.art === 'durchgang';
+      var g = '<g data-oeffnung="' + H.esc(o.name) + '"><rect class="s-oeff" x="' + x + '" y="' + y + '" width="' + w + '" height="' + h + '"><title>' + H.esc(o.name) + ' (' + o.art + ')</title></rect>';
+      if (o.art === 'fenster' || o.art === 'fenstertuer') g += '<line class="s-oefft" x1="' + H.f((o.s0 + o.s1) / 2) + '" y1="' + y + '" x2="' + H.f((o.s0 + o.s1) / 2) + '" y2="' + H.f(-o.y0) + '"/>';
+      if (tuer) g += '<line class="s-oefft" x1="' + H.f(o.s0 + 120) + '" y1="' + H.f(-o.y0 - (o.y1 - o.y0) / 2) + '" x2="' + H.f(o.s0 + 120) + '" y2="' + H.f(-o.y0 - (o.y1 - o.y0) / 2 - 250) + '"/>';
+      out.push(g + '</g>');
+    });
+    if (z.kamin) out.push('<rect class="s-kamin" x="' + H.f(z.kamin.s0) + '" y="' + H.f(-z.kamin.y1) + '" width="' + H.f(z.kamin.s1 - z.kamin.s0) + '" height="' + H.f(z.kamin.y1 - z.kamin.y0) + '"><title>Kamin</title></rect>');
+    if (z.dach.length) {
+      out.push('<path class="s-dach" d="' + poly2svg(H, z.dach) + 'L' + H.f(z.dach[z.dach.length - 1][0]) + ' ' + H.f(-z.traufKante) + 'L' + H.f(z.dach[0][0]) + ' ' + H.f(-z.traufKante) + 'Z"/>');
+      out.push('<path class="s-dachlinie" d="' + poly2svg(H, z.dach) + 'L' + H.f(z.dach[z.dach.length - 1][0]) + ' ' + H.f(-z.traufKante) + 'L' + H.f(z.dach[0][0]) + ' ' + H.f(-z.traufKante) + 'Z"/>');
+    }
+    (z.kanten || []).forEach(function (k) { out.push('<line class="s-grat" x1="' + H.f(k.a[0]) + '" y1="' + H.f(-k.a[1]) + '" x2="' + H.f(k.b[0]) + '" y2="' + H.f(-k.b[1]) + '"/>'); });
+    z.dachfenster.forEach(function (f) { out.push('<rect class="s-dfa" x="' + H.f(f.s0) + '" y="' + H.f(-f.y1) + '" width="' + H.f(f.s1 - f.s0) + '" height="' + H.f(f.y1 - f.y0) + '"><title>Dachfenster ' + H.esc(f.id) + ' (' + H.esc(f.typ) + ')</title></rect>'); });
+    return out.join('');
+  }
 })();
 
 
@@ -1441,6 +2035,14 @@ var grundrissAbleiten, kettenSchnitt, grundrissSvg;
      { wandtyp: "IW125", wert }                              Dicke eines Wandtyps
      { wandende: "eg.dbad-west.bis", wert }                  Ende einer achsparallelen Wand (Achse oder Zahl)
      { oeffnung: "eg.har-sued.oeff1", feld, wert }           ab, breite, hoehe oder bruestung einer Öffnung
+   Höhen (Phase 5, aus Schnitt und Ansicht, src/schnitt.js) sind Maße mit dem Namen
+     hoehe:eg.lichte            lichte Höhe EG; der Deckenaufbau gibt nach (Geschosshöhe bleibt)
+     hoehe:dg.deckenaufbau      Deckenaufbau; die lichte Höhe gibt nach
+     hoehe:dg.okff              Geschosshöhe OKFF–OKFF (gesperrt, Treppenplanung: nur mit aussenmass); der Deckenaufbau gibt nach
+     hoehe:dach.traufe          Traufe über OKFF EG (der First steigt mit);  hoehe:dach.ueberstand  Dachüberstand
+     hoehe:<kniewand>           Höhe einer Kniewand (hoehe.max);  hoehe:dg.kniewand  alle Kniewände samt Sollwert
+     <wand>.oeff<k>.bruestung | .hoehe | .sturz   Brüstung, Höhe, Sturz (bis zur Decke) einer Öffnung im EG
+   Abgeleitet und nicht änderbar sind die Höhen bis zum First. Die Auswirkungen nennen auch Steigung und Kopfhöhe der Treppe und die Kniewandhöhen.
    Ein Maß hängt an mehreren Parametern (Achsen, Wandtypen). „Nachbar gibt nach“: Der Kern probiert jeden aus und wählt den mit der kleinsten
    Auswirkung (zuerst weniger neue Fehler, dann weniger veränderte Räume, dann weniger verschobene Wände); bei Gleichstand das hintere Ende
    (Ost bzw. Süd). `bewegt` gibt den Parameter vor. Gesperrte Parameter (fest: true) bewegt nur optionen.aussenmass. Entstehen neue Fehler,
@@ -1542,12 +2144,54 @@ var Aendern = (function () {
 
   /* ---------- Ableitung ---------- */
   function ableiten(haus) {
-    var WV = werteAufloesen(haus), abl = raeumeAbleiten(haus, WV), dach = dachAbleiten(haus, WV), befunde = pruefen(haus, WV, abl, dach), plaene = {};
-    return {
+    var WV = werteAufloesen(haus), abl = raeumeAbleiten(haus, WV), dach = dachAbleiten(haus, WV), befunde = pruefen(haus, WV, abl, dach), plaene = {}, schnitte = {}, ansichten = {}, hoehen = null;
+    var D = {
       haus: haus, WV: WV, abl: abl, dach: dach, befunde: befunde,
       plan: function (g) { if (!plaene[g]) plaene[g] = grundrissAbleiten(haus, WV, abl, dach, befunde, g); return plaene[g]; },
-      geschosse: Object.keys(abl.geschosse)
+      geschosse: Object.keys(abl.geschosse),
+      schnitte: function () { return schnittLinien(haus, WV); },
+      schnitt: function (id) { // id einer Schnittlinie aus haus.schnitte oder eine freie Linie { id, name, a, b }
+        var lin = typeof id === 'string' ? D.schnitte().filter(function (l) { return l.id === id; })[0] : id;
+        if (!lin) throw fehler('Schnitt unbekannt: ' + id);
+        if (typeof id !== 'string') return schnittAbleiten(haus, WV, abl, dach, lin);
+        if (!schnitte[id]) schnitte[id] = schnittAbleiten(haus, WV, abl, dach, lin);
+        return schnitte[id];
+      },
+      ansicht: function (seite) { if (!ansichten[seite]) ansichten[seite] = ansichtAbleiten(haus, WV, abl, dach, seite); return ansichten[seite]; },
+      hoehen: function () { if (!hoehen) hoehen = hoehenWerte(D); return hoehen; }
     };
+    return D;
+  }
+  /* Höhenwerte für die Auswirkungen: { name: { wert, text } } */
+  function hoehenWerte(D) {
+    var haus = D.haus, out = {}, G = haus.geschosse, yD = G.DG.okff;
+    function put(n, v, text) { out[n] = { wert: v, text: text }; }
+    put('hoehe:eg.lichte', G.EG.lichteHoehe, 'lichte Höhe EG');
+    if (G.DG.deckenaufbau != null) put('hoehe:dg.deckenaufbau', G.DG.deckenaufbau, 'Deckenaufbau');
+    put('hoehe:dg.okff', G.DG.okff - G.EG.okff, 'Geschosshöhe');
+    put('hoehe:dach.traufe', haus.dach.traufe, 'Traufe');
+    put('hoehe:dach.first', D.dach.first, 'First');
+    if (haus.treppe && haus.treppe.steigungen && haus.treppe.anker) {
+      var T = treppeAbleiten(haus, D.WV), K = treppeKopfhoehe(haus, D.WV, T, D.dach);
+      put('treppe.steigung', T.steigung, 'Steigung der Treppe');
+      put('treppe.schrittmass', 2 * T.steigung + T.auftritt, 'Schrittmaß 2s + a');
+      put('treppe.kopfhoehe', K.min, 'Kopfhöhe über der Treppe');
+    }
+    D.abl.geschosse.DG && D.abl.geschosse.DG.waende.forEach(function (w) { // niedrigste Oberkante der Wände mit Höhenvorgabe (Kniewände) über dem DG-Boden
+      if (w.trennlinie || !(w.wand.hoehe && w.wand.hoehe.max)) return;
+      var ln = w.linie, L = Math.hypot(ln.b[0] - ln.a[0], ln.b[1] - ln.a[1]), n = Math.max(1, Math.ceil(L / 100)), min = Infinity, i;
+      for (i = 0; i <= n; i++) min = Math.min(min, D.dach.wandOK(ln.a[0] + (ln.b[0] - ln.a[0]) * i / n, ln.a[1] + (ln.b[1] - ln.a[1]) * i / n, w.wand.hoehe.max, w.wand.dach === 'B') - yD);
+      put('hoehe:' + w.id, min, 'Kniewand ' + w.id);
+    });
+    haus.waende.forEach(function (w) {
+      if (w.geschoss !== 'EG') return;
+      (w.oeffnungen || []).forEach(function (o, k) {
+        var n = w.id + '.oeff' + (k + 1);
+        if (typeof o.hoehe === 'number') put(n + '.hoehe', o.hoehe, 'Höhe der Öffnung ' + n);
+        put(n + '.bruestung', o.bruestung || 0, 'Brüstung der Öffnung ' + n);
+      });
+    });
+    return out;
   }
   function massSuchen(D, name) {
     var treffer = null;
@@ -1650,7 +2294,9 @@ var Aendern = (function () {
   }
 
   function massAendern(S, ae, opt) {
-    var name = ae.mass, ziel = einheitParsen(ae.wert), D = S.D, m, mo = /^(.*)\.oeff(\d+)$/.exec(name);
+    var name = ae.mass, ziel = einheitParsen(ae.wert), D = S.D, m, mo = /^(.*)\.oeff(\d+)$/.exec(name), mh = /^(.*\.oeff\d+)\.(bruestung|hoehe|sturz)$/.exec(name);
+    if (/^hoehe:/.test(name)) return hoeheAendern(S, ae, ziel, opt);
+    if (mh && wandIndex(S.haus, /^(.*)\.oeff\d+$/.exec(mh[1])[1]) >= 0) return oeffnungsHoeheAendern(S, ae, mh[1], mh[2], ziel);
     if (mo && wandIndex(S.haus, mo[1]) >= 0) return oeffnungAendern(S, { oeffnung: name, feld: 'breite', wert: ziel, quelle: ae.quelle }, opt, name);
     m = massSuchen(D, name);
     if (!m) throw fehler('Maß unbekannt: ' + name + ' (Namen stehen im Grundriss beim Anklicken eines Maßes)');
@@ -1724,6 +2370,98 @@ var Aendern = (function () {
       text: name + ': ' + mmText(vorher) + ' → ' + mmText(ziel) + ' (bewegt: ' + gewaehlt.bezeichnung + ' ' + mmText(gewaehlt.wert) + ' → ' + mmText(neuerWert) + ')' +
             (gewaehlt.typ ? ', gilt für ' + betroffeneWaende(S.haus, gewaehlt) + ' Wände dieses Typs' : '')
     }, gewaehlt.pfad, ae, gewaehlt.bezeichnung);
+  }
+
+  /* ---------- Höhen ---------- */
+  function hoeheSchritt(S, ae, name, bezeichnung, pfad, vorher, nach, zusatz) {
+    return herkunft(S, { art: 'hoehe', ziel: name, von: vorher, nach: nach, parameter: { art: 'hoehe', name: name, bezeichnung: bezeichnung, von: vorher, nach: nach },
+      text: name + ': ' + mmText(vorher) + ' → ' + mmText(nach) + (zusatz ? ' (' + zusatz + ')' : '') }, pfad, ae, bezeichnung);
+  }
+  function hoeheAendern(S, ae, ziel, opt) {
+    var name = ae.mass, G = S.haus.geschosse, vorher, w, i;
+    if (ae.bewegt || ae.einzeln) throw fehler('bewegt und einzeln gelten nicht für Höhen (' + name + ')');
+    function unveraendert(v) { return { art: 'hoehe', ziel: name, von: v, nach: ziel, unveraendert: true, parameter: null, text: 'Maß ' + name + ' ist bereits ' + mmText(v) + ' – unverändert' }; }
+    function gh() { return G.DG.okff - G.EG.okff; }
+    if (name === 'hoehe:eg.lichte') {
+      vorher = G.EG.lichteHoehe;
+      if (!(ziel > 0)) throw fehler('Die lichte Höhe muss größer als 0 sein');
+      if (Math.abs(ziel - vorher) < TOL) return unveraendert(vorher);
+      var da = gh() - ziel;
+      if (G.DG.deckenaufbau != null && da < 0) throw fehler('Die lichte Höhe ' + mmText(ziel) + ' ist größer als die Geschosshöhe ' + mmText(gh()) + ': der Deckenaufbau würde negativ');
+      setzen(S, ['geschosse', 'EG', 'lichteHoehe'], ziel);
+      var zus = null;
+      if (G.DG.deckenaufbau != null) { zus = 'Deckenaufbau gibt nach: ' + mmText(G.DG.deckenaufbau) + ' → ' + mmText(da); setzen(S, ['geschosse', 'DG', 'deckenaufbau'], da); }
+      return hoeheSchritt(S, ae, name, 'lichte Höhe EG', ['geschosse', 'EG', 'lichteHoehe'], vorher, ziel, zus);
+    }
+    if (name === 'hoehe:dg.deckenaufbau') {
+      vorher = G.DG.deckenaufbau;
+      if (vorher == null) throw fehler('Der Deckenaufbau ist in den Daten nicht angegeben');
+      if (!(ziel > 0)) throw fehler('Der Deckenaufbau muss größer als 0 sein');
+      if (Math.abs(ziel - vorher) < TOL) return unveraendert(vorher);
+      var li = gh() - ziel;
+      if (li <= 0) throw fehler('Der Deckenaufbau ' + mmText(ziel) + ' ist nicht kleiner als die Geschosshöhe ' + mmText(gh()) + ': die lichte Höhe würde negativ');
+      setzen(S, ['geschosse', 'DG', 'deckenaufbau'], ziel);
+      var alt = G.EG.lichteHoehe; setzen(S, ['geschosse', 'EG', 'lichteHoehe'], li);
+      return hoeheSchritt(S, ae, name, 'Deckenaufbau', ['geschosse', 'DG', 'deckenaufbau'], vorher, ziel, 'lichte Höhe gibt nach: ' + mmText(alt) + ' → ' + mmText(li));
+    }
+    if (name === 'hoehe:dg.okff') {
+      vorher = gh();
+      if (G.DG.fest && !opt.aussenmass) throw fehler('Die Geschosshöhe ' + mmText(vorher) + ' ist gesperrt (Treppenplanung) und lässt sich nur mit aussenmass ändern (Befehlszeile --aussenmass)');
+      if (!(ziel > 0)) throw fehler('Die Geschosshöhe muss größer als 0 sein');
+      if (Math.abs(ziel - vorher) < TOL) return unveraendert(vorher);
+      var da2 = ziel - G.EG.lichteHoehe;
+      if (G.DG.deckenaufbau != null && da2 < 0) throw fehler('Die Geschosshöhe ' + mmText(ziel) + ' ist kleiner als die lichte Höhe ' + mmText(G.EG.lichteHoehe) + ': der Deckenaufbau würde negativ');
+      var daAlt = G.DG.deckenaufbau;
+      setzen(S, ['geschosse', 'DG', 'okff'], G.EG.okff + ziel);
+      if (daAlt != null) setzen(S, ['geschosse', 'DG', 'deckenaufbau'], da2);
+      return hoeheSchritt(S, ae, name, 'Geschosshöhe OKFF–OKFF', ['geschosse', 'DG', 'okff'], vorher, ziel, daAlt != null ? 'Deckenaufbau gibt nach: ' + mmText(daAlt) + ' → ' + mmText(da2) : null);
+    }
+    if (name === 'hoehe:dach.traufe' || name === 'hoehe:dach.ueberstand') {
+      var feld = name.slice('hoehe:dach.'.length);
+      vorher = S.haus.dach[feld];
+      if (feld === 'traufe' ? !(ziel > 0) : ziel < 0) throw fehler(feld === 'traufe' ? 'Die Traufe muss größer als 0 sein' : 'Der Dachüberstand darf nicht negativ sein');
+      if (Math.abs(ziel - vorher) < TOL) return unveraendert(vorher);
+      setzen(S, ['dach', feld], ziel);
+      return hoeheSchritt(S, ae, name, feld === 'traufe' ? 'Traufe' : 'Dachüberstand', ['dach', feld], vorher, ziel, feld === 'traufe' ? 'der First steigt mit' : null);
+    }
+    if (/^hoehe:(dach\.(first|traufe-first)|dg\.bis-first)$/.test(name)) throw fehler('Das Maß ' + name + ' ist abgeleitet (Dachneigung 35° ist gesperrt); die Traufe (hoehe:dach.traufe) ändern');
+    if (name === 'hoehe:dg.kniewand') {
+      var ws = S.haus.waende.map(function (x, k) { return { w: x, k: k }; }).filter(function (x) { return x.w.hoehe && x.w.hoehe.max != null; });
+      if (!ws.length) throw fehler('Keine Kniewände mit Höhenvorgabe in den Daten');
+      if (!(ziel > 0)) throw fehler('Die Kniewandhöhe muss größer als 0 sein');
+      vorher = ws[0].w.hoehe.max;
+      if (ws.every(function (x) { return Math.abs(x.w.hoehe.max - ziel) < TOL; }) && (S.haus.dg.kniewandSoll == null || Math.abs(S.haus.dg.kniewandSoll - ziel) < TOL)) return unveraendert(vorher);
+      ws.forEach(function (x) { setzen(S, ['waende', x.k, 'hoehe', 'max'], ziel); });
+      if (S.haus.dg.kniewandSoll != null) setzen(S, ['dg', 'kniewandSoll'], ziel);
+      var sc = hoeheSchritt(S, ae, name, 'Kniewandhöhe', ['waende', ws[0].k, 'hoehe', 'max'], vorher, ziel, ws.length + ' Wände und Sollwert'); sc.kniewaende = ws.map(function (x) { return x.w.id; }); return sc;
+    }
+    var mw = /^hoehe:(.+)$/.exec(name);
+    i = wandIndex(S.haus, mw[1]);
+    if (i >= 0 && S.haus.waende[i].hoehe && S.haus.waende[i].hoehe.max != null) {
+      w = S.haus.waende[i]; vorher = w.hoehe.max;
+      if (!(ziel > 0)) throw fehler('Die Wandhöhe muss größer als 0 sein');
+      if (Math.abs(ziel - vorher) < TOL) return unveraendert(vorher);
+      setzen(S, ['waende', i, 'hoehe', 'max'], ziel);
+      var sw = hoeheSchritt(S, ae, name, 'Höhe der Wand ' + w.id, ['waende', i, 'hoehe', 'max'], vorher, ziel, 'Höchstwert'); sw.kniewaende = [w.id]; return sw;
+    }
+    throw fehler('Höhenmaß unbekannt: ' + name + ' (hoehe:eg.lichte, hoehe:dg.deckenaufbau, hoehe:dg.okff, hoehe:dach.traufe, hoehe:dach.ueberstand, hoehe:dg.kniewand oder hoehe:<wand mit Höhenvorgabe>)');
+  }
+  function oeffnungsHoeheAendern(S, ae, oname, feld, ziel) { // Brüstung, Höhe oder Sturz einer Öffnung; der Sturz reicht bis zur Decke (lichte Höhe EG)
+    var mo = /^(.*)\.oeff(\d+)$/.exec(oname), wi = wandIndex(S.haus, mo[1]), k = parseInt(mo[2], 10) - 1, w = S.haus.waende[wi], o = (w.oeffnungen || [])[k];
+    if (!o) throw fehler('Öffnung unbekannt: ' + oname);
+    if (ae.bewegt || ae.einzeln) throw fehler('bewegt und einzeln gelten nicht für Höhen (' + ae.mass + ')');
+    if (feld === 'sturz') {
+      if (w.geschoss !== 'EG') throw fehler('Der Sturz wird nur im Erdgeschoss bis zur Decke gemessen (' + oname + ' liegt im ' + w.geschoss + ')');
+      if (typeof o.hoehe !== 'number') throw fehler('Die Öffnung ' + oname + ' hat keine Höhe in mm');
+      if (ziel < 0) throw fehler('Der Sturz darf nicht negativ sein (' + mmText(ziel) + ')');
+      var hoehe = S.haus.geschosse.EG.lichteHoehe - ziel - (o.bruestung || 0);
+      if (!(hoehe > 0)) throw fehler('Mit dem Sturz ' + mmText(ziel) + ' bliebe keine Öffnungshöhe (Brüstung ' + mmText(o.bruestung || 0) + ', lichte Höhe ' + mmText(S.haus.geschosse.EG.lichteHoehe) + ')');
+      var s1 = oeffnungAendern(S, { oeffnung: oname, feld: 'hoehe', wert: hoehe, quelle: ae.quelle }, {}, ae.mass);
+      if (!s1.unveraendert) s1.text = oname + '.sturz: ' + mmText(S.haus.geschosse.EG.lichteHoehe - (o.hoehe) - (o.bruestung || 0)) + ' → ' + mmText(ziel) + ' (Höhe der Öffnung ' + mmText(s1.von) + ' → ' + mmText(hoehe) + ')';
+      return s1;
+    }
+    if (ziel < 0 || (feld === 'hoehe' && ziel === 0)) throw fehler((feld === 'hoehe' ? 'Die Höhe' : 'Die Brüstung') + ' einer Öffnung darf nicht ' + (ziel < 0 ? 'negativ' : '0') + ' sein');
+    return oeffnungAendern(S, { oeffnung: oname, feld: feld, wert: ziel, quelle: ae.quelle }, {}, ae.mass);
   }
 
   function oeffnungAendern(S, ae, opt, urname) {
@@ -1824,13 +2562,14 @@ var Aendern = (function () {
         if (a.fest && (!b || JSON.stringify(a) !== JSON.stringify(b))) out.push(n);
       });
     });
+    if (alt.geschosse && alt.geschosse.DG && alt.geschosse.DG.fest && (!neu.geschosse || !neu.geschosse.DG || neu.geschosse.DG.okff !== alt.geschosse.DG.okff)) out.push('geschosse.DG.okff');
     if (alt.dach && alt.dach.fest && JSON.stringify(alt.dach.neigung) !== JSON.stringify(neu.dach && neu.dach.neigung)) out.push('dach.neigung');
     return out;
   }
 
   /* ---------- Auswirkungen ---------- */
   function auswirkungenBerechnen(D0, D1) {
-    var A = { raeume: [], masse: [], waende: [], oeffnungen: [], dach: [] };
+    var A = { raeume: [], masse: [], waende: [], oeffnungen: [], dach: [], hoehen: [] };
     function lichte(D, id) { var r = null; D.geschosse.forEach(function (g) { D.plan(g).raeume.forEach(function (q) { if (q.id === id) r = q; }); }); return r; }
     var alt = {};
     D0.abl.raeume.forEach(function (r) { alt[r.id] = r; });
@@ -1879,13 +2618,15 @@ var Aendern = (function () {
     }
     var d0 = dachWerte(D0), d1 = dachWerte(D1);
     Object.keys(d1).forEach(function (n) { if (n in d0 && Math.abs(d0[n] - d1[n]) > TOL) A.dach.push({ name: n, vorher: d0[n], nachher: d1[n] }); });
+    var h0 = D0.hoehen(), h1 = D1.hoehen();
+    Object.keys(h1).forEach(function (n) { if (n in h0 && Math.abs(h0[n].wert - h1[n].wert) > 1e-6) A.hoehen.push({ name: n, text: h1[n].text, vorher: h0[n].wert, nachher: h1[n].wert }); });
     return A;
   }
 
   /* ---------- Hauptfunktion ---------- */
   function aendern(haus, aenderungen, optionen) {
     var opt = optionen || {};
-    var res = { ok: false, haus: null, vorschauHaus: null, kanten: [], schritte: [], meldungen: [], auswirkungen: { raeume: [], masse: [], waende: [], oeffnungen: [], dach: [] }, befunde: { neu: [], behoben: [], fehlerNeu: [], alle: [] } };
+    var res = { ok: false, haus: null, vorschauHaus: null, kanten: [], schritte: [], meldungen: [], auswirkungen: { raeume: [], masse: [], waende: [], oeffnungen: [], dach: [], hoehen: [] }, befunde: { neu: [], behoben: [], fehlerNeu: [], alle: [] } };
     var S = null;
     try {
       if (!Array.isArray(aenderungen) || !aenderungen.length) throw fehler('Keine Änderungen angegeben.');
@@ -1902,6 +2643,12 @@ var Aendern = (function () {
         }
       });
       var D1 = S.D;
+      res.schritte.forEach(function (sc) { // Kniewände: Dachhaut abzüglich Sparrenabstand begrenzt die Höhe
+        (sc.kniewaende || []).forEach(function (id) {
+          var w = D1.hoehen()['hoehe:' + id], ziel = sc.nach;
+          if (!sc.unveraendert && w && w.wert < ziel - 0.5) res.meldungen.push('  Hinweis: ' + id + ' erreicht nur ' + mmText(w.wert) + ' (die Dachhaut abzüglich ' + mmText(S.haus.dg.wandAbstandDachhaut) + ' Sparrenabstand begrenzt die Wand), nicht ' + mmText(ziel) + '.');
+        });
+      });
       res.vorschauHaus = S.haus;
       Object.defineProperty(res, 'ableitung', { value: { vorher: D0, nachher: D1 }, enumerable: false });
       res.auswirkungen = auswirkungenBerechnen(D0, D1);
@@ -2024,6 +2771,7 @@ var Aendern = (function () {
       z.push('Öffnungen:');
       A.oeffnungen.forEach(function (o) { z.push('  ' + o.name + ': ' + (o.art === 'breite' ? 'Breite ' + de(o.vorher, 1) + ' → ' + de(o.nachher, 1) + ' mm' : 'verschoben um ' + de(o.weg, 1) + ' mm')); });
     }
+    if (A.hoehen.length) { z.push('Höhen:'); A.hoehen.forEach(function (h) { z.push('  ' + h.name + ' (' + h.text + '): ' + de(h.vorher, 2) + ' → ' + de(h.nachher, 2) + ' mm'); }); }
     if (A.dach.length) { z.push('Dach:'); A.dach.forEach(function (d) { z.push('  ' + d.name + ': ' + de(d.vorher, 1) + ' → ' + de(d.nachher, 1)); }); }
     if (res.vorschauHaus) {
       var B = res.befunde;
@@ -3750,16 +4498,18 @@ function buildModel(THREE, haus) {
 </script>
 <script>
 /* Plan 2D: zeigt den Grundriss (src/grundriss.js) in der Seite, mit Verschieben, Zoomen und Auswahl von Maßen, Räumen und Befunden.
-   Läuft nur im Browser. Die Seite speichert nichts. Umschalten zwischen 3D und den Grundrissen über die Schaltflächen „Darstellung“. */
+   Läuft nur im Browser. Die Seite speichert nichts. Umschalten zwischen 3D, den Grundrissen, den Schnitten und den Ansichten über die Schaltflächen
+   „Darstellung“ (data-modus: 3d, EG, DG, sch:A, sch:B, sch:frei, an:N, an:O, an:S, an:W; Schnitte und Ansichten zeichnet src/schnitt.js). */
 (function () {
   'use strict';
   var shell = document.getElementById('shell'), host = document.getElementById('plan2d'), box = document.getElementById('planSvg'), info = document.getElementById('planInfo'), panel = document.getElementById('panel');
-  if (!host || !box || typeof grundrissAbleiten !== 'function') return;
-  var D = null, markName = null, geschoss = null, svg = null, vb = null, vb0 = null, aus = null, auswahlRaum = null;
+  if (!host || !box || typeof grundrissAbleiten !== 'function' || typeof schnittSvg !== 'function') return;
+  var D = null, markName = null, geschoss = null, frei = null, zeichnen = null, svg = null, vb = null, vb0 = null, aus = null, auswahlRaum = null;
   var probe = { an: false, liste: [], res: null, mass: null }; // Probiermodus: Änderungen auf einer Kopie der Daten, die Seite speichert nichts
   var opt = { massketten: true, raeume: true, oeffnungen: true, marken: true };
   var HERKUNFT = { plan: 'Plan', aufmass: 'Aufmaß', nutzer: 'Angabe des Nutzers', annahme: 'Annahme', ohne: 'ohne Herkunftsangabe' };
   var HINWEIS = 'Ein Maß, einen Raum oder eine Markierung anklicken.';
+  var HINWEIS_SCHNITT = 'Ein Maß oder eine Wand anklicken. Die Höhen lassen sich im Probiermodus ändern.';
   var modusBtns = [].slice.call(document.querySelectorAll('[data-modus]'));
   var boxen = { massketten: 'p-mass', raeume: 'p-raeume', oeffnungen: 'p-oeff', marken: 'p-marken' };
 
@@ -3768,6 +4518,15 @@ function buildModel(THREE, haus) {
   function aktuellesHaus() { return probe.an && probe.res && probe.res.vorschauHaus ? probe.res.vorschauHaus : HAUS; }
   function daten() { if (!D) D = Aendern.ableiten(aktuellesHaus()); return D; }
   function plan(g) { return daten().plan(g); }
+  function istGrundriss(m) { return m === 'EG' || m === 'DG'; }
+  function freieLinie(a, b) { var L = Math.hypot(b[0] - a[0], b[1] - a[1]); return { id: 'F', name: 'Schnitt F–F (frei)', a: a, b: b, laenge: L, u: [(b[0] - a[0]) / L, (b[1] - a[1]) / L], blick: [(b[1] - a[1]) / L + 0, -(b[0] - a[0]) / L + 0] }; }
+  function linienListe() { return daten().schnitte().concat(frei ? [frei] : []); }
+  function zeichnungVon(m) { // Schnitt oder Ansicht zum Darstellungsmodus
+    var d = daten();
+    if (/^sch:/.test(m)) return m === 'sch:frei' ? d.schnitt(frei) : d.schnitt(m.slice(4));
+    return d.ansicht(m.slice(3));
+  }
+  function modusVonSchnitt(id) { return id === 'F' ? 'sch:frei' : 'sch:' + id; }
 
   /* ---------- Anzeige ---------- */
   function layout() {
@@ -3777,10 +4536,15 @@ function buildModel(THREE, haus) {
   }
   function setVB() { if (svg && vb) svg.setAttribute('viewBox', vb.map(function (v) { return Math.round(v * 10) / 10; }).join(' ')); }
   function darstellen(neu) {
-    var p = plan(geschoss), g = geschoss;
-    box.innerHTML = grundrissSvg(p, opt);
-    svg = box.firstChild;
-    if (probe.an && probe.res && probe.res.ableitung) svg.insertAdjacentHTML('beforeend', Aendern.vergleichUeberlagerung(probe.res, g || geschoss)); // alter Wandumriss gestrichelt
+    var g = geschoss;
+    if (istGrundriss(g)) {
+      box.innerHTML = grundrissSvg(plan(g), Object.assign({}, opt, { schnittlinien: linienListe() }));
+      svg = box.firstChild;
+      if (probe.an && probe.res && probe.res.ableitung) svg.insertAdjacentHTML('beforeend', Aendern.vergleichUeberlagerung(probe.res, g)); // alter Wandumriss gestrichelt
+    } else {
+      box.innerHTML = schnittSvg(zeichnungVon(g), opt);
+      svg = box.firstChild;
+    }
     var n = svg.getAttribute('data-viewbox').split(' ').map(Number);
     if (neu || !vb) { vb0 = n; vb = n.slice(); }
     setVB();
@@ -3796,13 +4560,17 @@ function buildModel(THREE, haus) {
     geschoss = g;
     layout();
     darstellen(wechsel || neu);
-    if (wechsel) { auswahlRaum = null; markName = null; info.textContent = HINWEIS; }
+    if (wechsel) { auswahlRaum = null; markName = null; info.textContent = istGrundriss(g) ? HINWEIS : HINWEIS_SCHNITT; }
   }
   function setModus(m) {
     var an = m !== '3d';
+    if (m === 'sch:frei' && !frei) return;
+    if (!istGrundriss(m)) zeichnen = null;
     host.hidden = !an;
     shell.classList.toggle('modus2d', an);
     modusBtns.forEach(function (b) { var on = b.getAttribute('data-modus') === m; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    var fb = document.getElementById('btnFrei');
+    if (fb) fb.hidden = !frei;
     if (an) { daten(); zeige(m, false); if (!info.textContent) info.textContent = HINWEIS; }
     else probe3d();
   }
@@ -3829,7 +4597,9 @@ function buildModel(THREE, haus) {
   var SVGNS = 'http://www.w3.org/2000/svg';
   function ringPfad(r) { return 'M' + r.map(function (p) { return Math.round(p[0] * 10) / 10 + ' ' + Math.round(p[1] * 10) / 10; }).join('L') + 'Z'; }
   function bereicheVon(el) { // Flächen, die zu einem Maß gehören (src/grundriss.js, markieren): Wand, Pfeiler, Ausschnitt, Außenwände
-    var name = el.getAttribute('data-name'), art = el.getAttribute('data-art'), p = plan(geschoss), out = [];
+    var name = el.getAttribute('data-name'), art = el.getAttribute('data-art'), out = [];
+    if (!istGrundriss(geschoss)) return out;
+    var p = plan(geschoss);
     if (art === 'oeffnung') { p.oeffnungen.forEach(function (o) { if (o.name === name) out.push(o.ring); }); return out; }
     var von = Number(el.getAttribute('data-von')), bis = Number(el.getAttribute('data-bis')), ri = el.getAttribute('data-richtung');
     p.ketten.forEach(function (k) {
@@ -3864,7 +4634,7 @@ function buildModel(THREE, haus) {
     var wert = Number(el.getAttribute('data-wert')), q = el.getAttribute('data-quelle');
     probeMass(el);
     info.textContent = el.getAttribute('data-name') + ' · ' + mass(wert) + ' (' + fmt(wert, wert % 1 ? 1 : 0) + ' mm) · Herkunft: ' + HERKUNFT[q] +
-      (el.getAttribute('data-fest') === '1' ? ' · gesperrt (Außenmaß)' : '') + (el.getAttribute('data-schraeg') ? ' · schräg gemessen' : '');
+      (el.getAttribute('data-fest') === '1' ? ' · gesperrt (Außenmaß)' : '') + (el.getAttribute('data-schraeg') ? ' · schräg gemessen' : '') + (el.getAttribute('data-abgeleitet') ? ' · abgeleitet, nicht änderbar' : '');
   }
   function markiereRaum(id) {
     auswahlRaum = id;
@@ -3881,11 +4651,42 @@ function buildModel(THREE, haus) {
     var m = plan(geschoss).marken[Number(g.getAttribute('data-marke'))];
     if (m) info.textContent = (m.stufe === 'fehler' ? 'Fehler' : m.stufe === 'warnung' ? 'Warnung' : 'Hinweis') + ' · Regel ' + m.regel + ': ' + m.text;
   }
-  function klick(t) {
-    if (!t || !t.closest) return;
-    var m = t.closest('[data-name]'), g = t.closest('[data-marke]'), r = t.closest('[data-raum]');
-    if (m) waehleMass(m); else if (g) waehleMarke(g); else if (r) waehleRaum(r.getAttribute('data-raum'));
+  /* Schnittlinie legen: zwei Punkte im Grundriss (auf 10 mm gerastet, fast waagerechte oder senkrechte Linien rasten ein) */
+  function rasten(p, a) {
+    var x = Math.round(p.x / 10) * 10, z = Math.round(p.y / 10) * 10;
+    if (a) { var dx = x - a[0], dz = z - a[1], t = Math.tan(3 * Math.PI / 180); if (Math.abs(dz) < t * Math.abs(dx)) z = a[1]; else if (Math.abs(dx) < t * Math.abs(dz)) x = a[0]; }
+    return [x, z];
   }
+  function schnittLegen(e) {
+    var p = rasten(punkt(e.clientX, e.clientY), zeichnen.a);
+    if (!zeichnen.a) {
+      zeichnen.a = p;
+      var c = document.createElementNS(SVGNS, 'circle');
+      c.setAttribute('cx', p[0]); c.setAttribute('cy', p[1]); c.setAttribute('r', 90); c.setAttribute('class', 'hl'); c.setAttribute('style', 'fill:var(--pe);stroke:none');
+      svg.appendChild(c);
+      info.textContent = 'Schnittlinie: den zweiten Punkt anklicken. Der Blick geht nach links von der Laufrichtung.';
+      return;
+    }
+    if (Math.hypot(p[0] - zeichnen.a[0], p[1] - zeichnen.a[1]) < 500) { info.textContent = 'Schnittlinie: die Punkte liegen zu dicht beieinander, bitte den zweiten Punkt weiter weg anklicken.'; return; }
+    frei = freieLinie(zeichnen.a, p); zeichnen = null;
+    host.classList.remove('zeichnet');
+    setModus('sch:frei');
+  }
+  function klick(t, e) {
+    if (zeichnen && e && istGrundriss(geschoss)) { schnittLegen(e); return; }
+    if (!t || !t.closest) return;
+    var m = t.closest('[data-name]'), g = t.closest('[data-marke]'), r = t.closest('[data-raum]'), sl = t.closest('[data-schnitt]'), w = t.closest('[data-wand]'), st = t.closest('[data-stufe]');
+    if (m) waehleMass(m); else if (g) waehleMarke(g); else if (sl) setModus(modusVonSchnitt(sl.getAttribute('data-schnitt')));
+    else if (r) waehleRaum(r.getAttribute('data-raum'));
+    else if (st && st.getAttribute('data-stufe') && !istGrundriss(geschoss)) info.textContent = 'Stufe ' + st.getAttribute('data-stufe') + ' · ' + (st.querySelector('title') || {}).textContent;
+    else if (w) info.textContent = 'Wand ' + w.getAttribute('data-wand');
+  }
+  var neuBtn = document.getElementById('sl-neu');
+  if (neuBtn) neuBtn.addEventListener('click', function () {
+    if (!istGrundriss(geschoss)) setModus('EG');
+    zeichnen = { a: null }; host.classList.add('zeichnet');
+    info.textContent = 'Schnittlinie: den ersten Punkt im Grundriss anklicken.';
+  });
 
   /* ---------- Verschieben und Zoomen ---------- */
   function punkt(cx, cy) { var p = svg.createSVGPoint(); p.x = cx; p.y = cy; return p.matrixTransform(svg.getScreenCTM().inverse()); }
@@ -3926,7 +4727,7 @@ function buildModel(THREE, haus) {
     if (!zeiger[e.pointerId]) return;
     delete zeiger[e.pointerId];
     host.classList.remove('zieht');
-    if (start && !start.bewegt && e.type === 'pointerup') klick(start.ziel);
+    if (start && !start.bewegt && e.type === 'pointerup') klick(start.ziel, e);
     if (!anzahl()) start = null;
   }
   host.addEventListener('pointerup', ende); host.addEventListener('pointercancel', ende);
@@ -4046,8 +4847,8 @@ function buildModel(THREE, haus) {
       info.textContent = (b.stufe === 'fehler' ? 'Fehler' : b.stufe === 'warnung' ? 'Warnung' : 'Hinweis') + ' · Regel ' + b.regel + ': ' + b.text;
     }
   };
-  var h0 = (window.location.hash || '').toLowerCase();
-  if (h0 === '#eg' || h0 === '#dg') setModus(h0.slice(1).toUpperCase());
+  var h0 = (window.location.hash || '').toLowerCase(), HASH = { '#eg': 'EG', '#dg': 'DG', '#schnitt-a': 'sch:A', '#schnitt-b': 'sch:B', '#nord': 'an:N', '#ost': 'an:O', '#sued': 'an:S', '#west': 'an:W' };
+  if (HASH[h0]) setModus(HASH[h0]);
 })();
 
 </script>

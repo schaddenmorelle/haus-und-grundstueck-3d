@@ -193,5 +193,16 @@ function oeff(an, id) { return an.oeffnungen.filter(o => o.name === id)[0]; }
   check(dk.every(v => nahe(v, 2400)), 'Decke beginnt bei 2400: ' + dk);
 }
 
+/* ---------- docs/plaene/*.svg schreibt der Build; hier nur der Hinweis, wenn sie nicht mehr zur Quelle passen ---------- */
+{
+  const fs = require('fs'), path = require('path');
+  const soll = { 'schnitt-a.svg': schnittSvg(sA, { standalone: true }), 'schnitt-b.svg': schnittSvg(sB, { standalone: true }) };
+  [['N', 'nord'], ['O', 'ost'], ['S', 'sued'], ['W', 'west']].forEach(([s, n]) => { soll['ansicht-' + n + '.svg'] = schnittSvg(ansichtAbleiten(A.h, A.WV, A.abl, A.dach, s), { standalone: true }); });
+  Object.keys(soll).forEach(n => {
+    const f = path.join(__dirname, '..', 'docs', 'plaene', n);
+    if (fs.existsSync(f) && fs.readFileSync(f, 'utf8').trimEnd() !== soll[n]) console.log('Hinweis: docs/plaene/' + n + ' ist nicht aktuell (npm run build)');
+  });
+}
+
 if (fails.length) { console.error('Schnitt und Ansicht: ' + fails.length + ' Prüfung(en) fehlgeschlagen:\n- ' + fails.join('\n- ')); process.exit(1); }
 console.log('Schnitt und Ansicht: alle Prüfungen bestanden (A–A: ' + sA.flaechen.length + ' Flächen, ' + sA.treppe.stufen.length + ' Stufen)');
