@@ -444,5 +444,35 @@ const speis = lauf([{ mass: 'raum:speis.tiefe', wert: '1,30m' }]);
   check(r.status === 0 && JSON.parse(fs.readFileSync(datei, 'utf8')).geschosse.DG.okff === 3000, 'CLI hoehe:dg.okff mit --aussenmass: ' + r.stdout + r.stderr);
 }
 
+{ // Aufmaß bestätigt einen Wert (Phase 6): gleicher Wert mit Herkunft setzt nur die Herkunft des Parameters, den eine Änderung bewegen würde
+  const h = lauf([{ mass: 'raum:speis.tiefe', wert: '1,26m', quelle: 'aufmass' }]);
+  check(h.ok && h.kanten.length === 1 && pfadGleich(h.kanten, ['achsen', 'z.speisS', 'quelle'], 'aufmass'), 'Herkunft ohne Wertänderung: nur die quelle der Achse z.speisS ändert sich: ' + JSON.stringify(h.kanten) + kurz(h));
+  check(JSON.stringify(h.haus.achsen['z.speisS']).replace(/"quelle":"aufmass"/, '"quelle":"plan"') === JSON.stringify(haus.achsen['z.speisS']), 'Der Wert der Achse bleibt');
+  check(h.auswirkungen.raeume.length === 0 && h.auswirkungen.waende.length === 0, 'Keine Auswirkung auf Räume und Wände');
+  check(!/Alles unverändert/.test(kurz(h)) && /Herkunft/.test(kurz(h)), 'Die Ausgabe nennt die Herkunft statt "Alles unverändert": ' + kurz(h));
+  // dieselbe Wahl des Parameters wie bei einer echten Änderung des Maßes
+  const echt = lauf([{ mass: 'raum:speis.tiefe', wert: '1,30m', quelle: 'aufmass' }]);
+  check(echt.kanten[0].pfad[1] === h.kanten[0].pfad[1] && echt.kanten[0].pfad[1] === 'z.speisS', 'Gleicher Parameter wie bei einer echten Änderung: ' + JSON.stringify(echt.kanten[0].pfad));
+  // ohne Herkunft bleibt es "unverändert"
+  const o = lauf([{ mass: 'raum:speis.tiefe', wert: '1,26m' }]);
+  check(o.ok && o.kanten.length === 0 && /Alles unverändert/.test(kurz(o)), 'Ohne Herkunft: unverändert');
+  // Öffnung: Fenster der Nordwand 1,01 m (Plan, Kette oben) bestätigt als Aufmaß; Öffnung, die schon Aufmaß ist: nichts zu schreiben
+  const oe = lauf([{ mass: 'eg.aw.nord.oeff1', wert: '101cm', quelle: 'aufmass' }]);
+  check(oe.ok && oe.kanten.length === 1 && oe.kanten[0].pfad.slice(-1)[0] === 'quelle' && oe.kanten[0].wert === 'aufmass' && oe.haus.waende[idx('eg.aw.nord')].oeffnungen[0].breite === 1010, 'Öffnung bestätigt: ' + JSON.stringify(oe.kanten) + kurz(oe));
+  check(lauf([{ mass: 'eg.har-sued.oeff1', wert: '88,5cm', quelle: 'aufmass' }]).kanten.length === 0, 'Öffnung mit gleicher Herkunft: keine Stelle zu ändern');
+  // gesperrte Außenmaße bleiben gesperrt, auch für die Herkunft; mit aussenmass geht es
+  check(!lauf([{ mass: 'aussen:breite', wert: '12,95m', quelle: 'aufmass' }]).ok, 'Außenmaß: Herkunft nur mit aussenmass');
+  const am = lauf([{ mass: 'aussen:breite', wert: '12,95m', quelle: 'aufmass' }], { aussenmass: true });
+  check(am.ok && am.kanten.length === 1 && am.kanten[0].pfad.slice(-1)[0] === 'quelle', 'Außenmaß mit aussenmass: ' + JSON.stringify(am.kanten) + kurz(am));
+  // Pfeiler: nicht für sich
+  wirft(() => { const r = lauf([{ mass: 'eg.aw.nord.pfeiler1', wert: '5,555m', quelle: 'aufmass' }]); if (!r.ok) throw new Error(kurz(r)); }, /Pfeiler|Öffnung|nicht/, 'Pfeiler');
+  // Befehlszeile
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'haus-herkunft-')), datei = path.join(dir, 'haus.json');
+  fs.writeFileSync(datei, HAUS_TEXT);
+  const r = spawnSync(process.execPath, [path.join(__dirname, 'aendern.js'), '--datei', datei, '--quelle', 'aufmass', 'raum:speis.tiefe=1,26m'], { encoding: 'utf8' });
+  const neu = fs.readFileSync(datei, 'utf8'), unterschied = neu.split('\n').filter((l, i) => l !== HAUS_TEXT.split('\n')[i]);
+  check(r.status === 0 && unterschied.length === 1 && /"z\.speisS"/.test(unterschied[0]) && /"quelle": "aufmass"/.test(unterschied[0]), 'CLI: genau eine Zeile ändert sich (die Herkunft): ' + r.stdout + r.stderr + unterschied.join('|'));
+}
+
 if (fails.length) { console.log('FEHLER:\n  ' + fails.join('\n  ')); process.exit(1); }
 console.log('Änderungen: alle Prüfungen bestanden');
